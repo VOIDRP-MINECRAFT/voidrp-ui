@@ -19,8 +19,8 @@ class BossBarRenderer {
 
     private val bars = mutableMapOf<UUID, BossBar>()
 
-    fun render(player: Player, elements: List<Element>) {
-        val title = GlyphEncoder.encodeAll(elements)
+    fun render(player: Player, rects: List<Rect>) {
+        val title = GlyphEncoder.encode(rects)
         val bar = bars.getOrPut(player.uniqueId) {
             BossBar.bossBar(title, 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS).also { player.showBossBar(it) }
         }

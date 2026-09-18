@@ -4,114 +4,108 @@ package ru.voidrp.ui.pack
  * The patched text shaders that make a vanilla client draw our interface.
  *
  * Minecraft draws chat, boss bars and the rest of the GUI through one vertex shader for
- * text. We replace it with a version that recognises our own glyphs and puts them where
- * the server says, so a page travels as ordinary text the client already knows how to
- * render. Every other glyph is left exactly as vanilla drew it.
+ * text. We replace it with a version that recognises our own glyphs and moves them, so a
+ * page travels as ordinary text the client already knows how to render. Every other glyph
+ * is left exactly as vanilla drew it.
  *
- * ### What a vertex shader can and cannot know
+ * ### Who decides what
  *
- * It sees one vertex at a time and cannot look at its neighbours, so everything about a
- * glyph must travel in that vertex's own attributes. Two are usable:
+ * A vertex shader sees one vertex at a time and nothing else, so the work is split:
  *
- *  - **Colour** — 24 bits. Red is the marker, green and blue the position (8 bits each,
- *    ~7.5 × 4.2 canvas pixels per step; finer placement is a later refinement).
- *  - **gl_VertexID** — every glyph is four vertices in a fixed order, so the index
- *    modulo 4 tells each vertex *which corner of the quad it is*. That is what lets the
- *    shader rebuild the quad at an arbitrary size: corner × size + position. (UV0 looks
- *    like it would do, but glyphs live in a shared font atlas — verified on a real
- *    client: using UV shrank the quad to a dot.)
+ *  - **The client lays out x.** A page is one line of text. Invisible spacer characters
+ *    of known width move the pen, so the client itself puts every glyph at the right
+ *    horizontal offset, to the pixel. The shader reads that offset back out of where the
+ *    vertex ended up.
+ *  - **The colour carries y and the fill colour.** 24 bits: a 4-bit marker, 10 bits of y,
+ *    10 bits of colour (RGB 3-4-3).
+ *  - **The font carries the shape.** Rectangles of power-of-two sides are baked into the
+ *    font, so the client draws the quad at the right size; letters are ordinary glyphs.
+ *    Nothing about a page is baked into the pack — only this alphabet.
  *
- * Note it cannot be done with the vertex's own position: the four corners arrive at
- * different places and nothing in them says where the glyph started, so a shift computed
- * per vertex tears the quad apart.
+ * ### Why the line is zero wide
  *
- * ### The canvas
- *
- * Pages are authored against a fixed canvas stretched over the whole window. The window
- * size in GUI units is never sent to the shader, but the projection matrix encodes it:
- * an orthographic GUI projection maps x from 0..width onto -1..1, so width is
- * 2/ProjMat[0][0]. That holds at any resolution and any GUI scale.
+ * A boss bar centres its title. On 26.2 that centring is baked straight into the vertex
+ * positions (verified on a live client: a long line shifted everything left by half its
+ * width). The encoder ends every line by returning the pen to zero, so the line has zero
+ * width and starts at the centre of the screen; the shader measures x from there, in the
+ * final NDC. Canvas units map straight to NDC, stretching the canvas over the whole
+ * window at any resolution and GUI scale. Depth comes from the original transform.
  */
 object Shaders {
 
     /**
-     * Marks a glyph as ours: the whole red channel equals this value.
+     * Marks a glyph as ours: the high nibble of the red channel equals this value.
      *
-     * Chosen so no standard Minecraft colour can hit it. The first version used the top
-     * four bits (0xA) and turned out to match GRAY (#AAAAAA) — every grey word on screen
-     * was mistaken for an element and flung across the canvas. 0xB5 (181) is not the red
-     * of any of the 16 named colours (00, 55, AA, FF), so only a hand-picked RGB colour
-     * with exactly this red can collide.
+     * The 16 named Minecraft colours have red 00, 55, AA or FF — nibbles 0, 5, A, F — so
+     * none of them can hit 0xB. (An earlier marker of 0xA matched GRAY #AAAAAA: every grey
+     * word on screen was mistaken for an element and flung across the canvas.)
      */
-    const val MARKER = 0xB5
+    const val MARKER = 0xB
 
     const val CANVAS_WIDTH = 1920
     const val CANVAS_HEIGHT = 1080
 
-    /** Bits per axis: green carries x, blue carries y, 8 bits each. */
-    const val POSITION_BITS = 8
+    /** Vertical position bits: 1024 steps over the canvas height, about a pixel each. */
+    const val Y_BITS = 10
 
-    /** Element size in canvas pixels for this first cut — one fixed size until the ladder lands. */
-    const val FIXED_SIZE = 64
+    /** Colour bits: red 3, green 4, blue 3. */
+    const val COLOUR_BITS = 10
 
-    private const val POSITION_STEPS = 1 shl POSITION_BITS
+    private const val Y_MAX = (1 shl Y_BITS) - 1
 
-    /** Shared between both shader layouts: decode, and map canvas pixels to GUI units. */
+    /**
+     * How far below the top of the screen the first boss bar's text line puts a glyph with
+     * ascent 0, in GUI units. Measured on a live 26.2 client (a rectangle meant for y=100
+     * landed ~10 units low). Holds while our bar is the first one on screen.
+     */
+    const val LINE_TOP = 10
+
     private val COMMON = """
-        // Unpacks the marker and position from the vertex colour.
-        // Returns false for ordinary text, which is then drawn untouched.
-        // (Not named "packed": that is a reserved word in GLSL, and strict drivers
-        // reject the whole shader over it while lenient compilers let it pass.)
-        bool voidrp_decode(vec4 color, out vec2 canvasPos) {
+        // Our glyph: the high nibble of red is the marker. The remaining 20 bits are
+        // y (10) followed by the fill colour (10, RGB 3-4-3).
+        // (Nothing here may be named "packed" — a reserved word in GLSL that makes strict
+        // drivers reject the whole shader while lenient compilers let it pass.)
+        bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill) {
             int red = int(floor(color.r * 255.0 + 0.5));
-            if (red != ${MARKER}) {
+            if ((red >> 4) != ${MARKER}) {
                 return false;
             }
-            float qx = floor(color.g * 255.0 + 0.5);
-            float qy = floor(color.b * 255.0 + 0.5);
-            canvasPos = vec2(
-                qx * ${CANVAS_WIDTH}.0 / ${POSITION_STEPS - 1}.0,
-                qy * ${CANVAS_HEIGHT}.0 / ${POSITION_STEPS - 1}.0
-            );
+            int bits = ((red & 15) << 16)
+                     | (int(floor(color.g * 255.0 + 0.5)) << 8)
+                     |  int(floor(color.b * 255.0 + 0.5));
+            int qy = (bits >> ${COLOUR_BITS}) & ${Y_MAX};
+            int c = bits & ${(1 shl COLOUR_BITS) - 1};
+            canvasY = float(qy) * ${CANVAS_HEIGHT}.0 / ${Y_MAX}.0;
+            fill = vec3(float((c >> 7) & 7) / 7.0,
+                        float((c >> 3) & 15) / 15.0,
+                        float(c & 7) / 7.0);
             return true;
         }
 
-        // Canvas pixels straight to normalised device coordinates. Deliberately bypasses
-        // ProjMat and ModelViewMat: the boss bar (and every other GUI element) carries its
-        // own translation in ModelViewMat, so going through the matrices would drag the
-        // glyph along with whatever it happens to be attached to. NDC is the whole window,
-        // at any resolution and any GUI scale.
-        vec2 voidrp_ndc(vec2 canvasPos) {
-            return vec2(canvasPos.x / ${CANVAS_WIDTH}.0 * 2.0 - 1.0,
-                        1.0 - canvasPos.y / ${CANVAS_HEIGHT}.0 * 2.0);
-        }
-
-        // Which corner of its quad this vertex is. Every glyph is exactly four vertices,
-        // emitted top-left, bottom-left, bottom-right, top-right, so the vertex index
-        // says it. (UV0 cannot: glyphs are packed into a shared font atlas, so their
-        // texture coordinates are a tiny slice of it, not 0..1.)
-        vec2 voidrp_corner() {
-            int i = gl_VertexID % 4;
-            if (i == 0) return vec2(0.0, 0.0);
-            if (i == 1) return vec2(0.0, 1.0);
-            if (i == 2) return vec2(1.0, 1.0);
-            return vec2(1.0, 0.0);
-        }
-
-        // Rebuilds the quad from the corner. Keeps the original depth
-        // so the glyph still layers like the text it came from.
-        vec4 voidrp_place(vec2 canvasPos, vec2 corner, vec4 original) {
-            vec2 origin = voidrp_ndc(canvasPos);
-            vec2 size = vec2(${FIXED_SIZE}.0 / ${CANVAS_WIDTH}.0 * 2.0,
-                             -${FIXED_SIZE}.0 / ${CANVAS_HEIGHT}.0 * 2.0);
-            vec2 ndc = origin + corner * size;
-            return vec4(ndc * original.w, original.z, original.w);
+        // Where the client put this vertex -> where the page wants it, in NDC.
+        //
+        // The line is built with zero total width, so the boss bar's centring leaves its
+        // start at the centre of the screen. Reading the pen offset back out of the final
+        // NDC (not from Position) makes this independent of whether the client baked that
+        // centring into the vertices or into ModelViewMat — on 26.2 it is baked in.
+        //
+        // Vertically, the boss bar's own text line sits LINE_TOP GUI units below the top
+        // of the screen; subtracting it leaves just the glyph's own extent (0 at its top
+        // edge, its height at the bottom), which is added to the y carried in the colour.
+        vec4 voidrp_place(float canvasY, vec4 original) {
+            vec2 ndc = original.xy / original.w;
+            float penX = ndc.x / ProjMat[0][0];
+            float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
+            vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
+            vec2 target = vec2(canvas.x / ${CANVAS_WIDTH}.0 * 2.0 - 1.0,
+                               1.0 - canvas.y / ${CANVAS_HEIGHT}.0 * 2.0);
+            return vec4(target * original.w, original.z, original.w);
         }
     """.trimIndent()
 
-    /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
     val TEXT_VSH_MODERN: String get() = MODERN_TEMPLATE
 
+    /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
     private val MODERN_TEMPLATE = """
         #version 330
 
@@ -142,20 +136,19 @@ object Shaders {
         //__VOIDRP_COMMON__
 
         void main() {
-            vec3 pos = Position;
+            gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
             vec4 tint = Color;
 
-            gl_Position = ProjMat * ModelViewMat * vec4(pos, 1.0);
-
-            vec2 canvasPos;
-            if (voidrp_decode(Color, canvasPos)) {
-                gl_Position = voidrp_place(canvasPos, voidrp_corner(), gl_Position);
-                tint = vec4(1.0, 1.0, 1.0, 1.0);
+            float canvasY;
+            vec3 fill;
+            if (voidrp_decode(Color, canvasY, fill)) {
+                gl_Position = voidrp_place(canvasY, gl_Position);
+                tint = vec4(fill, 1.0);
             }
 
         #if !defined(IS_GUI) && !defined(IS_SEE_THROUGH)
-            sphericalVertexDistance = fog_spherical_distance(pos);
-            cylindricalVertexDistance = fog_cylindrical_distance(pos);
+            sphericalVertexDistance = fog_spherical_distance(Position);
+            cylindricalVertexDistance = fog_cylindrical_distance(Position);
             vertexColor = tint * sample_lightmap(Sampler2, UV2);
         #else
             vertexColor = tint;
@@ -164,9 +157,9 @@ object Shaders {
         }
     """.trimIndent().replace("//__VOIDRP_COMMON__", COMMON)
 
-    /** 1.21.6 … 26.1.2: the older `rendertype_text.vsh`, GLSL 150, one file per variant. */
     val TEXT_VSH_LEGACY: String get() = LEGACY_TEMPLATE
 
+    /** 1.21.6 … 26.1.2: the older `rendertype_text.vsh`, GLSL 150. */
     private val LEGACY_TEMPLATE = """
         #version 150
 
@@ -189,19 +182,18 @@ object Shaders {
         //__VOIDRP_COMMON__
 
         void main() {
-            vec3 pos = Position;
+            gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
             vec4 tint = Color;
 
-            gl_Position = ProjMat * ModelViewMat * vec4(pos, 1.0);
-
-            vec2 canvasPos;
-            if (voidrp_decode(Color, canvasPos)) {
-                gl_Position = voidrp_place(canvasPos, voidrp_corner(), gl_Position);
-                tint = vec4(1.0, 1.0, 1.0, 1.0);
+            float canvasY;
+            vec3 fill;
+            if (voidrp_decode(Color, canvasY, fill)) {
+                gl_Position = voidrp_place(canvasY, gl_Position);
+                tint = vec4(fill, 1.0);
             }
 
-            sphericalVertexDistance = fog_spherical_distance(pos);
-            cylindricalVertexDistance = fog_cylindrical_distance(pos);
+            sphericalVertexDistance = fog_spherical_distance(Position);
+            cylindricalVertexDistance = fog_cylindrical_distance(Position);
             vertexColor = tint * texelFetch(Sampler2, UV2 / 16, 0);
             texCoord0 = UV0;
         }

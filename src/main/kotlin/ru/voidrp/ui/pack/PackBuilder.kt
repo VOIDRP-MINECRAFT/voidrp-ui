@@ -88,7 +88,7 @@ class PackBuilder(
             zip.put("assets/minecraft/textures/gui/sprites/boss_bar/white_progress.png", transparent(182, 5))
 
             zip.put("assets/voidrp/font/ui.json", fontDefinition())
-            zip.put("assets/voidrp/textures/gui/panel.png", panelTexture())
+            rectTextures().forEach { (name, png) -> zip.put("assets/voidrp/textures/gui/$name.png", png) }
         }
 
         val data = bytes.toByteArray()
@@ -121,26 +121,54 @@ class PackBuilder(
     """.trimIndent()
 
     /**
-     * One glyph with a texture to itself, which is what makes the corner trick work: its
-     * four vertices reach the shader with UV (0,0)…(1,1), so each vertex knows which
-     * corner of the quad it is and the shader can rebuild the quad at any size.
+     * The alphabet every page is drawn with: nothing page-specific ever lands in the pack.
      *
-     * The height here only decides how much room the client reserves in the line — the
-     * size actually drawn comes from the shader.
+     *  - **Rectangles** of every power-of-two width and height, 1…1024 each way. Any
+     *    rectangle is a handful of these side by side, so the client draws quads of the
+     *    exact size and the shader never has to scale anything.
+     *  - **Spacers** that move the pen by ±1, ±2, ±4 … ±1024 without drawing, which is how
+     *    a page places every glyph horizontally to the pixel.
+     *
+     * Ascent 0 puts a rectangle's top on the line's baseline, so the y carried in its
+     * colour is exactly where its top edge lands.
      */
-    private fun fontDefinition(): String = """
-        {
-          "providers": [
-            {
-              "type": "bitmap",
-              "file": "voidrp:gui/panel.png",
-              "ascent": 7,
-              "height": 8,
-              "chars": ["\ue000"]
+    private fun fontDefinition(): String {
+        val providers = mutableListOf<String>()
+        for (w in 0..Glyphs.MAX_EXP) {
+            for (h in 0..Glyphs.MAX_EXP) {
+                providers += """
+                    {"type": "bitmap", "file": "voidrp:gui/${Glyphs.textureName(w, h)}.png",
+                     "ascent": 0, "height": ${1 shl h}, "chars": ["${Glyphs.rect(w, h).escaped()}"]}
+                """.trimIndent()
             }
-          ]
         }
-    """.trimIndent()
+        val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
+            "\"${char.escaped()}\": $advance"
+        }
+        providers += """{"type": "space", "advances": { $advances }}"""
+        return """{ "providers": [ ${providers.joinToString(",\n")} ] }"""
+    }
+
+    /**
+     * One white texture per aspect ratio. The bitmap provider scales a texture to the glyph
+     * height and keeps its proportions, so a W×H rectangle needs a W:H texture — kept to
+     * the smallest pixels that express the ratio (at most 1024×1).
+     */
+    private fun rectTextures(): Map<String, ByteArray> {
+        val out = mutableMapOf<String, ByteArray>()
+        for (w in 0..Glyphs.MAX_EXP) for (h in 0..Glyphs.MAX_EXP) {
+            val name = Glyphs.textureName(w, h)
+            if (name in out) continue
+            val tw = if (w >= h) 1 shl (w - h) else 1
+            val th = if (h > w) 1 shl (h - w) else 1
+            val image = BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB)
+            for (x in 0 until tw) for (y in 0 until th) image.setRGB(x, y, 0xFFFFFFFF.toInt())
+            out[name] = image.toPng()
+        }
+        return out
+    }
+
+    private fun String.escaped(): String = codePoints().toArray().joinToString("") { "\\u%04x".format(it) }
 
     /** A plain white square — pages tint it, so one texture serves every panel. */
     private fun panelTexture(): ByteArray {

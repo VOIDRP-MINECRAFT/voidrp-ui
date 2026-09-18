@@ -16,7 +16,7 @@ import org.bukkit.scheduler.BukkitTask
 import ru.voidrp.ui.command.UiCommand
 import ru.voidrp.ui.pack.PackBuilder
 import ru.voidrp.ui.render.BossBarRenderer
-import ru.voidrp.ui.render.Element
+import ru.voidrp.ui.render.Rect
 
 /**
  * Real interfaces on a vanilla client: no mods, no launcher of ours, nothing for the
@@ -107,9 +107,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 stopSweep(player)
                 return@Runnable
             }
-            val x = (tick * 16) % 1920
+            val x = (tick * 16) % (1920 - 64)
             val y = 540 + (Math.sin(tick / 10.0) * 300).toInt()
-            renderer.render(player, listOf(Element(x, y)))
+            renderer.render(player, listOf(Rect(x, y, 64, 64, 0xFFFFFF)))
             tick++
         }, 0L, 2L)
     }
