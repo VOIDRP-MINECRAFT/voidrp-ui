@@ -1,0 +1,16 @@
+name: VoidRpUI
+version: '${version}'
+main: ru.voidrp.ui.VoidRpUiPlugin
+api-version: '1.21'
+author: VoidRP
+website: https://void-rp.ru
+description: Настоящие интерфейсы на ванильном клиенте. Открытый код, MIT.
+commands:
+  vui:
+    description: Интерфейсы VoidRP UI
+    permission: voidrp.ui.admin
+    usage: /vui pack|test|sweep|clear
+permissions:
+  voidrp.ui.admin:
+    description: Управление интерфейсами
+    default: op
