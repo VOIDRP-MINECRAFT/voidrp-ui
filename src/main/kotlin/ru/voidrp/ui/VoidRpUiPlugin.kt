@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import ru.voidrp.ui.command.UiCommand
 import ru.voidrp.ui.pack.PackBuilder
+import ru.voidrp.ui.pack.PackServer
 import ru.voidrp.ui.page.PageManager
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
@@ -34,6 +35,10 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
+    private var packServer: PackServer? = null
+
+    /** The address each player typed to get here; the one to hand them the pack from. */
+    private val hostnames = mutableMapOf<UUID, String>()
 
     override fun onEnable() {
         saveDefaultConfig()
@@ -43,6 +48,13 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             withOverlay = config.getBoolean("pack.legacy-overlay", true),
         ).build(packFile)
         logger.info("Ресурспак собран: ${packFile.name}, ${packFile.length() / 1024} КБ, sha1 $packHash")
+
+        // Serving the pack ourselves is what makes this plugin drop-in: no zip to host,
+        // nothing to keep in step with the build.
+        if (config.getString("pack.url").isNullOrBlank() && config.getBoolean("pack.serve.enabled", true)) {
+            val port = config.getInt("pack.serve.port", 8123)
+            packServer = PackServer(packFile, port, logger).takeIf { it.start() }
+        }
 
         server.pluginManager.registerEvents(this, this)
         server.pluginManager.registerEvents(pages, this)
@@ -57,10 +69,17 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     }
 
     override fun onDisable() {
+        packServer?.stop()
         pages.shutdown()
         sweeps.values.forEach { it.cancel() }
         sweeps.clear()
         renderer.clearAll()
+    }
+
+    /** The hostname is only known at login, and it is what the pack link is built from. */
+    @EventHandler
+    fun onLogin(event: org.bukkit.event.player.PlayerLoginEvent) {
+        hostnames[event.player.uniqueId] = event.hostname
     }
 
     @EventHandler
@@ -78,6 +97,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
+        hostnames.remove(event.player.uniqueId)
         stopSweep(event.player)
         renderer.clear(event.player)
     }
@@ -88,9 +108,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      * instead of replacing it.
      */
     fun sendPack(player: Player) {
-        val url = config.getString("pack.url").orEmpty()
+        val url = packUrl(player)
         if (url.isBlank()) {
-            logger.warning("pack.url не задан — игрокам нечего скачивать. Укажите адрес, по которому раздаётся ${packFile.name}.")
+            logger.warning("Пак негде взять: укажите pack.url или включите pack.serve.enabled.")
             return
         }
         val info = ResourcePackInfo.resourcePackInfo()
@@ -105,6 +125,28 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 .prompt(Component.text("Интерфейсы сервера. void-rp.ru", NamedTextColor.AQUA))
                 .build()
         )
+    }
+
+    /**
+     * Where this player should fetch the pack.
+     *
+     * Players reach a server by whatever name they typed, which is often not the name the
+     * machine knows itself by, so the link is built from that — it then works the same for
+     * someone on the same network and someone on the other side of the internet, with
+     * nothing to configure. A server behind a proxy, or one that would rather host the zip
+     * elsewhere, sets pack.url and none of this applies.
+     */
+    private fun packUrl(player: Player): String {
+        config.getString("pack.url")?.takeIf { it.isNotBlank() }?.let { return it }
+        val serving = packServer ?: return ""
+        val configured = config.getString("pack.serve.host").orEmpty()
+        val host = when {
+            configured.isNotBlank() -> configured
+            else -> hostnames[player.uniqueId]?.substringBefore(':')?.takeIf { it.isNotBlank() }
+                ?: player.address?.address?.hostAddress
+                ?: "127.0.0.1"
+        }
+        return serving.urlFor(host)
     }
 
     /** Moves a panel across the canvas so placement can be judged while it is in motion. */

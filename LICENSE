@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 VoidRP (https://void-rp.ru)
+Copyright (c) 2026 VoidRP (void-rp.ru)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +19,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+This project bundles the Inter typeface by Rasmus Andersson, used under the
+SIL Open Font License 1.1. Its licence text ships inside the jar at
+font/Inter-OFL.txt.
