@@ -175,11 +175,15 @@ class PageSession(
         const val EASING = 0.35
 
         /**
-         * Swings closer together than this are one press being held. The client swings
-         * about every three hundred milliseconds while a button is down, so this sits just
-         * above that.
+         * Swings closer together than this are one press being held.
+         *
+         * Measured on a live client: holding the button swings every tick, exactly fifty
+         * milliseconds apart, whether the crosshair is on a block or on the sky, while
+         * clicking as fast as a hand can manage leaves at least a hundred and forty. The
+         * two never meet, so the line sits between them and a held button is one press
+         * while every real click counts.
          */
-        const val HOLD_GAP_MS = 400L
+        const val HOLD_GAP_MS = 110L
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f

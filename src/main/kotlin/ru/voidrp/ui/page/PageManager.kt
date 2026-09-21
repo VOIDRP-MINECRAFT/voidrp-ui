@@ -94,11 +94,20 @@ class PageManager(
 
     private fun session(player: Player): PageSession? = sessions[player.uniqueId]
 
+    /** Set by /vui clicks: prints how fast swings arrive, to tune what counts as a press. */
+    var traceClicks = false
+    private var lastTrace = 0L
+
     @EventHandler(priority = EventPriority.LOWEST)
     fun onSwing(event: PlayerAnimationEvent) {
         if (event.animationType != PlayerAnimationType.ARM_SWING) return
         val session = session(event.player) ?: return
         event.isCancelled = true
+        if (traceClicks) {
+            val now = System.currentTimeMillis()
+            plugin.logger.info("взмах ${event.player.name}: +${now - lastTrace} мс")
+            lastTrace = now
+        }
         session.click(Button.LEFT)
     }
 

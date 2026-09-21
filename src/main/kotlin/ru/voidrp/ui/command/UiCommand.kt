@@ -195,6 +195,16 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                 }
             }
 
+            "clicks" -> {
+                plugin.pages.traceClicks = !plugin.pages.traceClicks
+                sender.sendMessage(
+                    Component.text(
+                        if (plugin.pages.traceClicks) "Замер взмахов включён — держите и щёлкайте." else "Замер выключен.",
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
             "demo" -> {
                 plugin.renderer.render(sender, demoPage())
                 sender.sendMessage(Component.text("Демо-окно. /vui clear — убрать.", NamedTextColor.AQUA))
@@ -262,5 +272,5 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         command: Command,
         alias: String,
         args: Array<out String>,
-    ): List<String> = if (args.size == 1) listOf("pack", "open", "sens", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
+    ): List<String> = if (args.size == 1) listOf("pack", "open", "sens", "clicks", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
 }
