@@ -10,6 +10,8 @@ import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.Box
+import ru.voidrp.ui.render.CornerPiece
+import ru.voidrp.ui.render.Painter
 import ru.voidrp.ui.render.Label
 import ru.voidrp.ui.render.Node
 import ru.voidrp.ui.style.Paint
@@ -74,6 +76,24 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+        // Runs from the console too: it draws nothing, it only reports what a page would
+        // turn into, which is exactly what is needed when something lands in the wrong place.
+        if (args.firstOrNull()?.lowercase() == "stats") {
+            val shapes = Painter.flatten(demoPage())
+            sender.sendMessage("Демо-страница: ${shapes.size} фигур — список в логе сервера.")
+            plugin.logger.info("Демо-страница: ${shapes.size} фигур")
+            shapes.forEach { node ->
+                plugin.logger.info(
+                    when (node) {
+                        is Rect -> "  rect ${node.width}x${node.height} @ ${node.x},${node.y} #%06X a%.2f".format(node.paint.rgb, node.paint.alpha)
+                        is CornerPiece -> "  corner r${node.radius} ${node.corner} @ ${node.x},${node.y} a%.2f".format(node.paint.alpha)
+                        is Label -> "  label \"${node.text}\" size ${node.size} @ ${node.x},${node.y}"
+                        is Box -> "  box (не развёрнут)"
+                    }
+                )
+            }
+            return true
+        }
         if (sender !is Player) {
             sender.sendMessage("Команда только для игроков.")
             return true
@@ -115,6 +135,29 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                 sender.sendMessage(Component.text("Демо-окно. /vui clear — убрать.", NamedTextColor.AQUA))
             }
 
+            // One styled box, large, so anything wrong with an edge or a corner is
+            // impossible to miss.
+            "style" -> {
+                val name = args.getOrNull(1)?.lowercase() ?: "card"
+                val style = when (name) {
+                    "page" -> Theme.page
+                    "accent" -> Theme.cardAccent
+                    "button" -> Theme.buttonPrimary
+                    "ghost" -> Theme.buttonGhost
+                    else -> Theme.card
+                }
+                val w = 700
+                val h = 300
+                plugin.renderer.render(sender, listOf(
+                    Box(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, Theme.scrim),
+                    Box(
+                        (Shaders.CANVAS_WIDTH - w) / 2, (Shaders.CANVAS_HEIGHT - h) / 2, w, h, style,
+                        listOf(Label(0, 0, name, 3, style.textColour)),
+                    ),
+                ))
+                sender.sendMessage(Component.text("Стиль «$name», блок $w×$h.", NamedTextColor.AQUA))
+            }
+
             "text" -> {
                 val size = args.getOrNull(1)?.toIntOrNull() ?: 2
                 val text = args.drop(2).joinToString(" ").ifBlank { "Съешь ещё этих булок, ABC 123" }
@@ -153,5 +196,5 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         command: Command,
         alias: String,
         args: Array<out String>,
-    ): List<String> = if (args.size == 1) listOf("pack", "test", "text", "demo", "sweep", "debug", "clear") else emptyList()
+    ): List<String> = if (args.size == 1) listOf("pack", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
 }
