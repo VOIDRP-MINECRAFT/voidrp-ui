@@ -133,7 +133,7 @@ object Layout {
             is Image -> {
                 val size = Icons.nearestSize(view.size)
                 Icons.glyph(view.item)?.let { glyph ->
-                    out += Sprite(x, y, glyph, Icons.advance(size), font = Icons.fontName(size))
+                    out += Sprite(x, y, glyph, Icons.advance(view.item, size), font = Icons.fontName(size))
                 }
             }
 

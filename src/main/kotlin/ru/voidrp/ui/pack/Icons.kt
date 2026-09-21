@@ -18,17 +18,34 @@ object Icons {
 
     private const val BASE = 0xF000
 
-    /** Item texture names, as the client has them (`diamond`, `oak_planks`, …). */
-    val NAMES: List<String> by lazy {
+    /**
+     * Item texture names and how wide the picture in each one actually is.
+     *
+     * The width matters because the client advances a glyph by the width of its ink, and
+     * an item texture is 16 pixels of canvas with the drawing somewhere inside it — a
+     * diamond is fourteen wide, a door thirteen. Assuming all sixteen made every page with
+     * icons on it drift sideways. The numbers are measured once from the client's own
+     * textures; only the numbers travel with us.
+     *
+     * Textures that are not 16×16 — animated ones like the clock, and the oversized
+     * in-hand pictures — are left out, because a glyph would draw every frame at once.
+     */
+    private val table: List<Pair<String, Int>> by lazy {
         Icons::class.java.getResourceAsStream("/icons/vanilla_items.txt")
             ?.bufferedReader()
             ?.readLines()
-            ?.map { it.trim() }
-            ?.filter { it.isNotEmpty() }
+            ?.mapNotNull { line ->
+                val parts = line.trim().split(' ')
+                if (parts.size == 2) parts[0] to (parts[1].toIntOrNull() ?: 16) else null
+            }
             ?: emptyList()
     }
 
-    private val index: Map<String, Int> by lazy { NAMES.withIndex().associate { (i, name) -> name to i } }
+    val NAMES: List<String> get() = table.map { it.first }
+
+    private val index: Map<String, Int> by lazy {
+        table.withIndex().associate { (i, entry) -> entry.first to i }
+    }
 
     fun fontName(size: Int): String = "icons_$size"
 
@@ -40,8 +57,15 @@ object Icons {
     fun glyph(name: String): String? =
         index[normalise(name)]?.let { String(Character.toChars(BASE + it)) }
 
-    /** A square icon advances by its own width plus the pixel every bitmap glyph adds. */
-    fun advance(size: Int): Int = nearestSize(size) + 1
+    /**
+     * How far the pen moves past an icon: the ink of that picture, scaled to the size it
+     * is drawn at, plus the pixel every bitmap glyph adds.
+     */
+    fun advance(name: String, size: Int): Int {
+        val drawn = nearestSize(size)
+        val ink = index[normalise(name)]?.let { table[it].second } ?: 16
+        return Math.round(ink.toDouble() * drawn / 16).toInt() + 1
+    }
 
     /** `minecraft:diamond`, `diamond` and `DIAMOND` all name the same picture. */
     private fun normalise(name: String): String =
@@ -57,7 +81,7 @@ object Icons {
         val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
             "\"${Fonts.escapeJson(char)}\": $advance"
         }
-        val providers = NAMES.mapIndexed { i, name ->
+        val providers = table.mapIndexed { i, (name, _) ->
             """{"type": "bitmap", "file": "minecraft:item/$name.png", "ascent": 0,
                 "height": $size, "chars": ["${Fonts.escapeJson(String(Character.toChars(BASE + i)))}"]}"""
         }

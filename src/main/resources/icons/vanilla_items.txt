@@ -1,796 +1,788 @@
-acacia_boat
-acacia_chest_boat
-acacia_door
-acacia_hanging_sign
-acacia_sign
-allay_spawn_egg
-amethyst_shard
-angler_pottery_sherd
-apple
-archer_pottery_sherd
-armadillo_scute
-armadillo_spawn_egg
-armor_stand
-arms_up_pottery_sherd
-arrow
-axolotl_bucket
-axolotl_spawn_egg
-baked_potato
-bamboo
-bamboo_chest_raft
-bamboo_door
-bamboo_hanging_sign
-bamboo_raft
-bamboo_sign
-barrier
-bat_spawn_egg
-beef
-bee_spawn_egg
-beetroot
-beetroot_seeds
-beetroot_soup
-bell
-birch_boat
-birch_chest_boat
-birch_door
-birch_hanging_sign
-birch_sign
-black_bundle
-black_bundle_open_back
-black_bundle_open_front
-black_candle
-black_dye
-black_harness
-blade_pottery_sherd
-blaze_powder
-blaze_rod
-blaze_spawn_egg
-blue_bundle
-blue_bundle_open_back
-blue_bundle_open_front
-blue_candle
-blue_dye
-blue_egg
-blue_harness
-bogged_spawn_egg
-bolt_armor_trim_smithing_template
-bone
-bone_meal
-book
-bordure_indented_banner_pattern
-bow
-bowl
-bow_pulling_0
-bow_pulling_1
-bow_pulling_2
-bread
-breeze_rod
-breeze_spawn_egg
-brewer_pottery_sherd
-brewing_stand
-brick
-brown_bundle
-brown_bundle_open_back
-brown_bundle_open_front
-brown_candle
-brown_dye
-brown_egg
-brown_harness
-brush
-bucket
-bundle
-bundle_open_back
-bundle_open_front
-burn_pottery_sherd
-cake
-camel_husk_spawn_egg
-camel_spawn_egg
-campfire
-candle
-carrot
-carrot_on_a_stick
-cat_spawn_egg
-cauldron
-cave_spider_spawn_egg
-chainmail_boots
-chainmail_chestplate
-chainmail_helmet
-chainmail_leggings
-charcoal
-cherry_boat
-cherry_chest_boat
-cherry_door
-cherry_hanging_sign
-cherry_sign
-chest_minecart
-chicken
-chicken_spawn_egg
-chorus_fruit
-clay_ball
-clock_00
-clock_01
-clock_02
-clock_03
-clock_04
-clock_05
-clock_06
-clock_07
-clock_08
-clock_09
-clock_10
-clock_11
-clock_12
-clock_13
-clock_14
-clock_15
-clock_16
-clock_17
-clock_18
-clock_19
-clock_20
-clock_21
-clock_22
-clock_23
-clock_24
-clock_25
-clock_26
-clock_27
-clock_28
-clock_29
-clock_30
-clock_31
-clock_32
-clock_33
-clock_34
-clock_35
-clock_36
-clock_37
-clock_38
-clock_39
-clock_40
-clock_41
-clock_42
-clock_43
-clock_44
-clock_45
-clock_46
-clock_47
-clock_48
-clock_49
-clock_50
-clock_51
-clock_52
-clock_53
-clock_54
-clock_55
-clock_56
-clock_57
-clock_58
-clock_59
-clock_60
-clock_61
-clock_62
-clock_63
-coal
-coast_armor_trim_smithing_template
-cocoa_beans
-cod
-cod_bucket
-cod_spawn_egg
-command_block_minecart
-comparator
-compass_00
-compass_01
-compass_02
-compass_03
-compass_04
-compass_05
-compass_06
-compass_07
-compass_08
-compass_09
-compass_10
-compass_11
-compass_12
-compass_13
-compass_14
-compass_15
-compass_16
-compass_17
-compass_18
-compass_19
-compass_20
-compass_21
-compass_22
-compass_23
-compass_24
-compass_25
-compass_26
-compass_27
-compass_28
-compass_29
-compass_30
-compass_31
-cooked_beef
-cooked_chicken
-cooked_cod
-cooked_mutton
-cooked_porkchop
-cooked_rabbit
-cooked_salmon
-cookie
-copper_axe
-copper_boots
-copper_chain
-copper_chestplate
-copper_door
-copper_golem_spawn_egg
-copper_helmet
-copper_hoe
-copper_horse_armor
-copper_ingot
-copper_lantern
-copper_leggings
-copper_nautilus_armor
-copper_nugget
-copper_pickaxe
-copper_shovel
-copper_spear
-copper_spear_in_hand
-copper_sword
-cow_spawn_egg
-creaking_spawn_egg
-creeper_banner_pattern
-creeper_spawn_egg
-crimson_door
-crimson_hanging_sign
-crimson_sign
-crossbow_arrow
-crossbow_firework
-crossbow_pulling_0
-crossbow_pulling_1
-crossbow_pulling_2
-crossbow_standby
-cyan_bundle
-cyan_bundle_open_back
-cyan_bundle_open_front
-cyan_candle
-cyan_dye
-cyan_harness
-danger_pottery_sherd
-dark_oak_boat
-dark_oak_chest_boat
-dark_oak_door
-dark_oak_hanging_sign
-dark_oak_sign
-diamond
-diamond_axe
-diamond_boots
-diamond_chestplate
-diamond_helmet
-diamond_hoe
-diamond_horse_armor
-diamond_leggings
-diamond_nautilus_armor
-diamond_pickaxe
-diamond_shovel
-diamond_spear
-diamond_spear_in_hand
-diamond_sword
-disc_fragment_5
-dolphin_spawn_egg
-donkey_spawn_egg
-dragon_breath
-dried_kelp
-drowned_spawn_egg
-dune_armor_trim_smithing_template
-echo_shard
-egg
-elder_guardian_spawn_egg
-elytra
-elytra_broken
-emerald
-enchanted_book
-end_crystal
-ender_dragon_spawn_egg
-ender_eye
-enderman_spawn_egg
-endermite_spawn_egg
-ender_pearl
-evoker_spawn_egg
-experience_bottle
-explorer_pottery_sherd
-exposed_copper_chain
-exposed_copper_door
-exposed_copper_lantern
-eye_armor_trim_smithing_template
-feather
-fermented_spider_eye
-field_masoned_banner_pattern
-filled_map
-filled_map_markings
-fire_charge
-firefly_bush
-firework_rocket
-firework_star
-firework_star_overlay
-fishing_rod
-fishing_rod_cast
-flint
-flint_and_steel
-flow_armor_trim_smithing_template
-flow_banner_pattern
-flower_banner_pattern
-flower_pot
-flow_pottery_sherd
-fox_spawn_egg
-friend_pottery_sherd
-frog_spawn_egg
-furnace_minecart
-ghast_spawn_egg
-ghast_tear
-glass_bottle
-glistering_melon_slice
-globe_banner_pattern
-glow_berries
-glow_ink_sac
-glow_item_frame
-glow_squid_spawn_egg
-glowstone_dust
-goat_horn
-goat_spawn_egg
-golden_apple
-golden_axe
-golden_boots
-golden_carrot
-golden_chestplate
-golden_helmet
-golden_hoe
-golden_horse_armor
-golden_leggings
-golden_nautilus_armor
-golden_pickaxe
-golden_shovel
-golden_spear
-golden_spear_in_hand
-golden_sword
-gold_ingot
-gold_nugget
-gray_bundle
-gray_bundle_open_back
-gray_bundle_open_front
-gray_candle
-gray_dye
-gray_harness
-green_bundle
-green_bundle_open_back
-green_bundle_open_front
-green_candle
-green_dye
-green_harness
-guardian_spawn_egg
-gunpowder
-guster_banner_pattern
-guster_pottery_sherd
-happy_ghast_spawn_egg
-heartbreak_pottery_sherd
-heart_of_the_sea
-heart_pottery_sherd
-hoglin_spawn_egg
-honey_bottle
-honeycomb
-hopper
-hopper_minecart
-horse_spawn_egg
-host_armor_trim_smithing_template
-howl_pottery_sherd
-husk_spawn_egg
-ink_sac
-iron_axe
-iron_boots
-iron_chain
-iron_chestplate
-iron_door
-iron_golem_spawn_egg
-iron_helmet
-iron_hoe
-iron_horse_armor
-iron_ingot
-iron_leggings
-iron_nautilus_armor
-iron_nugget
-iron_pickaxe
-iron_shovel
-iron_spear
-iron_spear_in_hand
-iron_sword
-item_frame
-jungle_boat
-jungle_chest_boat
-jungle_door
-jungle_hanging_sign
-jungle_sign
-kelp
-knowledge_book
-lantern
-lapis_lazuli
-lava_bucket
-lead
-leaf_litter
-leather
-leather_boots
-leather_boots_overlay
-leather_chestplate
-leather_chestplate_overlay
-leather_helmet
-leather_helmet_overlay
-leather_horse_armor
-leather_horse_armor_overlay
-leather_leggings
-leather_leggings_overlay
-light
-light_00
-light_01
-light_02
-light_03
-light_04
-light_05
-light_06
-light_07
-light_08
-light_09
-light_10
-light_11
-light_12
-light_13
-light_14
-light_15
-light_blue_bundle
-light_blue_bundle_open_back
-light_blue_bundle_open_front
-light_blue_candle
-light_blue_dye
-light_blue_harness
-light_gray_bundle
-light_gray_bundle_open_back
-light_gray_bundle_open_front
-light_gray_candle
-light_gray_dye
-light_gray_harness
-lime_bundle
-lime_bundle_open_back
-lime_bundle_open_front
-lime_candle
-lime_dye
-lime_harness
-lingering_potion
-llama_spawn_egg
-mace
-magenta_bundle
-magenta_bundle_open_back
-magenta_bundle_open_front
-magenta_candle
-magenta_dye
-magenta_harness
-magma_cream
-magma_cube_spawn_egg
-mangrove_boat
-mangrove_chest_boat
-mangrove_door
-mangrove_hanging_sign
-mangrove_propagule
-mangrove_sign
-map
-melon_seeds
-melon_slice
-milk_bucket
-minecart
-miner_pottery_sherd
-mojang_banner_pattern
-mooshroom_spawn_egg
-mourner_pottery_sherd
-mule_spawn_egg
-mushroom_stew
-music_disc_11
-music_disc_13
-music_disc_5
-music_disc_blocks
-music_disc_bounce
-music_disc_cat
-music_disc_chirp
-music_disc_creator
-music_disc_creator_music_box
-music_disc_far
-music_disc_lava_chicken
-music_disc_mall
-music_disc_mellohi
-music_disc_otherside
-music_disc_pigstep
-music_disc_precipice
-music_disc_relic
-music_disc_stal
-music_disc_strad
-music_disc_tears
-music_disc_wait
-music_disc_ward
-mutton
-name_tag
-nautilus_shell
-nautilus_spawn_egg
-nether_brick
-netherite_axe
-netherite_boots
-netherite_chestplate
-netherite_helmet
-netherite_hoe
-netherite_horse_armor
-netherite_ingot
-netherite_leggings
-netherite_nautilus_armor
-netherite_pickaxe
-netherite_scrap
-netherite_shovel
-netherite_spear
-netherite_spear_in_hand
-netherite_sword
-netherite_upgrade_smithing_template
-nether_sprouts
-nether_star
-nether_wart
-oak_boat
-oak_chest_boat
-oak_door
-oak_hanging_sign
-oak_sign
-ocelot_spawn_egg
-ominous_bottle
-ominous_trial_key
-orange_bundle
-orange_bundle_open_back
-orange_bundle_open_front
-orange_candle
-orange_dye
-orange_harness
-oxidized_copper_chain
-oxidized_copper_door
-oxidized_copper_lantern
-painting
-pale_oak_boat
-pale_oak_chest_boat
-pale_oak_door
-pale_oak_hanging_sign
-pale_oak_sign
-panda_spawn_egg
-paper
-parched_spawn_egg
-parrot_spawn_egg
-phantom_membrane
-phantom_spawn_egg
-piglin_banner_pattern
-piglin_brute_spawn_egg
-piglin_spawn_egg
-pig_spawn_egg
-pillager_spawn_egg
-pink_bundle
-pink_bundle_open_back
-pink_bundle_open_front
-pink_candle
-pink_dye
-pink_harness
-pink_petals
-pitcher_plant
-pitcher_pod
-plenty_pottery_sherd
-pointed_dripstone
-poisonous_potato
-polar_bear_spawn_egg
-popped_chorus_fruit
-porkchop
-potato
-potion
-potion_overlay
-powder_snow_bucket
-prismarine_crystals
-prismarine_shard
-prize_pottery_sherd
-pufferfish
-pufferfish_bucket
-pufferfish_spawn_egg
-pumpkin_pie
-pumpkin_seeds
-purple_bundle
-purple_bundle_open_back
-purple_bundle_open_front
-purple_candle
-purple_dye
-purple_harness
-quartz
-rabbit
-rabbit_foot
-rabbit_hide
-rabbit_spawn_egg
-rabbit_stew
-raiser_armor_trim_smithing_template
-ravager_spawn_egg
-raw_copper
-raw_gold
-raw_iron
-recovery_compass_00
-recovery_compass_01
-recovery_compass_02
-recovery_compass_03
-recovery_compass_04
-recovery_compass_05
-recovery_compass_06
-recovery_compass_07
-recovery_compass_08
-recovery_compass_09
-recovery_compass_10
-recovery_compass_11
-recovery_compass_12
-recovery_compass_13
-recovery_compass_14
-recovery_compass_15
-recovery_compass_16
-recovery_compass_17
-recovery_compass_18
-recovery_compass_19
-recovery_compass_20
-recovery_compass_21
-recovery_compass_22
-recovery_compass_23
-recovery_compass_24
-recovery_compass_25
-recovery_compass_26
-recovery_compass_27
-recovery_compass_28
-recovery_compass_29
-recovery_compass_30
-recovery_compass_31
-red_bundle
-red_bundle_open_back
-red_bundle_open_front
-red_candle
-red_dye
-red_harness
-redstone
-repeater
-resin_brick
-resin_clump
-rib_armor_trim_smithing_template
-rotten_flesh
-saddle
-salmon
-salmon_bucket
-salmon_spawn_egg
-scrape_pottery_sherd
-seagrass
-sea_pickle
-sentry_armor_trim_smithing_template
-shaper_armor_trim_smithing_template
-sheaf_pottery_sherd
-shears
-sheep_spawn_egg
-shelter_pottery_sherd
-shulker_shell
-shulker_spawn_egg
-silence_armor_trim_smithing_template
-silverfish_spawn_egg
-skeleton_horse_spawn_egg
-skeleton_spawn_egg
-skull_banner_pattern
-skull_pottery_sherd
-slime_ball
-slime_spawn_egg
-sniffer_egg
-sniffer_spawn_egg
-snort_pottery_sherd
-snout_armor_trim_smithing_template
-snowball
-snow_golem_spawn_egg
-soul_campfire
-soul_lantern
-spectral_arrow
-spider_eye
-spider_spawn_egg
-spire_armor_trim_smithing_template
-splash_potion
-spruce_boat
-spruce_chest_boat
-spruce_door
-spruce_hanging_sign
-spruce_sign
-spyglass
-spyglass_model
-squid_spawn_egg
-stick
-stone_axe
-stone_hoe
-stone_pickaxe
-stone_shovel
-stone_spear
-stone_spear_in_hand
-stone_sword
-stray_spawn_egg
-strider_spawn_egg
-string
-structure_void
-sugar
-sugar_cane
-sulfur_cube_bucket
-sulfur_cube_spawn_egg
-sulfur_spike
-suspicious_stew
-sweet_berries
-tadpole_bucket
-tadpole_spawn_egg
-tide_armor_trim_smithing_template
-tipped_arrow_base
-tipped_arrow_head
-tnt_minecart
-torchflower_seeds
-totem_of_undying
-trader_llama_spawn_egg
-trial_key
-trident
-tropical_fish
-tropical_fish_bucket
-tropical_fish_spawn_egg
-turtle_egg
-turtle_helmet
-turtle_scute
-turtle_spawn_egg
-vex_armor_trim_smithing_template
-vex_spawn_egg
-villager_spawn_egg
-vindicator_spawn_egg
-wandering_trader_spawn_egg
-ward_armor_trim_smithing_template
-warden_spawn_egg
-warped_door
-warped_fungus_on_a_stick
-warped_hanging_sign
-warped_sign
-water_bucket
-wayfinder_armor_trim_smithing_template
-weathered_copper_chain
-weathered_copper_door
-weathered_copper_lantern
-wheat
-wheat_seeds
-white_bundle
-white_bundle_open_back
-white_bundle_open_front
-white_candle
-white_dye
-white_harness
-wild_armor_trim_smithing_template
-wildflowers
-wind_charge
-witch_spawn_egg
-wither_skeleton_spawn_egg
-wither_spawn_egg
-wolf_armor
-wolf_armor_overlay
-wolf_spawn_egg
-wooden_axe
-wooden_hoe
-wooden_pickaxe
-wooden_shovel
-wooden_spear
-wooden_spear_in_hand
-wooden_sword
-writable_book
-written_book
-yellow_bundle
-yellow_bundle_open_back
-yellow_bundle_open_front
-yellow_candle
-yellow_dye
-yellow_harness
-zoglin_spawn_egg
-zombie_horse_spawn_egg
-zombie_nautilus_spawn_egg
-zombie_spawn_egg
-zombie_villager_spawn_egg
-zombified_piglin_spawn_egg
+acacia_boat 16
+acacia_chest_boat 16
+acacia_door 13
+acacia_hanging_sign 15
+acacia_sign 15
+allay_spawn_egg 16
+amethyst_shard 14
+angler_pottery_sherd 15
+apple 14
+archer_pottery_sherd 15
+armadillo_scute 13
+armadillo_spawn_egg 14
+armor_stand 12
+arms_up_pottery_sherd 15
+arrow 15
+axolotl_bucket 14
+axolotl_spawn_egg 16
+baked_potato 15
+bamboo 15
+bamboo_chest_raft 16
+bamboo_door 13
+bamboo_hanging_sign 15
+bamboo_raft 16
+bamboo_sign 15
+barrier 15
+bat_spawn_egg 16
+bee_spawn_egg 16
+beef 15
+beetroot 13
+beetroot_seeds 14
+beetroot_soup 14
+bell 14
+birch_boat 16
+birch_chest_boat 16
+birch_door 13
+birch_hanging_sign 15
+birch_sign 15
+black_bundle 14
+black_bundle_open_back 16
+black_bundle_open_front 16
+black_candle 12
+black_dye 16
+black_harness 16
+blade_pottery_sherd 15
+blaze_powder 15
+blaze_rod 15
+blaze_spawn_egg 14
+blue_bundle 14
+blue_bundle_open_back 16
+blue_bundle_open_front 16
+blue_candle 12
+blue_dye 16
+blue_egg 13
+blue_harness 16
+bogged_spawn_egg 15
+bolt_armor_trim_smithing_template 16
+bone 16
+bone_meal 15
+book 16
+bordure_indented_banner_pattern 15
+bow 16
+bow_pulling_0 16
+bow_pulling_1 16
+bow_pulling_2 16
+bowl 14
+bread 15
+breeze_rod 15
+breeze_spawn_egg 15
+brewer_pottery_sherd 15
+brewing_stand 14
+brick 16
+brown_bundle 14
+brown_bundle_open_back 16
+brown_bundle_open_front 16
+brown_candle 12
+brown_dye 16
+brown_egg 13
+brown_harness 16
+brush 15
+bucket 14
+bundle 14
+bundle_open_back 16
+bundle_open_front 16
+burn_pottery_sherd 15
+cake 16
+camel_husk_spawn_egg 16
+camel_spawn_egg 16
+campfire 15
+candle 12
+carrot 16
+carrot_on_a_stick 15
+cat_spawn_egg 13
+cauldron 13
+cave_spider_spawn_egg 16
+chainmail_boots 15
+chainmail_chestplate 15
+chainmail_helmet 13
+chainmail_leggings 13
+charcoal 15
+cherry_boat 16
+cherry_chest_boat 16
+cherry_door 13
+cherry_hanging_sign 15
+cherry_sign 15
+chest_minecart 15
+chicken 15
+chicken_spawn_egg 13
+chorus_fruit 15
+clay_ball 14
+clock_00 15
+clock_01 15
+clock_02 15
+clock_03 15
+clock_04 15
+clock_05 15
+clock_06 15
+clock_07 15
+clock_08 15
+clock_09 15
+clock_10 15
+clock_11 15
+clock_12 15
+clock_13 15
+clock_14 15
+clock_15 15
+clock_16 15
+clock_17 15
+clock_18 15
+clock_19 15
+clock_20 15
+clock_21 15
+clock_22 15
+clock_23 15
+clock_24 15
+clock_25 15
+clock_26 15
+clock_27 15
+clock_28 15
+clock_29 15
+clock_30 15
+clock_31 15
+clock_32 15
+clock_33 15
+clock_34 15
+clock_35 15
+clock_36 15
+clock_37 15
+clock_38 15
+clock_39 15
+clock_40 15
+clock_41 15
+clock_42 15
+clock_43 15
+clock_44 15
+clock_45 15
+clock_46 15
+clock_47 15
+clock_48 15
+clock_49 15
+clock_50 15
+clock_51 15
+clock_52 15
+clock_53 15
+clock_54 15
+clock_55 15
+clock_56 15
+clock_57 15
+clock_58 15
+clock_59 15
+clock_60 15
+clock_61 15
+clock_62 15
+clock_63 15
+coal 15
+coast_armor_trim_smithing_template 16
+cocoa_beans 14
+cod 15
+cod_bucket 14
+cod_spawn_egg 15
+command_block_minecart 15
+comparator 14
+compass_00 15
+compass_01 15
+compass_02 15
+compass_03 15
+compass_04 15
+compass_05 15
+compass_06 15
+compass_07 15
+compass_08 15
+compass_09 15
+compass_10 15
+compass_11 15
+compass_12 15
+compass_13 15
+compass_14 15
+compass_15 15
+compass_16 15
+compass_17 15
+compass_18 15
+compass_19 15
+compass_20 15
+compass_21 15
+compass_22 15
+compass_23 15
+compass_24 15
+compass_25 15
+compass_26 15
+compass_27 15
+compass_28 15
+compass_29 15
+compass_30 15
+compass_31 15
+cooked_beef 15
+cooked_chicken 15
+cooked_cod 15
+cooked_mutton 14
+cooked_porkchop 15
+cooked_rabbit 16
+cooked_salmon 15
+cookie 15
+copper_axe 14
+copper_boots 15
+copper_chain 9
+copper_chestplate 15
+copper_door 13
+copper_golem_spawn_egg 13
+copper_helmet 13
+copper_hoe 14
+copper_horse_armor 15
+copper_ingot 16
+copper_lantern 11
+copper_leggings 13
+copper_nautilus_armor 16
+copper_nugget 11
+copper_pickaxe 15
+copper_shovel 15
+copper_spear 16
+copper_sword 16
+cow_spawn_egg 15
+creaking_spawn_egg 16
+creeper_banner_pattern 15
+creeper_spawn_egg 14
+crimson_door 13
+crimson_hanging_sign 15
+crimson_sign 15
+crossbow_arrow 16
+crossbow_firework 16
+crossbow_pulling_0 16
+crossbow_pulling_1 16
+crossbow_pulling_2 16
+crossbow_standby 16
+cyan_bundle 14
+cyan_bundle_open_back 16
+cyan_bundle_open_front 16
+cyan_candle 12
+cyan_dye 16
+cyan_harness 16
+danger_pottery_sherd 15
+dark_oak_boat 16
+dark_oak_chest_boat 16
+dark_oak_door 13
+dark_oak_hanging_sign 15
+dark_oak_sign 15
+diamond 14
+diamond_axe 14
+diamond_boots 15
+diamond_chestplate 15
+diamond_helmet 13
+diamond_hoe 14
+diamond_horse_armor 15
+diamond_leggings 13
+diamond_nautilus_armor 16
+diamond_pickaxe 15
+diamond_shovel 15
+diamond_spear 16
+diamond_sword 16
+disc_fragment_5 12
+dolphin_spawn_egg 16
+donkey_spawn_egg 15
+dragon_breath 13
+dried_kelp 16
+drowned_spawn_egg 14
+dune_armor_trim_smithing_template 16
+echo_shard 15
+egg 13
+elder_guardian_spawn_egg 16
+elytra 15
+elytra_broken 15
+emerald 13
+enchanted_book 16
+end_crystal 15
+ender_dragon_spawn_egg 15
+ender_eye 15
+ender_pearl 15
+enderman_spawn_egg 15
+endermite_spawn_egg 13
+evoker_spawn_egg 14
+experience_bottle 14
+explorer_pottery_sherd 15
+exposed_copper_chain 9
+exposed_copper_door 13
+exposed_copper_lantern 11
+eye_armor_trim_smithing_template 16
+feather 15
+fermented_spider_eye 14
+field_masoned_banner_pattern 15
+filled_map 16
+filled_map_markings 11
+fire_charge 14
+firefly_bush 16
+firework_rocket 14
+firework_star 14
+firework_star_overlay 13
+fishing_rod 15
+fishing_rod_cast 15
+flint 15
+flint_and_steel 15
+flow_armor_trim_smithing_template 16
+flow_banner_pattern 15
+flow_pottery_sherd 15
+flower_banner_pattern 15
+flower_pot 13
+fox_spawn_egg 14
+friend_pottery_sherd 15
+frog_spawn_egg 15
+furnace_minecart 15
+ghast_spawn_egg 15
+ghast_tear 11
+glass_bottle 13
+glistering_melon_slice 15
+globe_banner_pattern 15
+glow_berries 14
+glow_ink_sac 14
+glow_item_frame 15
+glow_squid_spawn_egg 15
+glowstone_dust 14
+goat_horn 15
+goat_spawn_egg 16
+gold_ingot 16
+gold_nugget 11
+golden_apple 14
+golden_axe 14
+golden_boots 15
+golden_carrot 16
+golden_chestplate 15
+golden_helmet 13
+golden_hoe 14
+golden_horse_armor 15
+golden_leggings 13
+golden_nautilus_armor 16
+golden_pickaxe 15
+golden_shovel 15
+golden_spear 16
+golden_sword 16
+gray_bundle 14
+gray_bundle_open_back 16
+gray_bundle_open_front 16
+gray_candle 12
+gray_dye 16
+gray_harness 16
+green_bundle 14
+green_bundle_open_back 16
+green_bundle_open_front 16
+green_candle 12
+green_dye 16
+green_harness 16
+guardian_spawn_egg 16
+gunpowder 14
+guster_banner_pattern 15
+guster_pottery_sherd 15
+happy_ghast_spawn_egg 15
+heart_of_the_sea 15
+heart_pottery_sherd 15
+heartbreak_pottery_sherd 15
+hoglin_spawn_egg 16
+honey_bottle 13
+honeycomb 14
+hopper 15
+hopper_minecart 15
+horse_spawn_egg 15
+host_armor_trim_smithing_template 16
+howl_pottery_sherd 15
+husk_spawn_egg 14
+ink_sac 14
+iron_axe 14
+iron_boots 15
+iron_chain 9
+iron_chestplate 15
+iron_door 13
+iron_golem_spawn_egg 15
+iron_helmet 13
+iron_hoe 14
+iron_horse_armor 15
+iron_ingot 16
+iron_leggings 13
+iron_nautilus_armor 16
+iron_nugget 12
+iron_pickaxe 15
+iron_shovel 15
+iron_spear 16
+iron_sword 16
+item_frame 15
+jungle_boat 16
+jungle_chest_boat 16
+jungle_door 13
+jungle_hanging_sign 15
+jungle_sign 15
+kelp 15
+knowledge_book 16
+lantern 11
+lapis_lazuli 14
+lava_bucket 14
+lead 14
+leaf_litter 16
+leather 14
+leather_boots 13
+leather_boots_overlay 15
+leather_chestplate 15
+leather_helmet 13
+leather_helmet_overlay 10
+leather_horse_armor 15
+leather_horse_armor_overlay 15
+leather_leggings 13
+leather_leggings_overlay 13
+light 15
+light_00 15
+light_01 15
+light_02 15
+light_03 15
+light_04 15
+light_05 15
+light_06 15
+light_07 15
+light_08 15
+light_09 15
+light_10 15
+light_11 15
+light_12 15
+light_13 15
+light_14 15
+light_15 15
+light_blue_bundle 14
+light_blue_bundle_open_back 16
+light_blue_bundle_open_front 16
+light_blue_candle 12
+light_blue_dye 16
+light_blue_harness 16
+light_gray_bundle 14
+light_gray_bundle_open_back 16
+light_gray_bundle_open_front 16
+light_gray_candle 12
+light_gray_dye 16
+light_gray_harness 16
+lime_bundle 14
+lime_bundle_open_back 16
+lime_bundle_open_front 16
+lime_candle 12
+lime_dye 16
+lime_harness 16
+lingering_potion 13
+llama_spawn_egg 15
+mace 16
+magenta_bundle 14
+magenta_bundle_open_back 16
+magenta_bundle_open_front 16
+magenta_candle 12
+magenta_dye 16
+magenta_harness 16
+magma_cream 14
+magma_cube_spawn_egg 15
+mangrove_boat 16
+mangrove_chest_boat 16
+mangrove_door 13
+mangrove_hanging_sign 15
+mangrove_propagule 11
+mangrove_sign 15
+map 16
+melon_seeds 14
+melon_slice 14
+milk_bucket 14
+minecart 15
+miner_pottery_sherd 15
+mojang_banner_pattern 15
+mooshroom_spawn_egg 15
+mourner_pottery_sherd 15
+mule_spawn_egg 15
+mushroom_stew 14
+music_disc_11 15
+music_disc_13 15
+music_disc_5 15
+music_disc_blocks 15
+music_disc_bounce 15
+music_disc_cat 15
+music_disc_chirp 15
+music_disc_creator 15
+music_disc_creator_music_box 15
+music_disc_far 15
+music_disc_lava_chicken 15
+music_disc_mall 15
+music_disc_mellohi 15
+music_disc_otherside 15
+music_disc_pigstep 15
+music_disc_precipice 15
+music_disc_relic 15
+music_disc_stal 15
+music_disc_strad 15
+music_disc_tears 15
+music_disc_wait 15
+music_disc_ward 15
+mutton 14
+name_tag 15
+nautilus_shell 15
+nautilus_spawn_egg 16
+nether_brick 16
+nether_sprouts 15
+nether_star 15
+nether_wart 12
+netherite_axe 14
+netherite_boots 15
+netherite_chestplate 15
+netherite_helmet 13
+netherite_hoe 14
+netherite_horse_armor 15
+netherite_ingot 16
+netherite_leggings 13
+netherite_nautilus_armor 16
+netherite_pickaxe 15
+netherite_scrap 15
+netherite_shovel 15
+netherite_spear 16
+netherite_sword 16
+netherite_upgrade_smithing_template 14
+oak_boat 16
+oak_chest_boat 16
+oak_door 13
+oak_hanging_sign 15
+oak_sign 15
+ocelot_spawn_egg 13
+ominous_bottle 13
+ominous_trial_key 14
+orange_bundle 14
+orange_bundle_open_back 16
+orange_bundle_open_front 16
+orange_candle 12
+orange_dye 16
+orange_harness 16
+oxidized_copper_chain 9
+oxidized_copper_door 13
+oxidized_copper_lantern 11
+painting 15
+pale_oak_boat 16
+pale_oak_chest_boat 16
+pale_oak_door 13
+pale_oak_hanging_sign 15
+pale_oak_sign 15
+panda_spawn_egg 16
+paper 16
+parched_spawn_egg 14
+parrot_spawn_egg 13
+phantom_membrane 16
+phantom_spawn_egg 14
+pig_spawn_egg 14
+piglin_banner_pattern 15
+piglin_brute_spawn_egg 15
+piglin_spawn_egg 15
+pillager_spawn_egg 14
+pink_bundle 14
+pink_bundle_open_back 16
+pink_bundle_open_front 16
+pink_candle 12
+pink_dye 16
+pink_harness 16
+pink_petals 16
+pitcher_plant 13
+pitcher_pod 15
+plenty_pottery_sherd 15
+pointed_dripstone 12
+poisonous_potato 14
+polar_bear_spawn_egg 15
+popped_chorus_fruit 15
+porkchop 15
+potato 14
+potion 13
+potion_overlay 12
+powder_snow_bucket 14
+prismarine_crystals 15
+prismarine_shard 15
+prize_pottery_sherd 15
+pufferfish 16
+pufferfish_bucket 15
+pufferfish_spawn_egg 15
+pumpkin_pie 15
+pumpkin_seeds 14
+purple_bundle 14
+purple_bundle_open_back 16
+purple_bundle_open_front 16
+purple_candle 12
+purple_dye 16
+purple_harness 16
+quartz 15
+rabbit 16
+rabbit_foot 14
+rabbit_hide 13
+rabbit_spawn_egg 13
+rabbit_stew 14
+raiser_armor_trim_smithing_template 16
+ravager_spawn_egg 16
+raw_copper 16
+raw_gold 16
+raw_iron 16
+recovery_compass_00 16
+recovery_compass_01 16
+recovery_compass_02 16
+recovery_compass_03 16
+recovery_compass_04 16
+recovery_compass_05 16
+recovery_compass_06 16
+recovery_compass_07 16
+recovery_compass_08 16
+recovery_compass_09 16
+recovery_compass_10 16
+recovery_compass_11 16
+recovery_compass_12 16
+recovery_compass_13 16
+recovery_compass_14 16
+recovery_compass_15 16
+recovery_compass_16 16
+recovery_compass_17 16
+recovery_compass_18 16
+recovery_compass_19 16
+recovery_compass_20 16
+recovery_compass_21 16
+recovery_compass_22 16
+recovery_compass_23 16
+recovery_compass_24 16
+recovery_compass_25 16
+recovery_compass_26 16
+recovery_compass_27 16
+recovery_compass_28 16
+recovery_compass_29 16
+recovery_compass_30 16
+recovery_compass_31 16
+red_bundle 14
+red_bundle_open_back 16
+red_bundle_open_front 16
+red_candle 12
+red_dye 16
+red_harness 16
+redstone 14
+repeater 14
+resin_brick 16
+resin_clump 16
+rib_armor_trim_smithing_template 16
+rotten_flesh 16
+saddle 15
+salmon 15
+salmon_bucket 14
+salmon_spawn_egg 15
+scrape_pottery_sherd 15
+sea_pickle 10
+seagrass 15
+sentry_armor_trim_smithing_template 16
+shaper_armor_trim_smithing_template 16
+sheaf_pottery_sherd 15
+shears 14
+sheep_spawn_egg 14
+shelter_pottery_sherd 15
+shulker_shell 15
+shulker_spawn_egg 14
+silence_armor_trim_smithing_template 16
+silverfish_spawn_egg 15
+skeleton_horse_spawn_egg 15
+skeleton_spawn_egg 14
+skull_banner_pattern 15
+skull_pottery_sherd 15
+slime_ball 14
+slime_spawn_egg 15
+sniffer_egg 16
+sniffer_spawn_egg 15
+snort_pottery_sherd 15
+snout_armor_trim_smithing_template 16
+snow_golem_spawn_egg 16
+snowball 14
+soul_campfire 15
+soul_lantern 11
+spectral_arrow 15
+spider_eye 12
+spider_spawn_egg 16
+spire_armor_trim_smithing_template 16
+splash_potion 13
+spruce_boat 16
+spruce_chest_boat 16
+spruce_door 13
+spruce_hanging_sign 15
+spruce_sign 15
+spyglass 15
+spyglass_model 2
+squid_spawn_egg 15
+stick 15
+stone_axe 14
+stone_hoe 14
+stone_pickaxe 15
+stone_shovel 15
+stone_spear 16
+stone_sword 16
+stray_spawn_egg 14
+strider_spawn_egg 16
+string 15
+structure_void 15
+sugar 14
+sugar_cane 15
+sulfur_cube_bucket 14
+sulfur_cube_spawn_egg 14
+sulfur_spike 13
+suspicious_stew 14
+sweet_berries 15
+tadpole_bucket 14
+tadpole_spawn_egg 14
+tide_armor_trim_smithing_template 16
+tipped_arrow_base 12
+tipped_arrow_head 15
+tnt_minecart 15
+torchflower_seeds 15
+totem_of_undying 15
+trader_llama_spawn_egg 15
+trial_key 12
+trident 15
+tropical_fish 15
+tropical_fish_bucket 14
+tropical_fish_spawn_egg 15
+turtle_egg 14
+turtle_helmet 13
+turtle_scute 14
+turtle_spawn_egg 16
+vex_armor_trim_smithing_template 16
+vex_spawn_egg 16
+villager_spawn_egg 14
+vindicator_spawn_egg 14
+wandering_trader_spawn_egg 14
+ward_armor_trim_smithing_template 16
+warden_spawn_egg 16
+warped_door 13
+warped_fungus_on_a_stick 15
+warped_hanging_sign 15
+warped_sign 15
+water_bucket 14
+wayfinder_armor_trim_smithing_template 16
+weathered_copper_chain 9
+weathered_copper_door 13
+weathered_copper_lantern 11
+wheat 16
+wheat_seeds 14
+white_bundle 14
+white_bundle_open_back 16
+white_bundle_open_front 16
+white_candle 12
+white_dye 16
+white_harness 16
+wild_armor_trim_smithing_template 16
+wildflowers 16
+wind_charge 14
+witch_spawn_egg 14
+wither_skeleton_spawn_egg 14
+wither_spawn_egg 15
+wolf_armor 15
+wolf_armor_overlay 14
+wolf_spawn_egg 14
+wooden_axe 14
+wooden_hoe 14
+wooden_pickaxe 15
+wooden_shovel 15
+wooden_spear 16
+wooden_sword 16
+writable_book 16
+written_book 16
+yellow_bundle 14
+yellow_bundle_open_back 16
+yellow_bundle_open_front 16
+yellow_candle 12
+yellow_dye 16
+yellow_harness 16
+zoglin_spawn_egg 16
+zombie_horse_spawn_egg 15
+zombie_nautilus_spawn_egg 16
+zombie_spawn_egg 14
+zombie_villager_spawn_egg 14
+zombified_piglin_spawn_egg 15
