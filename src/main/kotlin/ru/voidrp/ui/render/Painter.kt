@@ -162,7 +162,7 @@ object Painter {
             val end = span * (step + 1) / steps
             if (end <= start) continue
             val exact = blend(gradient.from, gradient.to, (step + 0.5) / steps)
-            val paint = dither(exact, DITHER[step % DITHER.size])
+            val paint = if (gradient.dither) dither(exact, DITHER[step % DITHER.size]) else exact
             if (vertical) {
                 rounded(
                     x, y + start, width, end - start, radius, paint, out,

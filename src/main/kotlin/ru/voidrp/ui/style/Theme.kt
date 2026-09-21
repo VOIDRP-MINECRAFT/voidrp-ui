@@ -73,8 +73,15 @@ object Theme {
      */
     val accentWash = Gradient(Paint(VIOLET, 0.26), Paint(VIOLET, 0.12))
 
-    /** The accent itself, the way the site draws a filled bar or a primary button. */
-    val accentBar = Gradient(Paint(VIOLET, 0.95), Paint(FUCHSIA, 0.95), GradientDirection.HORIZONTAL)
+    /**
+     * The accent itself: a filled bar or a primary button.
+     *
+     * Flat, on purpose. The site has a violet-to-fuchsia ramp here, and it is the one thing
+     * that does not survive the trip — ten bits of colour leave three or four steps between
+     * those two, and on a bar twelve pixels tall the stripes read as a comb. A flat accent
+     * looks deliberate; a bad gradient looks broken.
+     */
+    val accentBar = Paint(VIOLET, 0.95)
 
     /** The main surface of a page: a large, nearly opaque sheet, lit from the top. */
     val page = Style(

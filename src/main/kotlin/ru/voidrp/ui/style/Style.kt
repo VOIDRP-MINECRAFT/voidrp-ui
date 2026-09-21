@@ -25,10 +25,12 @@ data class Paint(val rgb: Int, val alpha: Double = 1.0) : Fill {
  * A gradient between two colours, drawn as bands.
  *
  * Nothing in the trip to the client can express a smooth ramp — a glyph has one colour —
- * so the ramp is made of stripes, each a flat colour of its own. Colour has a thousand
- * values to play with and the stripes are a couple of pixels tall, so a wash between two
- * colours reads as smooth; a fade to transparent has only sixteen steps of opacity and
- * will show its stripes if it is stretched far enough.
+ * so the ramp is made of stripes, each a flat colour of its own.
+ *
+ * Be sparing with these. Colour travels in ten bits, which between two given colours leaves
+ * only a handful of distinct steps, and opacity has sixteen: a gentle wash over a large
+ * area passes, a strong transition across a small one shows its stripes whatever is done
+ * about it. Where a gradient does not look right, a flat fill usually does.
  */
 data class Gradient(
     val from: Paint,
@@ -36,6 +38,12 @@ data class Gradient(
     val direction: GradientDirection = GradientDirection.VERTICAL,
     /** How many stripes; left alone, one every few pixels. More is smoother and costs more. */
     val steps: Int? = null,
+    /**
+     * Whether neighbouring stripes are sent to neighbouring palette entries to fake the
+     * colours in between. It helps a long, gentle transition and hurts a short, strong one,
+     * where the pattern itself becomes the thing you see.
+     */
+    val dither: Boolean = true,
 ) : Fill
 
 enum class GradientDirection { VERTICAL, HORIZONTAL }
