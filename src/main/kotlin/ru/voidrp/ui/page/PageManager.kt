@@ -50,6 +50,13 @@ class PageManager(
      */
     var sensitivity: Double = plugin.config.getDouble("input.sensitivity", 10.0)
 
+    /**
+     * The gap between one boss bar's line and the next, in canvas units. The cursor rides
+     * a bar of its own so that it can be sent sixty times a second without the page going
+     * with it, and bars stack, so what is drawn on the second one needs lifting by this.
+     */
+    var cursorBarOffset: Int = plugin.config.getInt("input.cursor-bar-offset", 19)
+
     /** Starts drawing frames at about the rate a screen refreshes. */
     fun start() {
         frames.scheduleAtFixedRate(
@@ -69,7 +76,7 @@ class PageManager(
 
     fun open(player: Player, page: Page) {
         close(player)
-        val session = PageSession(plugin, player, page, renderer) { sensitivity }
+        val session = PageSession(plugin, player, page, renderer, { sensitivity }, { cursorBarOffset })
         sessions[player.uniqueId] = session
         session.open()
     }

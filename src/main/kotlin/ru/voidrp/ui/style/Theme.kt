@@ -64,15 +64,21 @@ object Theme {
      */
     val scrim = Style(background = Paint(0x000000, 0.55))
 
-    /** The wash the site puts behind anything it wants looked at. */
-    val accentWash = Gradient(Paint(VIOLET, 0.24), Paint(VIOLET, 0.05))
+    /**
+     * The wash the site puts behind anything it wants looked at.
+     *
+     * Kept for small things. A gradient is made of stripes of the nearest colour the ten
+     * bits can express, and over a large, nearly black surface the nearest colours are far
+     * enough apart that the stripes show. Big surfaces get a flat fill instead.
+     */
+    val accentWash = Gradient(Paint(VIOLET, 0.26), Paint(VIOLET, 0.12))
 
     /** The accent itself, the way the site draws a filled bar or a primary button. */
     val accentBar = Gradient(Paint(VIOLET, 0.95), Paint(FUCHSIA, 0.95), GradientDirection.HORIZONTAL)
 
     /** The main surface of a page: a large, nearly opaque sheet, lit from the top. */
     val page = Style(
-        background = Gradient(Paint(0x111A33, 0.93), Paint(0x05060D, 0.95)),
+        background = Paint(0x0B1224, 0.93),
         border = Border(1, Paint(LINE, 0.25)),
         radius = R_XL,
         padding = Insets.all(SPACE_6),
@@ -90,7 +96,7 @@ object Theme {
 
     /** A card that is the one thing on the screen worth looking at. */
     val cardAccent = card.copy(
-        background = accentWash,
+        background = Paint(VIOLET, 0.18),
         border = Border(1, Paint(VIOLET, 0.45)),
     )
 

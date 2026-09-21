@@ -32,6 +32,12 @@ class PageSession(
      * page is open. Higher means the pointer crosses the screen for less head movement.
      */
     private val sensitivity: () -> Double,
+    /**
+     * How much lower the cursor's own boss bar draws its line than the page's. Bars stack,
+     * so the second one starts further down the screen, and what is drawn on it has to be
+     * lifted by that much to land where the page thinks it should.
+     */
+    private val cursorBarOffset: () -> Int,
 ) {
 
     /** Where the aim says the pointer should be: updated when the player's look arrives. */
@@ -183,19 +189,14 @@ class PageSession(
         val placement = Layout.centred(page.view(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
         regions = placement.regions
         // The page is encoded once and kept: the cursor moves every tick, the page does not.
-        encoded = GlyphEncoder.encode(placement.nodes)
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
+        renderer.render(player, GlyphEncoder.encode(placement.nodes))
         draw()
     }
 
-    private var encoded: Component = Component.empty()
-
     /** Sends what is already encoded, with the pointer on top. */
     private fun draw() {
-        renderer.render(
-            player,
-            Component.text().append(encoded).append(GlyphEncoder.encode(cursor(cursorX, cursorY))).build(),
-        )
+        renderer.cursor(player, GlyphEncoder.encode(cursor(cursorX, cursorY - cursorBarOffset())))
     }
 
     fun close() {

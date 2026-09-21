@@ -197,6 +197,15 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                 }
             }
 
+            // The cursor rides its own boss bar, which starts a little lower than the
+            // page's; this lines the two up.
+            "cursoroffset" -> {
+                args.getOrNull(1)?.toIntOrNull()?.let { plugin.pages.cursorBarOffset = it }
+                sender.sendMessage(
+                    Component.text("Смещение курсора: ${plugin.pages.cursorBarOffset}", NamedTextColor.AQUA)
+                )
+            }
+
             "clicks" -> {
                 plugin.pages.traceClicks = !plugin.pages.traceClicks
                 sender.sendMessage(
@@ -274,5 +283,5 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         command: Command,
         alias: String,
         args: Array<out String>,
-    ): List<String> = if (args.size == 1) listOf("pack", "open", "sens", "clicks", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
+    ): List<String> = if (args.size == 1) listOf("pack", "open", "sens", "clicks", "cursoroffset", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
 }

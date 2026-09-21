@@ -70,7 +70,7 @@ class ShopPage : Page() {
                         ),
                         Panel(width = Size.Fill),
                         Panel(
-                            style = Theme.card.copy(background = Theme.accentWash),
+                            style = Theme.cardAccent,
                             gap = 2,
                             children = listOf(
                                 Text("Баланс", Theme.TEXT_CAPTION, Theme.INK_DIM),
@@ -102,7 +102,7 @@ class ShopPage : Page() {
     }
 
     private fun row(offer: Offer) = Panel(
-        style = if (hovered == offer.item) Theme.card.copy(background = Theme.accentWash) else Theme.card,
+        style = if (hovered == offer.item) Theme.cardAccent else Theme.card,
         width = Size.Fill,
         direction = Direction.ROW,
         gap = Theme.SPACE_3,
