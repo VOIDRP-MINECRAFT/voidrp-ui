@@ -105,11 +105,14 @@ object GlyphEncoder {
         val fill = quantise(rect.paint.rgb)
         var top = rect.y
 
-        // Rows from the largest piece down, pieces left to right within each row.
-        for (h in powersOfTwo(rect.height)) {
+        // Rows from the largest piece down, pieces left to right within each row. Neither
+        // dimension may run far ahead of the other, or the piece would need a texture the
+        // client's font atlas will not hold — see Glyphs.MAX_ASPECT_EXP.
+        val widest = highestPower(rect.width)
+        for (h in pieces(rect.height, widest + Glyphs.MAX_ASPECT_EXP)) {
             val colour = TextColor.color(pack(top, fill))
             var left = rect.x
-            for (w in powersOfTwo(rect.width)) {
+            for (w in pieces(rect.width, h + Glyphs.MAX_ASPECT_EXP)) {
                 line.append(shapes(Glyphs.moveBy(left - pen) + Glyphs.rect(w, h), level).color(colour))
                 pen = left + Glyphs.rectAdvance(w)
                 left += 1 shl w
@@ -157,18 +160,29 @@ object GlyphEncoder {
         return pen
     }
 
-    /** Exponents whose powers of two sum to [value], largest first (600 → 9, 6, 4, 3). */
-    private fun powersOfTwo(value: Int): List<Int> {
+    /**
+     * Exponents whose powers of two sum to [value], largest first (600 → 9, 6, 4, 3).
+     * Nothing bigger than [maxExp] is used, so a long strip comes out as several equal
+     * pieces (752 within 2^7 → 128 five times, then 64, 32, 16).
+     */
+    private fun pieces(value: Int, maxExp: Int): List<Int> {
         val out = mutableListOf<Int>()
-        var rest = value.coerceIn(0, (1 shl (Glyphs.MAX_EXP + 1)) - 1)
-        for (k in Glyphs.MAX_EXP downTo 0) {
-            if (rest >= 1 shl k) {
+        var rest = value.coerceAtLeast(0)
+        var k = minOf(maxExp, Glyphs.MAX_EXP)
+        while (rest > 0 && k >= 0) {
+            val step = 1 shl k
+            while (rest >= step) {
                 out += k
-                rest -= 1 shl k
+                rest -= step
             }
+            k--
         }
         return out
     }
+
+    /** The exponent of the largest power of two that fits in [value]. */
+    private fun highestPower(value: Int): Int =
+        if (value <= 0) 0 else 31 - Integer.numberOfLeadingZeros(value)
 
     private fun shapes(text: String, level: Int): TextComponent =
         Component.text(text)

@@ -150,6 +150,7 @@ class PackBuilder(
         val providers = mutableListOf<String>()
         for (w in 0..Glyphs.MAX_EXP) {
             for (h in 0..Glyphs.MAX_EXP) {
+                if (!Glyphs.hasRect(w, h)) continue
                 providers += """
                     {"type": "bitmap", "file": "$dir/${Glyphs.textureName(w, h)}.png",
                      "ascent": 0, "height": ${1 shl h}, "chars": ["${Glyphs.rect(w, h).escaped()}"]}
@@ -185,6 +186,7 @@ class PackBuilder(
         val alpha = level.toDouble() / Glyphs.ALPHA_LEVELS
         val out = mutableMapOf<String, ByteArray>()
         for (w in 0..Glyphs.MAX_EXP) for (h in 0..Glyphs.MAX_EXP) {
+            if (!Glyphs.hasRect(w, h)) continue
             val name = Glyphs.textureName(w, h)
             if (name in out) continue
             val tw = if (w >= h) 1 shl (w - h) else 1

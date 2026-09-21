@@ -19,8 +19,19 @@ object Glyphs {
     /** Rectangle sides go up to 2^10 = 1024 canvas pixels in each direction. */
     const val MAX_EXP = 10
 
-    /** Opacity steps: font `ui_aN` draws at N/8, so 1 is 12.5% and 8 is opaque. */
-    const val ALPHA_LEVELS = 8
+    /** Opacity steps: font `ui_aN` draws at N/16, so 1 is 6.25% and 16 is opaque. */
+    const val ALPHA_LEVELS = 16
+
+    /**
+     * How lopsided a rectangle glyph may be: at most 2^7 = 128 to 1.
+     *
+     * A glyph's texture is stored in the client's font atlas at its own resolution, and a
+     * very flat rectangle needs a very wide texture — a 512×1 strip for a one-pixel rule.
+     * Past a couple of hundred pixels the atlas will not take it, the glyph silently
+     * disappears, and because its width is then not what the encoder counted on, the whole
+     * page slides sideways. Flat shapes are split into several pieces instead.
+     */
+    const val MAX_ASPECT_EXP = 7
 
     /**
      * Corner radii, in canvas pixels. A rounded box is four of these plus plain
@@ -45,6 +56,9 @@ object Glyphs {
         if (radius <= 0 || usable.isEmpty()) return 0
         return usable.minByOrNull { Math.abs(it - radius) }!!
     }
+
+    /** Whether a rectangle of these proportions exists in the alphabet. */
+    fun hasRect(w: Int, h: Int): Boolean = Math.abs(w - h) <= MAX_ASPECT_EXP
 
     /** The glyph that draws a rectangle 2^w wide and 2^h tall. */
     fun rect(w: Int, h: Int): String = cp(RECT_BASE + w * (MAX_EXP + 1) + h)

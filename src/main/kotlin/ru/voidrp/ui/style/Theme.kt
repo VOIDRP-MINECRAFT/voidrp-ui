@@ -44,22 +44,29 @@ object Theme {
     const val SPACE_6 = 24
     const val SPACE_8 = 32
 
-    /** The dimmed backdrop a full-screen page sits on. */
-    val scrim = Style(background = Paint(BG, 0.75))
+    /**
+     * The dimmed backdrop a full-screen page sits on.
+     *
+     * Surfaces are built the way the site builds them — a pale tint at low opacity over a
+     * dark ground, not a dark colour of their own. That is also what survives the trip:
+     * a colour travels in ten bits, so near-black tones all collapse into the same black,
+     * while opacity is exact.
+     */
+    val scrim = Style(background = Paint(0x000000, 0.55))
 
-    /** The main surface of a page: a large, mostly opaque sheet. */
+    /** The main surface of a page: a large, nearly opaque sheet. */
     val page = Style(
-        background = Paint(BG, 0.94),
+        background = Paint(0x0B1224, 0.92),
         border = Border(1, Paint(LINE, 0.25)),
         radius = R_XL,
         padding = Insets.all(SPACE_6),
-        shadow = Shadow(offsetY = 6, spread = 4, paint = Paint(0x000000, 0.25)),
+        shadow = Shadow(offsetY = 6, spread = 4, paint = Paint(0x000000, 0.2)),
     )
 
     /** A panel inside a page — what the site calls a card. */
     val card = Style(
-        background = Paint(SURFACE, 0.62),
-        border = Border(1, Paint(LINE, 0.12)),
+        background = Paint(LINE, 0.07),
+        border = Border(1, Paint(LINE, 0.14)),
         radius = R_MD,
         padding = Insets.all(SPACE_4),
         textColour = INK,
@@ -67,12 +74,12 @@ object Theme {
 
     /** A card that is the one thing on the screen worth looking at. */
     val cardAccent = card.copy(
-        background = Paint(VIOLET, 0.16),
-        border = Border(1, Paint(VIOLET, 0.5)),
+        background = Paint(VIOLET, 0.18),
+        border = Border(1, Paint(VIOLET, 0.45)),
     )
 
     val buttonPrimary = Style(
-        background = Paint(VIOLET, 0.92),
+        background = Paint(VIOLET, 0.9),
         radius = R_SM,
         padding = Insets.symmetric(SPACE_2, SPACE_4),
         textColour = 0x0B0A1F,
@@ -80,7 +87,7 @@ object Theme {
     )
 
     val buttonGhost = Style(
-        background = Paint(LINE, 0.08),
+        background = Paint(LINE, 0.1),
         border = Border(1, Paint(LINE, 0.22)),
         radius = R_SM,
         padding = Insets.symmetric(SPACE_2, SPACE_4),
@@ -89,5 +96,5 @@ object Theme {
     )
 
     /** A hairline separator: a one-pixel box with nothing but a background. */
-    val divider = Style(background = Paint(LINE, 0.16))
+    val divider = Style(background = Paint(LINE, 0.18))
 }
