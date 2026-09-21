@@ -8,7 +8,10 @@ import ru.voidrp.ui.render.BossBarRenderer
 import ru.voidrp.ui.render.GlyphEncoder
 import ru.voidrp.ui.render.Node
 import ru.voidrp.ui.pack.Glyphs
+import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.render.Sprite
+import ru.voidrp.ui.style.Paint
+import ru.voidrp.ui.style.Theme
 
 /**
  * One open page, and the cursor the player drives it with.
@@ -27,6 +30,7 @@ class PageSession(
     val player: Player,
     first: Page,
     private val renderer: BossBarRenderer,
+    private val sounds: ru.voidrp.ui.Sounds,
     /**
      * Canvas units per degree of turn, read fresh each tick so it can be tuned while a
      * page is open. Higher means the pointer crosses the screen for less head movement.
@@ -67,6 +71,7 @@ class PageSession(
 
     fun open() {
         page.session = this
+        sounds.open(player)
         anchorYaw = player.location.yaw
         // The look is levelled once, on opening. Pitch stops at straight down, so a page
         // opened while looking at the ground had no room left to move the cursor lower —
@@ -118,13 +123,25 @@ class PageSession(
     fun frame() {
         if (closed) return
         val before = cursorX to cursorY
+        val wasOver = under
         drawnX += (targetX - drawnX) * EASING
         drawnY += (targetY - drawnY) * EASING
         if (Math.abs(targetX - drawnX) < 0.5) drawnX = targetX
         if (Math.abs(targetY - drawnY) < 0.5) drawnY = targetY
-        if (before == cursorX to cursorY) return
+        under = regions.lastOrNull { it.contains(cursorX, cursorY) }
+        if (under?.id != null && under?.id != wasOver?.id) sounds.hover(player)
+        if (before == cursorX to cursorY && wasOver?.id == under?.id) return
         draw()
     }
+
+    /**
+     * What the cursor is over right now, found at frame rate.
+     *
+     * The page itself can only be redrawn on the server thread, twenty times a second, so
+     * the outline under the pointer is drawn on the cursor's own bar instead: the feedback
+     * is immediate even though the panel's own style follows a tick later.
+     */
+    private var under: Layout.Region? = null
 
     /**
      * A click, once per press.
@@ -172,7 +189,10 @@ class PageSession(
         }
         if (!pressed) return
         dragging = hovered
-        hovered?.let { page.onClick(it, button) }
+        hovered?.let {
+            sounds.click(player)
+            page.onClick(it, button)
+        }
     }
 
     private var dragging: String? = null
@@ -215,6 +235,7 @@ class PageSession(
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         tooltip = page.tooltip()
         tooltipEncoded = null
+        under = regions.lastOrNull { it.contains(cursorX, cursorY) }
         renderer.render(player, GlyphEncoder.encode(placement.nodes))
         draw()
     }
@@ -222,12 +243,25 @@ class PageSession(
     /** Sends what is already encoded, with the pointer on top. */
     private fun draw() {
         val lift = cursorBarOffset()
-        val pointer = GlyphEncoder.encode(cursor(cursorX, cursorY - lift))
-        val tip = tooltipAt(cursorX, cursorY - lift)
-        renderer.cursor(
-            player,
-            if (tip == null) pointer else Component.text().append(tip).append(pointer).build(),
+        val line = Component.text()
+        halo(lift)?.let { line.append(it) }
+        tooltipAt(cursorX, cursorY - lift)?.let { line.append(it) }
+        line.append(GlyphEncoder.encode(cursor(cursorX, cursorY - lift)))
+        renderer.cursor(player, line.build())
+    }
+
+    /** A thin outline around whatever the pointer is over, drawn with the pointer. */
+    private fun halo(lift: Int): Component? {
+        val region = under ?: return null
+        val paint = Paint(Theme.VIOLET, 0.55)
+        val top = region.y - lift
+        val nodes = listOf(
+            Rect(region.x, top, region.width, 1, paint),
+            Rect(region.x, top + region.height - 1, region.width, 1, paint),
+            Rect(region.x, top, 1, region.height, paint),
+            Rect(region.x + region.width - 1, top, 1, region.height, paint),
         )
+        return GlyphEncoder.encode(nodes)
     }
 
     /**
@@ -253,6 +287,7 @@ class PageSession(
     fun close() {
         if (closed) return
         closed = true
+        sounds.close(player)
         renderer.clear(player)
         page.onClose()
         page.session = null

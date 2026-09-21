@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerResourcePackStatusEvent
 import ru.voidrp.ui.Messages
 import ru.voidrp.ui.api.VoidRpUi
 import ru.voidrp.ui.pack.PackBuilder
+import ru.voidrp.ui.style.Theme
 import ru.voidrp.ui.pack.PackServer
 import ru.voidrp.ui.page.PageManager
 import ru.voidrp.ui.pack.Shaders
@@ -35,8 +36,9 @@ import ru.voidrp.ui.style.Paint
 class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     val messages = Messages(this)
+    val sounds = Sounds(this)
     val renderer = BossBarRenderer(logger)
-    val pages = PageManager(this, renderer, messages, ::sendPack, ::packReady)
+    val pages = PageManager(this, renderer, messages, sounds, ::sendPack, ::packReady)
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
@@ -56,6 +58,12 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     override fun onEnable() {
         saveDefaultConfig()
+        // The look is a server's own: colours, type scale and rounding come from theme.yml.
+        runCatching { saveResource("theme.yml", false) }
+        Theme.reload(
+            org.bukkit.configuration.file.YamlConfiguration
+                .loadConfiguration(File(dataFolder, "theme.yml"))
+        )
         packFile = File(dataFolder, "voidrp-ui.zip")
         packHash = PackBuilder(
             shaderMode = config.getString("pack.shader-mode", "patched")!!,

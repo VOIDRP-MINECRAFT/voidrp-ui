@@ -25,3 +25,11 @@ pack:
 input:
   # Единиц холста на градус поворота. Больше — курсор быстрее.
   sensitivity: 10
+
+# Звуки интерфейса. Пустое имя — без звука.
+sound:
+  click: "ui.button.click"
+  hover: ""
+  open: "block.note_block.hat"
+  close: "block.note_block.bass"
+  volume: 0.35

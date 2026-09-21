@@ -30,6 +30,7 @@ class PageManager(
     private val plugin: JavaPlugin,
     private val renderer: BossBarRenderer,
     private val messages: ru.voidrp.ui.Messages,
+    private val sounds: ru.voidrp.ui.Sounds,
     /** How a player is handed the resource pack; the API exposes it to other plugins. */
     private val packSender: (Player) -> Unit = {},
     /** Whether this player's client has the pack, and can therefore draw anything. */
@@ -92,7 +93,7 @@ class PageManager(
             return false
         }
         close(player)
-        val session = PageSession(plugin, player, page, renderer, { sensitivity }, { cursorBarOffset })
+        val session = PageSession(plugin, player, page, renderer, sounds, { sensitivity }, { cursorBarOffset })
         sessions[player.uniqueId] = session
         session.open()
         return true
@@ -146,25 +147,28 @@ class PageManager(
         if (event.action.name.startsWith("RIGHT")) session.click(Button.RIGHT)
     }
 
+    /**
+     * The wheel and the number keys arrive as the same packet — a change of held slot — so
+     * they are told apart by how far the slot moved: one step is the wheel, a jump is a
+     * key. Nothing is cancelled, because cancelling moves the slot back on the server and
+     * not on the client, and from then on the two disagree about what the next change
+     * means.
+     */
     @EventHandler(priority = EventPriority.LOWEST)
     fun onScroll(event: PlayerItemHeldEvent) {
         val session = session(event.player) ?: return
-        event.isCancelled = true
-        // The hotbar wraps around, so the short way between the two slots is the scroll.
-        // The game sends the same packet for the wheel and for a number key, and since the
-        // slot is put back every time, a key press shows up as a jump to that slot. A page
-        // says which of the two it means.
-        if (session.page.usesKeys) {
-            session.key(event.newSlot + 1)
-            return
-        }
         val raw = event.newSlot - event.previousSlot
-        val direction = when {
+        val step = when {
             raw > 4 -> raw - 9
             raw < -4 -> raw + 9
             else -> raw
         }
-        if (direction != 0) session.scroll(if (direction > 0) 1 else -1)
+        if (traceClicks) plugin.logger.info("слот ${event.player.name}: ${event.previousSlot} → ${event.newSlot}")
+        when {
+            step == 1 || step == -1 -> session.scroll(step)
+            session.page.usesKeys -> session.key(event.newSlot + 1)
+            step != 0 -> session.scroll(if (step > 0) 1 else -1)
+        }
     }
 
     /** Crouching goes back a page, or closes the last one — like the escape key. */
