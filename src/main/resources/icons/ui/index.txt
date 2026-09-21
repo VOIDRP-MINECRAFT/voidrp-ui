@@ -1,12 +1,12 @@
 activity
 alert
 alliance
-arrowRight
+arrowright
 battlepass
 bell
 check
-chevronDown
-chevronRight
+chevrondown
+chevronright
 clipboard
 clock
 coins
@@ -40,7 +40,7 @@ swords
 target
 tech
 treasury
-trendingUp
+trendingup
 trophy
 user
 users

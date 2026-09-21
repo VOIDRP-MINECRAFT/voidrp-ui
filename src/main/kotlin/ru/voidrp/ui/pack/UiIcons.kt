@@ -33,26 +33,35 @@ object UiIcons {
 
     private val index: Map<String, Int> by lazy { NAMES.withIndex().associate { (i, name) -> name to i } }
 
+    /**
+     * A resource path in Minecraft must be lower case, and a font whose provider names a
+     * file that cannot exist is thrown away whole — every glyph in it, not just that one.
+     * That is what turned a page of icons into a page of empty squares: the set has names
+     * like `chevronRight`, and the file beside them had to be `chevronright`.
+     */
+    private fun key(name: String): String = name.lowercase()
+
     fun fontName(size: Int): String = "ui_icons_$size"
 
     fun nearestSize(size: Int): Int = SIZES.minByOrNull { Math.abs(it - size) } ?: SIZES.first()
 
-    fun has(name: String): Boolean = index.containsKey(name)
+    fun has(name: String): Boolean = index.containsKey(key(name))
 
-    fun glyph(name: String): String? = index[name]?.let { String(Character.toChars(BASE + it)) }
+    fun glyph(name: String): String? = index[key(name)]?.let { String(Character.toChars(BASE + it)) }
 
     /** The picture itself, as it is shipped — the pack copies these in. */
     fun png(name: String, size: Int): ByteArray? =
-        UiIcons::class.java.getResourceAsStream("/icons/ui/${name}_${nearestSize(size)}.png")?.readBytes()
+        UiIcons::class.java.getResourceAsStream("/icons/ui/${key(name)}_${nearestSize(size)}.png")?.readBytes()
 
-    fun textureName(name: String, size: Int): String = "ui/${name}_${nearestSize(size)}.png"
+    fun textureName(name: String, size: Int): String = "ui/${key(name)}_${nearestSize(size)}.png"
 
     /**
      * How far the pen moves past an icon: the width of its ink plus one, measured from the
      * picture we ship — the same rule the client applies, and the reason a page with icons
      * on it does not drift sideways.
      */
-    fun advance(name: String, size: Int): Int = inkWidths.getValue(nearestSize(size))[name]?.plus(1) ?: (size + 1)
+    fun advance(name: String, size: Int): Int =
+        inkWidths.getValue(nearestSize(size))[key(name)]?.plus(1) ?: (size + 1)
 
     private val inkWidths: Map<Int, Map<String, Int>> by lazy {
         SIZES.associateWith { size ->

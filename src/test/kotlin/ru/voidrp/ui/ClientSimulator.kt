@@ -157,6 +157,13 @@ class ClientSimulator(pack: File) {
 
     companion object {
 
+        /** Every path inside the pack, for checking they are names the client will accept. */
+        fun packPaths(): List<String> {
+            val file = File.createTempFile("voidrp-ui-paths", ".zip").apply { deleteOnExit() }
+            PackBuilder().build(file)
+            return ZipFile(file).use { zip -> zip.entries().asSequence().map { it.name }.toList() }
+        }
+
         /** Builds the pack once and reads it back, which is what the client is given. */
         fun build(): ClientSimulator {
             val file = File.createTempFile("voidrp-ui-test", ".zip").apply { deleteOnExit() }

@@ -123,6 +123,17 @@ class PenAccountingTest {
     }
 
     @Test
+    fun `every path in the pack is a legal resource name`() {
+        // Minecraft resource paths are lower case, and a font naming a file that cannot
+        // exist is discarded whole — every glyph in it. A page of icons then draws as a
+        // page of empty squares, and because their widths are wrong, slides off screen.
+        val illegal = ClientSimulator.packPaths().filterNot { path ->
+            path.all { it.isDigit() || it in 'a'..'z' || it in "_-./" }
+        }
+        assertTrue(illegal.isEmpty(), "недопустимые пути в паке: ${illegal.take(5)}")
+    }
+
+    @Test
     fun `the home page balances`() {
         assertBalanced(
             "главная",
