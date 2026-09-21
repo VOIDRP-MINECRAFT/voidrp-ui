@@ -42,17 +42,17 @@ object Layout {
     data class Placement(val nodes: List<Node>, val regions: List<Region>)
 
     /** Lays a page out inside a rectangle of the canvas. */
-    fun place(view: View, x: Int, y: Int, width: Int, height: Int): Placement {
+    fun place(view: View, x: Int, y: Int, width: Int, height: Int): Placement = pass {
         val nodes = mutableListOf<Node>()
         val regions = mutableListOf<Region>()
         arrange(view, x, y, width, height, nodes, regions)
-        return Placement(nodes, regions)
+        Placement(nodes, regions)
     }
 
     /** Lays a page out at its own size, centred on the canvas. */
-    fun centred(view: View, canvasWidth: Int, canvasHeight: Int): Placement {
+    fun centred(view: View, canvasWidth: Int, canvasHeight: Int): Placement = pass {
         val size = measure(view, canvasWidth, canvasHeight)
-        return place(
+        place(
             view,
             (canvasWidth - size.width) / 2,
             (canvasHeight - size.height) / 2,
@@ -62,10 +62,50 @@ object Layout {
     }
 
     /**
+     * What has already been measured during this layout.
+     *
+     * Measuring is recursive and asked for repeatedly — a panel measures its children to
+     * find its own size, then again to share out what is left, then once more to line them
+     * up across — so without this the work doubles with every level of nesting. A shop
+     * page took eleven milliseconds to lay out; the same page with this takes a fraction
+     * of that, and thirty players hovering at once stops being a problem.
+     *
+     * Views are immutable, so a measurement is good for the whole pass and no longer.
+     */
+    private val measured = ThreadLocal.withInitial { java.util.IdentityHashMap<View, MutableMap<Long, Extent>>() }
+
+    private val depth = ThreadLocal.withInitial { 0 }
+
+    /**
+     * Starts a page, or joins the one already being laid out.
+     *
+     * Only the outermost call clears what was measured — laying out centred content calls
+     * back into placing it, and an inner pass that wiped the cache would defeat the whole
+     * point of having one.
+     */
+    private fun <T> pass(block: () -> T): T {
+        depth.set(depth.get() + 1)
+        return try {
+            block()
+        } finally {
+            val level = depth.get() - 1
+            depth.set(level)
+            if (level == 0) measured.get().clear()
+        }
+    }
+
+    /**
      * How big a view wants to be. [availableWidth] and [availableHeight] are what the
      * parent can offer, which is what "fill" resolves to.
      */
-    fun measure(view: View, availableWidth: Int, availableHeight: Int): Extent = when (view) {
+    fun measure(view: View, availableWidth: Int, availableHeight: Int): Extent {
+        val key = (availableWidth.toLong() shl 32) or (availableHeight.toLong() and 0xFFFFFFFFL)
+        val forView = measured.get().getOrPut(view) { HashMap(4) }
+        forView[key]?.let { return it }
+        return measureUncached(view, availableWidth, availableHeight).also { forView[key] = it }
+    }
+
+    private fun measureUncached(view: View, availableWidth: Int, availableHeight: Int): Extent = when (view) {
         is Text -> {
             val lines = lines(view, availableWidth)
             val width = lines.maxOfOrNull { TextFonts.width(it, view.weight, view.size) } ?: 0
@@ -76,10 +116,13 @@ object Layout {
 
         is Image -> Icons.nearestSize(view.size).let { Extent(it, it) }
 
-        is Scroll -> Extent(
-            resolve(view.width, contentHeight(view, availableWidth).second, availableWidth),
-            resolve(view.height, contentHeight(view, availableWidth).first, availableHeight),
-        )
+        is Scroll -> {
+            val content = contentHeight(view, availableWidth)
+            Extent(
+                resolve(view.width, content.second, availableWidth),
+                resolve(view.height, content.first, availableHeight),
+            )
+        }
 
         is Raw -> Extent(0, 0)
 
@@ -126,28 +169,40 @@ object Layout {
     private fun lines(text: Text, availableWidth: Int): List<String> {
         val explicit = text.value.split("\n")
         if (!text.wrap || availableWidth <= 0) return explicit
+        val sheet = TextFonts.sheet(text.weight, text.size)
+        val space = sheet.spaceAdvance
         val out = mutableListOf<String>()
         explicit.forEach { paragraph ->
-            var line = StringBuilder()
+            val line = StringBuilder()
+            // Width is carried along rather than measured again for every word: measuring
+            // the whole line once per word made laying out a page of text quadratic.
+            var width = 0
             paragraph.split(' ').forEach { word ->
-                val candidate = if (line.isEmpty()) word else "$line $word"
-                if (TextFonts.width(candidate, text.weight, text.size) <= availableWidth) {
-                    line = StringBuilder(candidate)
+                val wordWidth = sheet.width(word)
+                val added = if (line.isEmpty()) wordWidth else space + wordWidth
+                if (width + added <= availableWidth) {
+                    if (line.isNotEmpty()) line.append(' ')
+                    line.append(word)
+                    width += added
                     return@forEach
                 }
                 if (line.isNotEmpty()) {
                     out += line.toString()
-                    line = StringBuilder()
+                    line.setLength(0)
+                    width = 0
                 }
                 // A word that cannot fit on a line of its own is broken where it must be.
                 var rest = word
-                while (TextFonts.width(rest, text.weight, text.size) > availableWidth && rest.length > 1) {
+                var restWidth = wordWidth
+                while (restWidth > availableWidth && rest.length > 1) {
                     var cut = rest.length
-                    while (cut > 1 && TextFonts.width(rest.take(cut), text.weight, text.size) > availableWidth) cut--
+                    while (cut > 1 && sheet.width(rest.take(cut)) > availableWidth) cut--
                     out += rest.take(cut)
                     rest = rest.drop(cut)
+                    restWidth = sheet.width(rest)
                 }
-                line = StringBuilder(rest)
+                line.append(rest)
+                width = restWidth
             }
             out += line.toString()
         }

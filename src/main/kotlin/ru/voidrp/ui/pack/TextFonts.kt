@@ -73,34 +73,57 @@ object TextFonts {
     ) {
         val fontName: String get() = fontName(weight, size)
         val textureName: String get() = "font/${weight.id}_$size.png"
+
+        /** How far the pen moves past one character in this sheet. */
+        fun advance(char: Char): Int =
+            if (char == ' ') spaceAdvance else metrics[char]?.advance ?: spaceAdvance
+
+        fun width(text: String): Int {
+            var total = 0
+            for (index in text.indices) total += advance(text[index])
+            return total
+        }
     }
 
     fun fontName(weight: Weight, size: Int): String = "inter_${weight.id}_$size"
 
     /** The baked size closest to what a page asked for. */
-    fun nearestSize(size: Int): Int = SIZES.minByOrNull { Math.abs(it - size) } ?: SIZES.first()
+    fun nearestSize(size: Int): Int = SIZES[sizeIndex(size)]
 
-    private val sheets: Map<Pair<Weight, Int>, Sheet> by lazy {
-        buildMap {
-            Weight.entries.forEach { weight ->
-                SIZES.forEach { size -> put(weight to size, bake(weight, size)) }
-            }
+    /**
+     * Sheets by weight and size, in a plain array.
+     *
+     * Widths are asked for a character at a time, several times over while a page is laid
+     * out, so this is one of the hottest paths there is: a map keyed by a pair of values
+     * allocated a pair on every letter, which cost more than the measuring did.
+     */
+    private val sheets: Array<Array<Sheet>> by lazy {
+        Array(Weight.entries.size) { weight ->
+            Array(SIZES.size) { index -> bake(Weight.entries[weight], SIZES[index]) }
         }
     }
 
-    fun all(): Collection<Sheet> = sheets.values
+    fun all(): List<Sheet> = sheets.flatMap { it.asList() }
 
-    fun sheet(weight: Weight, size: Int): Sheet =
-        sheets[weight to nearestSize(size)] ?: error("Нет шрифта $weight $size")
+    fun sheet(weight: Weight, size: Int): Sheet = sheets[weight.ordinal][sizeIndex(size)]
 
-    /** How far the pen moves for one character. */
-    fun advance(char: Char, weight: Weight, size: Int): Int {
-        val sheet = sheet(weight, size)
-        if (char == ' ') return sheet.spaceAdvance
-        return sheet.metrics[char]?.advance ?: sheet.spaceAdvance
+    private fun sizeIndex(size: Int): Int {
+        var best = 0
+        var bestDistance = Int.MAX_VALUE
+        SIZES.forEachIndexed { index, candidate ->
+            val distance = Math.abs(candidate - size)
+            if (distance < bestDistance) {
+                best = index
+                bestDistance = distance
+            }
+        }
+        return best
     }
 
-    fun width(text: String, weight: Weight, size: Int): Int = text.sumOf { advance(it, weight, size) }
+    /** How far the pen moves for one character. */
+    fun advance(char: Char, weight: Weight, size: Int): Int = sheet(weight, size).advance(char)
+
+    fun width(text: String, weight: Weight, size: Int): Int = sheet(weight, size).width(text)
 
     fun known(char: Char, weight: Weight, size: Int): Boolean =
         char == ' ' || sheet(weight, size).metrics.containsKey(char)

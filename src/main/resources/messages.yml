@@ -1,0 +1,23 @@
+# Все строки, которые видит игрок. Меняйте под свой сервер — поддерживается
+# форматирование MiniMessage (<gray>, <#8b7bff>, <bold> и прочее).
+
+pack:
+  # Подпись в окне запроса ресурспака.
+  prompt: "<aqua>Интерфейсы сервера</aqua>"
+  # Игрок отклонил пак или он не скачался, а страница уже нужна.
+  missing: "<red>Интерфейс не загружен.</red> <gray>Примите ресурспак — он отправлен ещё раз — и повторите. Без него окна не нарисовать.</gray>"
+  # После /vui pack.
+  sent: "<green>Отправил ресурспак — примите его в клиенте.</green>"
+  # Пак негде взять: ни pack.url, ни встроенной раздачи.
+  unavailable: "<red>Ресурспак не настроен.</red> <gray>Сообщите администратору сервера.</gray>"
+
+page:
+  opened: "<gray>Прицел — курсор, ЛКМ — нажать, Shift — назад.</gray>"
+  closed: "<gray>Закрыто.</gray>"
+
+command:
+  players-only: "<red>Команда только для игроков.</red>"
+  no-permission: "<red>Недостаточно прав.</red>"
+  usage: "<gray>/vui open · /vui pack · /vui help</gray>"
+  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|cursor|shape|text|sweep|clear</gray>"
+  unknown: "<red>Неизвестная команда.</red> <gray>/vui help</gray>"

@@ -23,8 +23,13 @@ import ru.voidrp.ui.page.Page
  */
 interface VoidRpUi {
 
-    /** Opens [page] for [player], replacing whatever they had open. */
-    fun open(player: Player, page: Page)
+    /**
+     * Opens [page] for [player], replacing whatever they had open.
+     *
+     * Returns false when the client has no interface pack and therefore nothing to draw
+     * with; the player is told so and sent the pack again.
+     */
+    fun open(player: Player, page: Page): Boolean
 
     /** Closes whatever [player] has open, if anything. */
     fun close(player: Player)

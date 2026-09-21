@@ -15,6 +15,8 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import ru.voidrp.ui.command.UiCommand
 import org.bukkit.plugin.ServicePriority
+import org.bukkit.event.player.PlayerResourcePackStatusEvent
+import ru.voidrp.ui.Messages
 import ru.voidrp.ui.api.VoidRpUi
 import ru.voidrp.ui.pack.PackBuilder
 import ru.voidrp.ui.pack.PackServer
@@ -32,8 +34,9 @@ import ru.voidrp.ui.style.Paint
  */
 class VoidRpUiPlugin : JavaPlugin(), Listener {
 
+    val messages = Messages(this)
     val renderer = BossBarRenderer(logger)
-    val pages = PageManager(this, renderer, ::sendPack)
+    val pages = PageManager(this, renderer, messages, ::sendPack, ::packReady)
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
@@ -41,6 +44,15 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     /** The address each player typed to get here; the one to hand them the pack from. */
     private val hostnames = mutableMapOf<UUID, String>()
+
+    /**
+     * What each player did with our pack.
+     *
+     * Without it the interface is drawn in glyphs the client does not have, which looks
+     * like a row of broken squares — worse than nothing. A page is refused until the pack
+     * is in, and the player is told why.
+     */
+    private val packStatus = mutableMapOf<UUID, PlayerResourcePackStatusEvent.Status>()
 
     override fun onEnable() {
         saveDefaultConfig()
@@ -97,13 +109,27 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     /** Says in the log what the client did with the pack — the first thing to check when nothing is drawn. */
     @EventHandler
-    fun onPackStatus(event: org.bukkit.event.player.PlayerResourcePackStatusEvent) {
+    fun onPackStatus(event: PlayerResourcePackStatusEvent) {
+        if (event.id != PACK_ID) return
+        packStatus[event.player.uniqueId] = event.status
         logger.info("Ресурспак у ${event.player.name}: ${event.status}")
+    }
+
+    /**
+     * Whether this player can be shown a page.
+     *
+     * A server that applies the pack some other way — through server.properties, or a
+     * merged pack of its own — can turn the check off and take responsibility for it.
+     */
+    fun packReady(player: Player): Boolean {
+        if (!config.getBoolean("pack.require-accepted", true)) return true
+        return packStatus[player.uniqueId] == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
     }
 
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
         hostnames.remove(event.player.uniqueId)
+        packStatus.remove(event.player.uniqueId)
         stopSweep(event.player)
         renderer.clear(event.player)
     }
@@ -117,6 +143,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         val url = packUrl(player)
         if (url.isBlank()) {
             logger.warning("Пак негде взять: укажите pack.url или включите pack.serve.enabled.")
+            player.sendMessage(messages.get("pack.unavailable"))
             return
         }
         val info = ResourcePackInfo.resourcePackInfo()
@@ -128,7 +155,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             ResourcePackRequest.resourcePackRequest()
                 .packs(info)
                 .required(config.getBoolean("pack.required", false))
-                .prompt(Component.text("Интерфейсы сервера. void-rp.ru", NamedTextColor.AQUA))
+                .prompt(messages.get("pack.prompt"))
                 .build()
         )
     }

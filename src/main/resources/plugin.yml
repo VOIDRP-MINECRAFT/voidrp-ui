@@ -8,9 +8,11 @@ description: Настоящие интерфейсы на ванильном к�
 commands:
   vui:
     description: Интерфейсы VoidRP UI
-    permission: voidrp.ui.admin
-    usage: /vui pack|test|sweep|clear
+    usage: /vui open | /vui pack | /vui help
 permissions:
-  voidrp.ui.admin:
-    description: Управление интерфейсами
+  voidrp.ui.use:
+    description: Открывать демонстрационную страницу
+    default: true
+  voidrp.ui.debug:
+    description: Инструменты отладки интерфейса
     default: op

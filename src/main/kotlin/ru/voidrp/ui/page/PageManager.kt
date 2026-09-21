@@ -29,8 +29,11 @@ import ru.voidrp.ui.render.BossBarRenderer
 class PageManager(
     private val plugin: JavaPlugin,
     private val renderer: BossBarRenderer,
+    private val messages: ru.voidrp.ui.Messages,
     /** How a player is handed the resource pack; the API exposes it to other plugins. */
     private val packSender: (Player) -> Unit = {},
+    /** Whether this player's client has the pack, and can therefore draw anything. */
+    private val packReady: (Player) -> Boolean = { true },
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -76,11 +79,23 @@ class PageManager(
         closeAll()
     }
 
-    override fun open(player: Player, page: Page) {
+    /**
+     * Opens a page, unless the client has nothing to draw it with.
+     *
+     * Without the pack the glyphs are not in any font the client knows, and the page comes
+     * out as a row of broken squares — so the player is told what happened instead.
+     */
+    override fun open(player: Player, page: Page): Boolean {
+        if (!packReady(player)) {
+            player.sendMessage(messages.get("pack.missing"))
+            packSender(player)
+            return false
+        }
         close(player)
         val session = PageSession(plugin, player, page, renderer, { sensitivity }, { cursorBarOffset })
         sessions[player.uniqueId] = session
         session.open()
+        return true
     }
 
     override fun close(player: Player) {
