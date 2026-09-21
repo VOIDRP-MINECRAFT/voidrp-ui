@@ -64,9 +64,15 @@ object Theme {
      */
     val scrim = Style(background = Paint(0x000000, 0.55))
 
-    /** The main surface of a page: a large, nearly opaque sheet. */
+    /** The wash the site puts behind anything it wants looked at. */
+    val accentWash = Gradient(Paint(VIOLET, 0.24), Paint(VIOLET, 0.05))
+
+    /** The accent itself, the way the site draws a filled bar or a primary button. */
+    val accentBar = Gradient(Paint(VIOLET, 0.95), Paint(FUCHSIA, 0.95), GradientDirection.HORIZONTAL)
+
+    /** The main surface of a page: a large, nearly opaque sheet, lit from the top. */
     val page = Style(
-        background = Paint(0x0B1224, 0.92),
+        background = Gradient(Paint(0x111A33, 0.93), Paint(0x05060D, 0.95)),
         border = Border(1, Paint(LINE, 0.25)),
         radius = R_XL,
         padding = Insets.all(SPACE_6),
@@ -84,7 +90,7 @@ object Theme {
 
     /** A card that is the one thing on the screen worth looking at. */
     val cardAccent = card.copy(
-        background = Paint(VIOLET, 0.18),
+        background = accentWash,
         border = Border(1, Paint(VIOLET, 0.45)),
     )
 

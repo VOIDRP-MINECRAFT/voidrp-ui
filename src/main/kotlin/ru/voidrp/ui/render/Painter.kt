@@ -1,6 +1,9 @@
 package ru.voidrp.ui.render
 
 import ru.voidrp.ui.pack.Glyphs
+import ru.voidrp.ui.style.Fill
+import ru.voidrp.ui.style.Gradient
+import ru.voidrp.ui.style.GradientDirection
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Shadow
 import ru.voidrp.ui.style.Style
@@ -45,8 +48,8 @@ object Painter {
         }
 
         val inset = border?.width ?: 0
-        style.background?.takeIf { it.visible }?.let {
-            rounded(
+        style.background?.let {
+            fill(
                 x + inset,
                 y + inset,
                 box.width - inset * 2,
@@ -62,21 +65,125 @@ object Painter {
         box.children.forEach { paint(it, contentX, contentY, out) }
     }
 
+    /** Fills a shape with whatever it is filled with: one colour, or a gradient in stripes. */
+    fun fill(x: Int, y: Int, width: Int, height: Int, radius: Int, fill: Fill, out: MutableList<Node>) {
+        when (fill) {
+            is Paint -> rounded(x, y, width, height, radius, fill, out)
+            is Gradient -> gradient(x, y, width, height, radius, fill, out)
+        }
+    }
+
     /** A filled rectangle with rounded corners: four quarter discs and three bands. */
-    fun rounded(x: Int, y: Int, width: Int, height: Int, radius: Int, paint: Paint, out: MutableList<Node>) {
+    fun rounded(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        radius: Int,
+        paint: Paint,
+        out: MutableList<Node>,
+        roundStart: Boolean = true,
+        roundEnd: Boolean = true,
+        along: GradientDirection = GradientDirection.VERTICAL,
+    ) {
         if (width <= 0 || height <= 0 || !paint.visible) return
-        if (radius <= 0) {
+        if (radius <= 0 || (!roundStart && !roundEnd)) {
             out += Rect(x, y, width, height, paint)
             return
         }
         val r = radius
-        out += CornerPiece(x, y, r, Glyphs.Corner.TOP_LEFT, paint)
-        out += CornerPiece(x + width - r, y, r, Glyphs.Corner.TOP_RIGHT, paint)
-        out += CornerPiece(x, y + height - r, r, Glyphs.Corner.BOTTOM_LEFT, paint)
-        out += CornerPiece(x + width - r, y + height - r, r, Glyphs.Corner.BOTTOM_RIGHT, paint)
-        out += Rect(x + r, y, width - 2 * r, r, paint)
-        out += Rect(x + r, y + height - r, width - 2 * r, r, paint)
-        out += Rect(x, y + r, width, height - 2 * r, paint)
+        if (along == GradientDirection.VERTICAL) {
+            // Rounded at the top, the bottom, or both; the rest is one plain band. A stripe
+            // in the middle of a gradient is square at both ends, and the stripes at the
+            // ends carry the corners.
+            var top = y
+            var bottom = y + height
+            if (roundStart) {
+                out += CornerPiece(x, y, r, Glyphs.Corner.TOP_LEFT, paint)
+                out += CornerPiece(x + width - r, y, r, Glyphs.Corner.TOP_RIGHT, paint)
+                out += Rect(x + r, y, width - 2 * r, r, paint)
+                top = y + r
+            }
+            if (roundEnd) {
+                out += CornerPiece(x, y + height - r, r, Glyphs.Corner.BOTTOM_LEFT, paint)
+                out += CornerPiece(x + width - r, y + height - r, r, Glyphs.Corner.BOTTOM_RIGHT, paint)
+                out += Rect(x + r, y + height - r, width - 2 * r, r, paint)
+                bottom = y + height - r
+            }
+            out += Rect(x, top, width, bottom - top, paint)
+        } else {
+            var left = x
+            var right = x + width
+            if (roundStart) {
+                out += CornerPiece(x, y, r, Glyphs.Corner.TOP_LEFT, paint)
+                out += CornerPiece(x, y + height - r, r, Glyphs.Corner.BOTTOM_LEFT, paint)
+                out += Rect(x, y + r, r, height - 2 * r, paint)
+                left = x + r
+            }
+            if (roundEnd) {
+                out += CornerPiece(x + width - r, y, r, Glyphs.Corner.TOP_RIGHT, paint)
+                out += CornerPiece(x + width - r, y + height - r, r, Glyphs.Corner.BOTTOM_RIGHT, paint)
+                out += Rect(x + width - r, y + r, r, height - 2 * r, paint)
+                right = x + width - r
+            }
+            out += Rect(left, y, right - left, height, paint)
+        }
+    }
+
+    /**
+     * A gradient, drawn as stripes across the shape.
+     *
+     * The first and last stripe carry the rounded corners; everything between them is
+     * square, which is what makes a rounded panel with a wash down it look right.
+     */
+    private fun gradient(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        radius: Int,
+        gradient: Gradient,
+        out: MutableList<Node>,
+    ) {
+        val vertical = gradient.direction == GradientDirection.VERTICAL
+        val span = if (vertical) height else width
+        if (span <= 0 || width <= 0 || height <= 0) return
+        val steps = gradient.steps.coerceIn(2, span.coerceAtLeast(2))
+
+        for (step in 0 until steps) {
+            val start = span * step / steps
+            val end = span * (step + 1) / steps
+            if (end <= start) continue
+            val paint = blend(gradient.from, gradient.to, (step + 0.5) / steps)
+            if (vertical) {
+                rounded(
+                    x, y + start, width, end - start, radius, paint, out,
+                    roundStart = step == 0,
+                    roundEnd = step == steps - 1,
+                    along = GradientDirection.VERTICAL,
+                )
+            } else {
+                rounded(
+                    x + start, y, end - start, height, radius, paint, out,
+                    roundStart = step == 0,
+                    roundEnd = step == steps - 1,
+                    along = GradientDirection.HORIZONTAL,
+                )
+            }
+        }
+    }
+
+    /** One colour part of the way to another, opacity included. */
+    private fun blend(from: Paint, to: Paint, position: Double): Paint {
+        fun channel(shift: Int): Int {
+            val a = (from.rgb shr shift) and 0xFF
+            val b = (to.rgb shr shift) and 0xFF
+            return (a + (b - a) * position).toInt().coerceIn(0, 255)
+        }
+        return Paint(
+            (channel(16) shl 16) or (channel(8) shl 8) or channel(0),
+            from.alpha + (to.alpha - from.alpha) * position,
+        )
     }
 
     /**

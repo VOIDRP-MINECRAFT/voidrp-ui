@@ -80,7 +80,7 @@ class DemoPage : Page() {
                     height = Size.Fixed(12),
                     children = listOf(
                         Panel(
-                            style = Style(background = Paint(Theme.VIOLET, 0.95), radius = 6),
+                            style = Style(background = Theme.accentBar, radius = 6),
                             width = Size.Fixed((inner * progress).toInt().coerceAtLeast(12)),
                             height = Size.Fill,
                         )
@@ -175,7 +175,7 @@ class DemoPage : Page() {
 
     /** A button knows it is being pointed at, which is all "hover" ever was. */
     private fun button(caption: String, style: Style, id: String) = Panel(
-        style = if (hovered == id) style.copy(background = style.background?.let { it.alpha(minOf(1.0, it.alpha + 0.15)) }) else style,
+        style = if (hovered == id) style.copy(background = (style.background as? Paint)?.let { it.alpha(minOf(1.0, it.alpha + 0.15)) } ?: style.background) else style,
         width = Size.Fixed(190),
         height = Size.Fixed(48),
         justify = Justify.CENTER,
