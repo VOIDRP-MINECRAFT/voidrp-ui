@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import ru.voidrp.ui.command.UiCommand
 import ru.voidrp.ui.pack.PackBuilder
+import ru.voidrp.ui.page.PageManager
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
 import ru.voidrp.ui.render.Rect
@@ -29,6 +30,7 @@ import ru.voidrp.ui.style.Paint
 class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     val renderer = BossBarRenderer(logger)
+    val pages = PageManager(this, renderer)
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
@@ -43,6 +45,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         logger.info("Ресурспак собран: ${packFile.name}, ${packFile.length() / 1024} КБ, sha1 $packHash")
 
         server.pluginManager.registerEvents(this, this)
+        server.pluginManager.registerEvents(pages, this)
+        // The cursor follows the player's aim, so it is read every tick.
+        server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
         getCommand("vui")?.let {
             val handler = UiCommand(this)
             it.setExecutor(handler)
@@ -51,6 +56,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     }
 
     override fun onDisable() {
+        pages.closeAll()
         sweeps.values.forEach { it.cancel() }
         sweeps.clear()
         renderer.clearAll()

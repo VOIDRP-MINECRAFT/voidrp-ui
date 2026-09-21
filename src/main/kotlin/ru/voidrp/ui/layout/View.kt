@@ -52,6 +52,13 @@ data class Panel(
     val align: Align = Align.START,
     val width: Size = Size.Auto,
     val height: Size = Size.Auto,
+    /**
+     * Names a panel the player can point at. The layout remembers where a named panel
+     * ended up, so hovering and clicking are answered on the server by asking which named
+     * rectangle the cursor is inside — no guessing on the client, and nothing to trust it
+     * about.
+     */
+    val id: String? = null,
 ) : View
 
 /** A line of text. It measures itself, so a panel around it fits it exactly. */

@@ -9,6 +9,7 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
 import ru.voidrp.ui.pack.Shaders
+import ru.voidrp.ui.page.DemoPage
 import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Direction
@@ -106,7 +107,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         )
 
         return listOf(Box(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, Theme.scrim)) +
-            Layout.centred(page, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
+            Layout.centred(page, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
@@ -164,6 +165,14 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                 sender.sendMessage(Component.text("Панель поехала по экрану. /vui clear — убрать.", NamedTextColor.AQUA))
             }
 
+            // The interactive one: a cursor, hover and clicks, all answered on the server.
+            "open" -> {
+                plugin.pages.open(sender, DemoPage())
+                sender.sendMessage(
+                    Component.text("Страница открыта. Наводите прицелом, ЛКМ — нажать, Shift — закрыть.", NamedTextColor.AQUA)
+                )
+            }
+
             "demo" -> {
                 plugin.renderer.render(sender, demoPage())
                 sender.sendMessage(Component.text("Демо-окно. /vui clear — убрать.", NamedTextColor.AQUA))
@@ -213,13 +222,14 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             }
 
             "clear" -> {
+                plugin.pages.close(sender)
                 plugin.stopSweep(sender)
                 plugin.renderer.clear(sender)
                 sender.sendMessage(Component.text("Убрал.", NamedTextColor.GRAY))
             }
 
             else -> sender.sendMessage(
-                Component.text("/vui pack | test <x> <y> <ш> <в> <#цвет> | text <размер> <текст> | demo | sweep | debug | clear", NamedTextColor.YELLOW)
+                Component.text("/vui pack | open | test <x> <y> <ш> <в> <#цвет> <прозр> <скругл> | text <размер> <текст> | demo | style <имя> | sweep | stats | clear", NamedTextColor.YELLOW)
             )
         }
         return true
@@ -230,5 +240,5 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         command: Command,
         alias: String,
         args: Array<out String>,
-    ): List<String> = if (args.size == 1) listOf("pack", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
+    ): List<String> = if (args.size == 1) listOf("pack", "open", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
 }
