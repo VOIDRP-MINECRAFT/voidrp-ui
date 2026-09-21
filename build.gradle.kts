@@ -30,14 +30,17 @@ tasks.withType<JavaCompile>().configureEach {
 // Paper's own API is built for 25, and Gradle would otherwise refuse to put a 25 library
 // on the classpath of something emitted for 21. Reading it is fine; what matters is that
 // the classes we produce load on an older server.
-configurations.compileClasspath {
-    attributes {
-        attribute(
-            org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
-            25,
-        )
+listOf(configurations.compileClasspath, configurations.testCompileClasspath, configurations.testRuntimeClasspath)
+    .forEach { configuration ->
+        configuration {
+            attributes {
+                attribute(
+                    org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
+                    25,
+                )
+            }
+        }
     }
-}
 
 // Published so other plugins can compile against the API — see README.
 publishing {
@@ -59,6 +62,16 @@ dependencies {
     // Paper ships Gson at runtime; we only need it to read our own width table.
     compileOnly("com.google.code.gson:gson:2.11.0")
     implementation(kotlin("stdlib"))
+
+    // The tests read the pack we build and add up a line the way the client would.
+    testImplementation(kotlin("test"))
+    testImplementation("io.papermc.paper:paper-api:26.2.build.124-stable")
+    testImplementation("com.google.code.gson:gson:2.11.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging { events("passed", "failed") }
 }
 
 tasks.shadowJar {
