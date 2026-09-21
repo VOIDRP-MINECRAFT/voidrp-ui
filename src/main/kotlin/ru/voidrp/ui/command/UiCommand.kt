@@ -10,6 +10,13 @@ import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.pack.TextFonts
+import ru.voidrp.ui.layout.Align
+import ru.voidrp.ui.layout.Direction
+import ru.voidrp.ui.layout.Justify
+import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.Panel
+import ru.voidrp.ui.layout.Size
+import ru.voidrp.ui.layout.Text
 import ru.voidrp.ui.render.Box
 import ru.voidrp.ui.render.CornerPiece
 import ru.voidrp.ui.render.Painter
@@ -30,50 +37,76 @@ import ru.voidrp.ui.render.Rect
 class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabCompleter {
 
     /**
-     * A page written the way pages are meant to be written: boxes with styles from the
-     * theme, nothing positioned by hand except within its own container.
+     * A page written the way pages are meant to be written: what it contains, not where
+     * each piece sits. Every size here is the site's own — a 14 is a 14px label, a 24 is
+     * `--gp-space-6` — and the layout does the arithmetic.
      */
     private fun demoPage(): List<Node> {
-        val width = 800
+        val width = 760
         val inner = width - Theme.SPACE_6 * 2 - 2
-        fun centred(text: String, size: Int, colour: Int, boxWidth: Int, top: Int): Label {
-            val label = Label(0, top, text, size, colour, TextFonts.Weight.SEMIBOLD)
-            return label.copy(x = (boxWidth - label.width) / 2)
-        }
-        fun stat(top: Int, caption: String, value: String, style: Style) = Box(
-            0, top, inner, 92, style,
-            listOf(
-                Label(0, 0, caption, Theme.TEXT_CAPTION, Theme.INK_DIM),
-                Label(0, 22, value, Theme.TEXT_H3, Theme.INK, TextFonts.Weight.SEMIBOLD),
+
+        fun stat(caption: String, value: String, style: Style) = Panel(
+            style = style,
+            width = Size.Fill,
+            gap = 2,
+            children = listOf(
+                Text(caption, Theme.TEXT_CAPTION, Theme.INK_DIM),
+                Text(value, Theme.TEXT_H3, Theme.INK, TextFonts.Weight.SEMIBOLD),
             ),
         )
 
-        val height = 540
-        return listOf(
-            Box(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, Theme.scrim),
-            Box(
-                (Shaders.CANVAS_WIDTH - width) / 2, (Shaders.CANVAS_HEIGHT - height) / 2, width, height, Theme.page,
-                listOf(
-                    Label(0, 0, "VoidRP: Origins", Theme.TEXT_H2, Theme.INK, TextFonts.Weight.SEMIBOLD),
-                    Label(0, 38, "Интерфейс рисует ванильный клиент", Theme.TEXT_BODY, Theme.INK_SOFT),
-                    Box(0, 74, inner, 1, Theme.divider),
-                    stat(94, "Игроков онлайн", "42 из 200", Theme.card),
-                    stat(202, "Сезон пропуска", "15 уровень", Theme.cardAccent),
-                    // A progress bar is two rounded boxes: the track and the fill.
-                    Box(0, 318, inner, 12, Style(background = Paint(Theme.LINE, 0.14), radius = 6)),
-                    Box(0, 318, inner * 2 / 3, 12, Style(background = Paint(Theme.VIOLET, 0.95), radius = 6)),
-                    Box(
-                        0, 366, 240, 56, Theme.buttonPrimary,
-                        listOf(centred("Продолжить", Theme.TEXT_BODY, Theme.buttonPrimary.textColour, 240 - Theme.SPACE_4 * 2, 4)),
+        fun button(caption: String, style: Style) = Panel(
+            style = style,
+            width = Size.Fixed(220),
+            height = Size.Fixed(48),
+            justify = Justify.CENTER,
+            align = Align.CENTER,
+            children = listOf(Text(caption, style.textSize, style.textColour, style.textWeight)),
+        )
+
+        val page = Panel(
+            style = Theme.page,
+            width = Size.Fixed(width),
+            gap = Theme.SPACE_4,
+            children = listOf(
+                Panel(
+                    gap = 2,
+                    children = listOf(
+                        Text("VoidRP: Origins", Theme.TEXT_H2, Theme.INK, TextFonts.Weight.SEMIBOLD),
+                        Text("Интерфейс рисует ванильный клиент", Theme.TEXT_BODY, Theme.INK_SOFT),
                     ),
-                    Box(
-                        260, 366, 240, 56, Theme.buttonGhost,
-                        listOf(centred("Отмена", Theme.TEXT_BODY, Theme.buttonGhost.textColour, 240 - Theme.SPACE_4 * 2 - 2, 4)),
-                    ),
-                    Label(0, 452, "void-rp.ru", Theme.TEXT_CAPTION, Theme.INK_DIM),
                 ),
+                Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
+                stat("Игроков онлайн", "42 из 200", Theme.card),
+                stat("Сезон пропуска", "15 уровень", Theme.cardAccent),
+                // A progress bar is a track with a fill inside it.
+                Panel(
+                    style = Style(background = Paint(Theme.LINE, 0.14), radius = 6),
+                    width = Size.Fill,
+                    height = Size.Fixed(12),
+                    children = listOf(
+                        Panel(
+                            style = Style(background = Paint(Theme.VIOLET, 0.95), radius = 6),
+                            width = Size.Fixed(inner * 2 / 3),
+                            height = Size.Fill,
+                        )
+                    ),
+                ),
+                Panel(
+                    direction = Direction.ROW,
+                    gap = Theme.SPACE_3,
+                    width = Size.Fill,
+                    children = listOf(
+                        button("Продолжить", Theme.buttonPrimary),
+                        button("Отмена", Theme.buttonGhost),
+                    ),
+                ),
+                Text("void-rp.ru", Theme.TEXT_CAPTION, Theme.INK_DIM),
             ),
         )
+
+        return listOf(Box(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, Theme.scrim)) +
+            Layout.centred(page, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
     }
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
