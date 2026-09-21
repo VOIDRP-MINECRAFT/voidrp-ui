@@ -1,6 +1,7 @@
 package ru.voidrp.ui.layout
 
 import ru.voidrp.ui.pack.Icons
+import ru.voidrp.ui.pack.UiIcons
 import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.Box
 import ru.voidrp.ui.render.Label
@@ -118,6 +119,8 @@ object Layout {
 
         is Image -> Icons.nearestSize(view.size).let { Extent(it, it) }
 
+        is Icon -> UiIcons.nearestSize(view.size).let { Extent(it, it) }
+
         is RichText -> {
             var width = 0
             var height = 0
@@ -168,15 +171,21 @@ object Layout {
             (availableWidth - grid.gap * (grid.columns - 1)) / grid.columns
         } else {
             availableWidth
-        }
-        var width = 0
-        var height = 0
+        }.coerceAtLeast(0)
+
+        var widest = 0
+        var tallest = 0
         grid.children.forEach { child ->
-            val size = measure(child, perCell.coerceAtLeast(0), Int.MAX_VALUE / 4)
-            width = maxOf(width, size.width)
-            height = maxOf(height, size.height)
+            val size = measure(child, perCell, Int.MAX_VALUE / 4)
+            widest = maxOf(widest, size.width)
+            tallest = maxOf(tallest, size.height)
         }
-        return Extent(width, height)
+
+        // A grid told how wide it is divides that width and keeps to it. Letting the cell
+        // grow to its contents instead is how a two-column stat panel ended up wider than
+        // the panel around it, with its right-hand column printed over the panel beside it.
+        val width = if (grid.width is Size.Auto) widest else minOf(widest, perCell)
+        return Extent(width, tallest)
     }
 
     /** How tall everything in a scroll is together, and how wide the widest of it is. */
@@ -340,6 +349,20 @@ object Layout {
                         TextAlign.END -> width - lineWidth
                     }
                     out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight, view.tracking)
+                }
+            }
+
+            is Icon -> {
+                val size = UiIcons.nearestSize(view.size)
+                UiIcons.glyph(view.name)?.let { glyph ->
+                    out += Sprite(
+                        x,
+                        y,
+                        glyph,
+                        UiIcons.advance(view.name, size),
+                        colour = view.colour,
+                        font = UiIcons.fontName(size),
+                    )
                 }
             }
 

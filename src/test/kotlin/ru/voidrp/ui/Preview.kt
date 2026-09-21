@@ -41,6 +41,7 @@ object Preview {
     @JvmStatic
     fun main(args: Array<String>) {
         val out = File(args.firstOrNull() ?: "build/preview").apply { mkdirs() }
+        render(ru.voidrp.ui.page.HomePage().view(), File(out, "home.png"))
         render(ru.voidrp.ui.page.DemoPage().view(), File(out, "demo.png"))
         render(ru.voidrp.ui.page.ShopPage().view(), File(out, "shop.png"))
         println("Снимки: ${out.absolutePath}")
@@ -108,7 +109,7 @@ object Preview {
             is Label -> drawText(image, node)
 
             is Sprite -> icon(node)?.let { picture ->
-                val size = node.font?.removePrefix("icons_")?.toIntOrNull() ?: 16
+                val size = node.font?.substringAfterLast('_')?.toIntOrNull() ?: 16
                 g.setRenderingHint(
                     RenderingHints.KEY_INTERPOLATION,
                     RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR,
@@ -157,6 +158,21 @@ object Preview {
 
     private fun icon(sprite: Sprite): BufferedImage? {
         val font = sprite.font ?: return null
+        // Our own icons are shipped white and tinted by the glyph's colour, exactly as the
+        // client does it.
+        if (font.startsWith("ui_icons_")) {
+            val size = font.removePrefix("ui_icons_").toIntOrNull() ?: return null
+            val name = ru.voidrp.ui.pack.UiIcons.NAMES.getOrNull(sprite.glyph.codePointAt(0) - 0xEA00) ?: return null
+            val bytes = ru.voidrp.ui.pack.UiIcons.png(name, size) ?: return null
+            val source = ImageIO.read(ByteArrayInputStream(bytes)) ?: return null
+            val tint = quantise(sprite.colour)
+            val out = BufferedImage(source.width, source.height, BufferedImage.TYPE_INT_ARGB)
+            for (y in 0 until source.height) for (x in 0 until source.width) {
+                val alpha = source.getRGB(x, y) ushr 24
+                out.setRGB(x, y, (alpha shl 24) or (tint.rgb and 0xFFFFFF))
+            }
+            return out
+        }
         if (!font.startsWith("icons_")) return null
         val code = sprite.glyph.codePointAt(0) - 0xF000
         val name = Icons.NAMES.getOrNull(code) ?: return null

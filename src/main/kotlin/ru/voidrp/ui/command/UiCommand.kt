@@ -7,6 +7,7 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
 import ru.voidrp.ui.page.DemoPage
+import ru.voidrp.ui.page.HomePage
 
 /**
  * What a player or an operator types.
@@ -31,11 +32,14 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             }
 
             "open" -> withPlayer(sender) { player ->
-                if (!plugin.pages.open(player, DemoPage())) return@withPlayer
+                if (!plugin.pages.open(player, HomePage())) return@withPlayer
                 player.sendMessage(plugin.messages.get("page.opened"))
             }
 
             "close" -> withPlayer(sender) { player -> plugin.pages.close(player) }
+
+            // The old demo, kept because it shows every control in one place.
+            "demo" -> withPlayer(sender) { player -> plugin.pages.open(player, DemoPage()) }
 
             "pack" -> withPlayer(sender) { player ->
                 plugin.sendPack(player)
@@ -59,7 +63,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         label: String,
         args: Array<out String>,
     ): List<String> = when {
-        args.size <= 1 -> listOf("open", "close", "pack", "help").let {
+        args.size <= 1 -> listOf("open", "demo", "close", "pack", "help").let {
             if (sender.hasPermission("voidrp.ui.debug")) it + "debug" else it
         }.filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
 

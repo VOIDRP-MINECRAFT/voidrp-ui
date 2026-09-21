@@ -111,6 +111,18 @@ data class Text(
 ) : View
 
 /**
+ * One of the interface's own icons — a wallet, a clock, a shield.
+ *
+ * It takes the colour it is given, because the pictures are baked white: the same icon
+ * reads as a quiet label beside a caption and as the accent inside a chosen card.
+ */
+data class Icon(
+    val name: String,
+    val size: Int = Theme.TEXT_LEAD,
+    val colour: Int = Theme.INK_SOFT,
+) : View
+
+/**
  * A picture of an item, drawn from the client's own texture for it. Names it the way the
  * game does — `diamond`, `minecraft:golden_apple` — and it measures itself square.
  */

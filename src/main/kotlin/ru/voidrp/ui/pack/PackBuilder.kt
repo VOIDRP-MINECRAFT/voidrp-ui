@@ -94,6 +94,16 @@ class PackBuilder(
                     zip.put("assets/voidrp/textures/gui/a$level/$name.png", png)
                 }
             }
+            // The interface's own icons travel with us — they are ours, and the client has
+            // nothing like them.
+            UiIcons.SIZES.forEach { size ->
+                zip.put("assets/voidrp/font/${UiIcons.fontName(size)}.json", UiIcons.fontJson(size))
+                UiIcons.NAMES.forEach { name ->
+                    UiIcons.png(name, size)?.let { png ->
+                        zip.put("assets/voidrp/textures/${UiIcons.textureName(name, size)}", png)
+                    }
+                }
+            }
             // Item pictures: names only, because the client already has the textures.
             Icons.SIZES.forEach { size ->
                 zip.put("assets/voidrp/font/${Icons.fontName(size)}.json", Icons.fontJson(size))
