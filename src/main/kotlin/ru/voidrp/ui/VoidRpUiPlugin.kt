@@ -14,6 +14,8 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import ru.voidrp.ui.command.UiCommand
+import org.bukkit.plugin.ServicePriority
+import ru.voidrp.ui.api.VoidRpUi
 import ru.voidrp.ui.pack.PackBuilder
 import ru.voidrp.ui.pack.PackServer
 import ru.voidrp.ui.page.PageManager
@@ -31,7 +33,7 @@ import ru.voidrp.ui.style.Paint
 class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     val renderer = BossBarRenderer(logger)
-    val pages = PageManager(this, renderer)
+    val pages = PageManager(this, renderer, ::sendPack)
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
@@ -58,6 +60,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
         server.pluginManager.registerEvents(this, this)
         server.pluginManager.registerEvents(pages, this)
+        // Registered as a service so another plugin never has to cast anything to this
+        // class — and so a reload underneath it does not leave stale references around.
+        server.servicesManager.register(VoidRpUi::class.java, pages, this, ServicePriority.Normal)
         // The cursor follows the player's aim, so it is read every tick.
         server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
         pages.start()
@@ -69,6 +74,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     }
 
     override fun onDisable() {
+        server.servicesManager.unregister(VoidRpUi::class.java, pages)
         packServer?.stop()
         pages.shutdown()
         sweeps.values.forEach { it.cancel() }

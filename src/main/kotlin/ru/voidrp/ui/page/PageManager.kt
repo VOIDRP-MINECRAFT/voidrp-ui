@@ -29,7 +29,9 @@ import ru.voidrp.ui.render.BossBarRenderer
 class PageManager(
     private val plugin: JavaPlugin,
     private val renderer: BossBarRenderer,
-) : Listener {
+    /** How a player is handed the resource pack; the API exposes it to other plugins. */
+    private val packSender: (Player) -> Unit = {},
+) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
 
@@ -48,7 +50,7 @@ class PageManager(
      * the value that felt right in play. Configurable, because what suits one player
      * depends on their own mouse sensitivity.
      */
-    var sensitivity: Double = plugin.config.getDouble("input.sensitivity", 10.0)
+    override var sensitivity: Double = plugin.config.getDouble("input.sensitivity", 10.0)
 
     /**
      * The gap between one boss bar's line and the next, in canvas units. The cursor rides
@@ -74,18 +76,22 @@ class PageManager(
         closeAll()
     }
 
-    fun open(player: Player, page: Page) {
+    override fun open(player: Player, page: Page) {
         close(player)
         val session = PageSession(plugin, player, page, renderer, { sensitivity }, { cursorBarOffset })
         sessions[player.uniqueId] = session
         session.open()
     }
 
-    fun close(player: Player) {
+    override fun close(player: Player) {
         sessions.remove(player.uniqueId)?.close()
     }
 
-    fun isOpen(player: Player): Boolean = sessions.containsKey(player.uniqueId)
+    override fun isOpen(player: Player): Boolean = sessions.containsKey(player.uniqueId)
+
+    override fun current(player: Player): Page? = sessions[player.uniqueId]?.page
+
+    override fun sendPack(player: Player) = packSender(player)
 
     fun closeAll() {
         sessions.values.toList().forEach { it.close() }

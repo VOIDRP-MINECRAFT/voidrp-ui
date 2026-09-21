@@ -1,0 +1,50 @@
+package ru.voidrp.ui.api
+
+import org.bukkit.Bukkit
+import org.bukkit.entity.Player
+import ru.voidrp.ui.page.Page
+
+/**
+ * What another plugin talks to.
+ *
+ * This is the whole surface: open a page for a player, close it, ask what they have open.
+ * Everything else — how a page is written, what it may contain — lives in [Page] and the
+ * layout, which any plugin can use directly.
+ *
+ * ```kotlin
+ * val ui = VoidRpUi.get() ?: return   // VoidRpUI not installed
+ * ui.open(player, MyShopPage())
+ * ```
+ *
+ * The implementation registers itself with Bukkit's service manager, so nothing has to be
+ * cast to our plugin class and nothing breaks when this plugin is reloaded underneath.
+ * Depend on it softly (`softdepend: [VoidRpUI]` in plugin.yml) and check for null: a server
+ * without the interface installed should lose the screens, not the plugin.
+ */
+interface VoidRpUi {
+
+    /** Opens [page] for [player], replacing whatever they had open. */
+    fun open(player: Player, page: Page)
+
+    /** Closes whatever [player] has open, if anything. */
+    fun close(player: Player)
+
+    /** Whether this player is looking at a page right now. */
+    fun isOpen(player: Player): Boolean
+
+    /** The page on screen for this player, or null. */
+    fun current(player: Player): Page?
+
+    /** Sends this player the resource pack again — useful after they rejected it. */
+    fun sendPack(player: Player)
+
+    /** Canvas units per degree of turn; what a page is drawn on measures 1820×1024. */
+    var sensitivity: Double
+
+    companion object {
+
+        /** The running interface, or null when this plugin is not installed. */
+        @JvmStatic
+        fun get(): VoidRpUi? = Bukkit.getServicesManager().load(VoidRpUi::class.java)
+    }
+}

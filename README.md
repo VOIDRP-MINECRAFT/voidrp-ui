@@ -60,6 +60,35 @@ plugin.pages.open(player, ShopPage(balance))
 Страница — функция своего состояния: поменяли поле, позвали `refresh()`, и нарисовалось
 новое. Никакого ручного обновления элементов.
 
+## Подключение из своего плагина
+
+Интерфейс зарегистрирован сервисом Bukkit, так что приводить ничего ни к каким классам не
+надо и перезагрузка плагина под вами ничего не ломает.
+
+```kotlin
+val ui = VoidRpUi.get() ?: return   // плагин не установлен — теряются экраны, а не ваш плагин
+ui.open(player, MyShopPage())
+```
+
+В `plugin.yml` — мягкая зависимость, чтобы ваш плагин работал и без интерфейсов:
+
+```yaml
+softdepend: [VoidRpUI]
+```
+
+Сборка через [JitPack](https://jitpack.io):
+
+```kotlin
+repositories { maven("https://jitpack.io") }
+
+dependencies {
+    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:main-SNAPSHOT")
+}
+```
+
+Jar собирается под **Java 21**, хотя компилируется против API Paper 26.2, — чтобы он
+загружался и на сервере 1.21.6, который обычно работает на 21-й.
+
 ## Что есть
 
 | | |
