@@ -63,8 +63,12 @@ object Fonts {
             add("\" \": ${table.space * size}")
             Glyphs.spacers().forEach { (char, advance) -> add("\"${escapeJson(char)}\": $advance") }
         }
-        return """{"providers": [${providers.joinToString(", ")},
-            {"type": "space", "advances": {${advances.joinToString(", ")}}}]}"""
+        // The space provider goes first because the client lets the earliest provider win:
+        // vanilla's own font is ordered the same way, and behind ascii.png the space would
+        // otherwise come out as its blank bitmap glyph, one pixel wide, closing up every
+        // gap between words and throwing the pen off for everything that follows.
+        return """{"providers": [{"type": "space", "advances": {${advances.joinToString(", ")}}},
+            ${providers.joinToString(", ")}]}"""
     }
 
     /**

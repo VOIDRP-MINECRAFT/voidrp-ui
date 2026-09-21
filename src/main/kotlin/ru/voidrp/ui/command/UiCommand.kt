@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender
 import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
+import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.Box
 import ru.voidrp.ui.render.Label
 import ru.voidrp.ui.render.Node
@@ -44,10 +45,11 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             ),
         )
 
+        val height = 540
         return listOf(
-            Box(0, 0, 1920, 1080, Theme.scrim),
+            Box(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, Theme.scrim),
             Box(
-                560, 200, width, 620, Theme.page,
+                (Shaders.CANVAS_WIDTH - width) / 2, (Shaders.CANVAS_HEIGHT - height) / 2, width, height, Theme.page,
                 listOf(
                     Label(0, 0, "VoidRP: Origins", 3, Theme.INK),
                     Label(0, 34, "Интерфейс рисует ванильный клиент", 2, Theme.INK_SOFT),
@@ -83,8 +85,8 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             }
 
             "test" -> {
-                val x = args.getOrNull(1)?.toIntOrNull() ?: 928
-                val y = args.getOrNull(2)?.toIntOrNull() ?: 508
+                val x = args.getOrNull(1)?.toIntOrNull() ?: (Shaders.CANVAS_WIDTH - 64) / 2
+                val y = args.getOrNull(2)?.toIntOrNull() ?: (Shaders.CANVAS_HEIGHT - 64) / 2
                 val w = args.getOrNull(3)?.toIntOrNull() ?: 64
                 val h = args.getOrNull(4)?.toIntOrNull() ?: 64
                 val colour = args.getOrNull(5)?.removePrefix("#")?.toIntOrNull(16) ?: 0xFFFFFF
@@ -116,8 +118,8 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             "text" -> {
                 val size = args.getOrNull(1)?.toIntOrNull() ?: 2
                 val text = args.drop(2).joinToString(" ").ifBlank { "Съешь ещё этих булок, ABC 123" }
-                val label = Label(0, 540, text, size, 0xFFFFFF)
-                plugin.renderer.render(sender, listOf(label.copy(x = 960 - label.width / 2)))
+                val label = Label(0, Shaders.CANVAS_HEIGHT / 2, text, size, 0xFFFFFF)
+                plugin.renderer.render(sender, listOf(label.copy(x = (Shaders.CANVAS_WIDTH - label.width) / 2)))
                 sender.sendMessage(
                     Component.text("Надпись размера $size, ширина ${label.width} точек холста.", NamedTextColor.AQUA)
                 )

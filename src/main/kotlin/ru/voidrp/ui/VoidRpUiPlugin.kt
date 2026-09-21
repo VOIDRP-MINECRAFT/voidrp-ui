@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin
 import org.bukkit.scheduler.BukkitTask
 import ru.voidrp.ui.command.UiCommand
 import ru.voidrp.ui.pack.PackBuilder
+import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.style.Paint
@@ -108,8 +109,8 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 stopSweep(player)
                 return@Runnable
             }
-            val x = (tick * 16) % (1920 - 64)
-            val y = 540 + (Math.sin(tick / 10.0) * 300).toInt()
+            val x = (tick * 16) % (Shaders.CANVAS_WIDTH - 64)
+            val y = Shaders.CANVAS_HEIGHT / 2 + (Math.sin(tick / 10.0) * 280).toInt()
             renderer.render(player, listOf(Rect(x, y, 64, 64, Paint(0xFFFFFF))))
             tick++
         }, 0L, 2L)

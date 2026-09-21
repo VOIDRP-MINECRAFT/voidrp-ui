@@ -12,7 +12,7 @@ import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 
-/** Anything a page can draw, in canvas coordinates (1920×1080 over the whole window). */
+/** Anything a page can draw, in canvas units (1820×1024 stretched over the window). */
 sealed interface Node {
     val x: Int
     val y: Int
@@ -185,9 +185,12 @@ object GlyphEncoder {
         return (r shl 7) or (g shl 3) or b
     }
 
-    /** Marker nibble, then y (10 bits), then fill (10 bits). */
+    /**
+     * Marker nibble, then y (10 bits), then fill (10 bits). One step is one canvas unit,
+     * so a y survives the trip untouched and pieces of the same panel always meet exactly.
+     */
     private fun pack(y: Int, fill: Int): Int {
-        val qy = Math.round(y.toDouble() * Y_MAX / Shaders.CANVAS_HEIGHT).toInt().coerceIn(0, Y_MAX)
+        val qy = y.coerceIn(0, Y_MAX)
         return (Shaders.MARKER shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
     }
 }

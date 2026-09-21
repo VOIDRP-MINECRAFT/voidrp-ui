@@ -42,10 +42,25 @@ object Shaders {
      */
     const val MARKER = 0xB
 
-    const val CANVAS_WIDTH = 1920
-    const val CANVAS_HEIGHT = 1080
+    /**
+     * The canvas every page is drawn on, stretched over the whole window.
+     *
+     * It is 1024 tall on purpose: the vertical position travels in 10 bits, and 1024 steps
+     * over 1024 units is exactly one unit per step. An earlier 1080-tall canvas put the
+     * steps 1.0557 units apart, so two pieces of the same panel could land a fraction of a
+     * pixel apart — invisible while everything was opaque, and a bright seam or a hairline
+     * gap as soon as anything became translucent.
+     *
+     * The width follows from 16:9, so a unit is as wide as it is tall and a square is
+     * square. The shader uses the exact ratio; this rounded value is what pages count in.
+     */
+    const val CANVAS_WIDTH = 1820
+    const val CANVAS_HEIGHT = 1024
 
-    /** Vertical position bits: 1024 steps over the canvas height, about a pixel each. */
+    /** 16:9 against the canvas height, to the precision the shader needs. */
+    private const val CANVAS_WIDTH_EXACT = "1820.444"
+
+    /** Vertical position bits: one step per canvas unit. */
     const val Y_BITS = 10
 
     /** Colour bits: red 3, green 4, blue 3. */
@@ -75,7 +90,7 @@ object Shaders {
                      |  int(floor(color.b * 255.0 + 0.5));
             int qy = (bits >> ${COLOUR_BITS}) & ${Y_MAX};
             int c = bits & ${(1 shl COLOUR_BITS) - 1};
-            canvasY = float(qy) * ${CANVAS_HEIGHT}.0 / ${Y_MAX}.0;
+            canvasY = float(qy);
             fill = vec3(float((c >> 7) & 7) / 7.0,
                         float((c >> 3) & 15) / 15.0,
                         float(c & 7) / 7.0);
@@ -97,7 +112,7 @@ object Shaders {
             float penX = ndc.x / ProjMat[0][0];
             float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
-            vec2 target = vec2(canvas.x / ${CANVAS_WIDTH}.0 * 2.0 - 1.0,
+            vec2 target = vec2(canvas.x / ${CANVAS_WIDTH_EXACT} * 2.0 - 1.0,
                                1.0 - canvas.y / ${CANVAS_HEIGHT}.0 * 2.0);
             return vec4(target * original.w, original.z, original.w);
         }
