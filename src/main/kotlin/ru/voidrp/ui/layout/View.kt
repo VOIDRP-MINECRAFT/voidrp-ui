@@ -39,6 +39,9 @@ enum class Justify { START, CENTER, END, SPACE_BETWEEN }
 /** Where a child sits across that direction. */
 enum class Align { START, CENTER, END, STRETCH }
 
+/** How the lines of a paragraph line up with each other. */
+enum class TextAlign { START, CENTER, END }
+
 /**
  * A styled container. Give it children and it lays them out; give it a size and it keeps
  * to it, otherwise it takes the size of what it holds plus its padding.
@@ -61,12 +64,20 @@ data class Panel(
     val id: String? = null,
 ) : View
 
-/** A line of text. It measures itself, so a panel around it fits it exactly. */
+/**
+ * Text. It measures itself, so a panel around it fits it exactly, and it breaks into
+ * lines when the space it is given is narrower than the words in it.
+ */
 data class Text(
     val value: String,
     val size: Int = Theme.TEXT_BODY,
     val colour: Int = Theme.INK,
     val weight: TextFonts.Weight = TextFonts.Weight.REGULAR,
+    val align: TextAlign = TextAlign.START,
+    /** Whether long text is broken across lines rather than running past the panel. */
+    val wrap: Boolean = true,
+    /** Distance from one line's top to the next; the typeface's own spacing by default. */
+    val lineHeight: Int? = null,
 ) : View
 
 /**

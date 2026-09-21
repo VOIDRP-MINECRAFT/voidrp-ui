@@ -69,7 +69,7 @@ class PageManager(
 
     fun open(player: Player, page: Page) {
         close(player)
-        val session = PageSession(player, page, renderer) { sensitivity }
+        val session = PageSession(plugin, player, page, renderer) { sensitivity }
         sessions[player.uniqueId] = session
         session.open()
     }

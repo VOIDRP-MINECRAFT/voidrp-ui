@@ -23,6 +23,7 @@ import ru.voidrp.ui.render.Sprite
  * nothing installed.
  */
 class PageSession(
+    private val plugin: org.bukkit.plugin.Plugin,
     val player: Player,
     val page: Page,
     private val renderer: BossBarRenderer,
@@ -131,6 +132,18 @@ class PageSession(
     }
 
     private var lastSwing = 0L
+
+    fun prompt(
+        title: String,
+        label: String,
+        initial: String,
+        hint: String?,
+        maxLength: Int,
+        onSubmit: (String) -> Unit,
+    ) {
+        if (closed) return
+        Prompt.show(plugin, player, title, label, initial, hint, maxLength, onSubmit)
+    }
 
     fun scroll(direction: Int) {
         if (closed) return

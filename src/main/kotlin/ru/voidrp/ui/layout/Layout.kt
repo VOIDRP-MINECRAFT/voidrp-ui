@@ -58,8 +58,9 @@ object Layout {
      */
     fun measure(view: View, availableWidth: Int, availableHeight: Int): Extent = when (view) {
         is Text -> {
-            val sheet = TextFonts.sheet(view.weight, view.size)
-            Extent(TextFonts.width(view.value, view.weight, view.size), sheet.cellHeight)
+            val lines = lines(view, availableWidth)
+            val width = lines.maxOfOrNull { TextFonts.width(it, view.weight, view.size) } ?: 0
+            Extent(width, lineHeight(view) * lines.size)
         }
 
         is Gap -> Extent(view.size, view.size)
@@ -78,6 +79,49 @@ object Layout {
                 resolve(view.height, content.height + frame.height, availableHeight),
             )
         }
+    }
+
+    /**
+     * From one line's top to the next. The typeface's own line box is tight, so a little
+     * air is added — the same thing a stylesheet does with `line-height`.
+     */
+    private fun lineHeight(text: Text): Int =
+        text.lineHeight ?: (TextFonts.sheet(text.weight, text.size).cellHeight + text.size / 5)
+
+    /**
+     * Breaks text into lines that fit, at spaces where it can and mid-word when a single
+     * word is longer than the space allowed. Text that is not allowed to wrap, or that has
+     * no width to wrap into, stays as it was written.
+     */
+    private fun lines(text: Text, availableWidth: Int): List<String> {
+        val explicit = text.value.split("\n")
+        if (!text.wrap || availableWidth <= 0) return explicit
+        val out = mutableListOf<String>()
+        explicit.forEach { paragraph ->
+            var line = StringBuilder()
+            paragraph.split(' ').forEach { word ->
+                val candidate = if (line.isEmpty()) word else "$line $word"
+                if (TextFonts.width(candidate, text.weight, text.size) <= availableWidth) {
+                    line = StringBuilder(candidate)
+                    return@forEach
+                }
+                if (line.isNotEmpty()) {
+                    out += line.toString()
+                    line = StringBuilder()
+                }
+                // A word that cannot fit on a line of its own is broken where it must be.
+                var rest = word
+                while (TextFonts.width(rest, text.weight, text.size) > availableWidth && rest.length > 1) {
+                    var cut = rest.length
+                    while (cut > 1 && TextFonts.width(rest.take(cut), text.weight, text.size) > availableWidth) cut--
+                    out += rest.take(cut)
+                    rest = rest.drop(cut)
+                }
+                line = StringBuilder(rest)
+            }
+            out += line.toString()
+        }
+        return out
     }
 
     /** The space a panel's own border and padding take, before any content. */
@@ -128,7 +172,18 @@ object Layout {
             is Raw -> out += view.node
             is Gap -> Unit
 
-            is Text -> out += Label(x, y, view.value, view.size, view.colour, view.weight)
+            is Text -> {
+                val step = lineHeight(view)
+                lines(view, width).forEachIndexed { index, line ->
+                    val lineWidth = TextFonts.width(line, view.weight, view.size)
+                    val offset = when (view.align) {
+                        TextAlign.START -> 0
+                        TextAlign.CENTER -> (width - lineWidth) / 2
+                        TextAlign.END -> width - lineWidth
+                    }
+                    out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight)
+                }
+            }
 
             is Image -> {
                 val size = Icons.nearestSize(view.size)

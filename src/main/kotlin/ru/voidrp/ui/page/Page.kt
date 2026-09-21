@@ -39,6 +39,23 @@ abstract class Page {
     /** The page is going away, whether the player closed it or something else did. */
     open fun onClose() {}
 
+    /**
+     * Asks the player to type something, then hands the answer back.
+     *
+     * The page stays on screen while the game's own text field is open, so this reads as
+     * a field on the page rather than a detour through chat.
+     */
+    fun prompt(
+        title: String,
+        label: String,
+        initial: String = "",
+        hint: String? = null,
+        maxLength: Int = 128,
+        onSubmit: (String) -> Unit,
+    ) {
+        session?.prompt(title, label, initial, hint, maxLength, onSubmit)
+    }
+
     /** Draw the page again, because something it shows has changed. */
     fun refresh() {
         session?.render()

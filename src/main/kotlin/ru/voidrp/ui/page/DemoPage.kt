@@ -23,6 +23,7 @@ class DemoPage : Page() {
 
     private var progress = 0.4
     private var clicks = 0
+    private var note = "нажмите, чтобы ввести"
 
     override fun view(): View {
         val width = 760
@@ -41,6 +42,12 @@ class DemoPage : Page() {
                     ),
                 ),
                 Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
+                Text(
+                    "Страница живёт на сервере: всё, что вы видите, нарисовал обычный клиент " +
+                        "без единого мода. Текст переносится сам, по ширине того, во что его положили.",
+                    Theme.TEXT_BODY,
+                    Theme.INK_SOFT,
+                ),
                 stat("Игроков онлайн", "42 из 200", Theme.card, "stat-online"),
                 stat("Нажатий", clicks.toString(), Theme.cardAccent, "stat-clicks"),
                 // Item pictures come from the client's own textures, so they cost the pack
@@ -90,6 +97,16 @@ class DemoPage : Page() {
                         button("Закрыть", Theme.buttonGhost, "close"),
                     ),
                 ),
+                Panel(
+                    style = Theme.card,
+                    width = Size.Fill,
+                    gap = 2,
+                    id = "note",
+                    children = listOf(
+                        Text("Заметка", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                        Text(note, Theme.TEXT_LEAD, Theme.INK),
+                    ),
+                ),
                 Text("Колесо мыши — шкала · Shift — закрыть · void-rp.ru", Theme.TEXT_CAPTION, Theme.INK_DIM),
             ),
         )
@@ -120,6 +137,20 @@ class DemoPage : Page() {
 
             "close" -> {
                 close()
+                return
+            }
+
+            "note" -> {
+                prompt(
+                    title = "Заметка",
+                    label = "Текст",
+                    initial = note,
+                    hint = "Поле ввода — это родное окно игры: страница остаётся на экране.",
+                    maxLength = 64,
+                ) { value ->
+                    note = value.ifBlank { "пусто" }
+                    refresh()
+                }
                 return
             }
         }
