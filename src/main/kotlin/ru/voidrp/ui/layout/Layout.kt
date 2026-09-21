@@ -105,7 +105,9 @@ object Layout {
 
     private fun resolve(size: Size, content: Int, available: Int): Int = when (size) {
         is Size.Fixed -> size.value
-        is Size.Fill -> available
+        // Never smaller than what it holds: measuring a greedy child against no space at
+        // all is how its own size is found, below.
+        is Size.Fill -> maxOf(content, available)
         is Size.Auto -> content
     }
 
@@ -154,8 +156,16 @@ object Layout {
         val span = if (row) width else height
 
         // What every child wants, and which of them are willing to share the leftovers.
+        // A greedy child is measured against no space along this axis, so it asks only for
+        // what it holds — otherwise it would claim the whole row for itself and then be
+        // handed the leftovers on top, pushing everything after it off the panel.
         val wanted = panel.children.map { child ->
-            val size = measure(child, width, height)
+            val greedy = child.growsAlong(panel.direction)
+            val size = when {
+                row && greedy -> measure(child, 0, height)
+                greedy -> measure(child, width, 0)
+                else -> measure(child, width, height)
+            }
             if (row) size.width else size.height
         }
         val greedy = panel.children.mapIndexed { index, child ->

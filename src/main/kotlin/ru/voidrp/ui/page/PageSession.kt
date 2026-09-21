@@ -12,9 +12,8 @@ import ru.voidrp.ui.style.Paint
  * One open page, and the cursor the player drives it with.
  *
  * A vanilla client has no mouse to lend us, so the cursor is the player's own aim: how far
- * they have turned since the page opened is how far the pointer has moved. Every tick the
- * look is read, turned into canvas units and put back where it was, which keeps the world
- * still while the pointer moves — the player is, in effect, moving a mouse.
+ * they have turned since the page opened is where the pointer sits. The canvas is about
+ * forty degrees across, so a small turn of the head reaches any corner of it.
  *
  * Everything else follows from that. Hovering is a rectangle test against the layout, so
  * the server always knows what the player is pointing at and the client is never asked.
@@ -25,10 +24,8 @@ class PageSession(
     val player: Player,
     val page: Page,
     private val renderer: BossBarRenderer,
-    /** Canvas units per degree of turn. About a screen's width per quarter turn. */
-    private val sensitivity: Double = 20.0,
-    /** Whether the player's view is held still while the page is open. */
-    private val lockView: Boolean = true,
+    /** Canvas units per degree of turn: the canvas is about forty degrees wide. */
+    private val sensitivity: Double = 45.0,
 ) {
 
     var cursorX = Shaders.CANVAS_WIDTH / 2
@@ -52,30 +49,28 @@ class PageSession(
     }
 
     /**
-     * Reads how far the player has turned and moves the cursor by that much.
+     * Puts the cursor where the player is aiming.
      *
-     * The anchor moves with the cursor when it runs into an edge, so turning further does
-     * nothing until the player turns back — the pointer stops at the edge of the screen
-     * instead of drifting out of step with the view.
+     * The position is read straight off the current look — the turn since the page opened,
+     * times a sensitivity — and nothing is ever sent back to the client. An earlier version
+     * held the view still by setting the rotation back every tick, and the client, which
+     * keeps sending its own, fought it: the whole screen shook. Letting the player turn
+     * freely and simply following the aim costs a little head movement and is perfectly
+     * smooth.
      */
     fun tick() {
         if (closed) return
         val location = player.location
         val turnedX = wrapDegrees(location.yaw - anchorYaw)
         val turnedY = location.pitch - anchorPitch
-        if (turnedX == 0f && turnedY == 0f) return
 
-        val wantX = cursorX + turnedX * sensitivity
-        val wantY = cursorY + turnedY * sensitivity
-        cursorX = wantX.toInt().coerceIn(0, Shaders.CANVAS_WIDTH - 1)
-        cursorY = wantY.toInt().coerceIn(0, Shaders.CANVAS_HEIGHT - 1)
-
-        if (lockView) {
-            player.setRotation(anchorYaw, anchorPitch)
-        } else {
-            anchorYaw = location.yaw
-            anchorPitch = location.pitch
-        }
+        val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * sensitivity).toInt()
+            .coerceIn(0, Shaders.CANVAS_WIDTH - 1)
+        val y = (Shaders.CANVAS_HEIGHT / 2 + turnedY * sensitivity).toInt()
+            .coerceIn(0, Shaders.CANVAS_HEIGHT - 1)
+        if (x == cursorX && y == cursorY) return
+        cursorX = x
+        cursorY = y
 
         val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         if (under != hovered) {
