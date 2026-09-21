@@ -157,7 +157,7 @@ class DemoPage : Page() {
                         button("Закрыть", "close", Theme.buttonGhost, Size.Fixed(150)),
                         Panel(width = Size.Fill),
                         Text(
-                            lastKey?.let { "Клавиша $it" } ?: "Нажмите цифру 1–9",
+                            lastKey?.let { "Выбран слот $it" } ?: "Цифры 1–9 — выбор слота",
                             Theme.TEXT_CAPTION,
                             Theme.INK_DIM,
                             wrap = false,

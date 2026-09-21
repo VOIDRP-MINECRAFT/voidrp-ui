@@ -207,7 +207,10 @@ object Layout {
      */
     private fun lines(text: Text, availableWidth: Int): List<String> {
         val explicit = text.value.split("\n")
-        if (!text.wrap || availableWidth <= 0) return explicit
+        // Text told not to wrap still cannot be allowed to run past its panel: it is cut
+        // and ended with an ellipsis, which is what "no wrapping" means everywhere else.
+        if (!text.wrap) return if (availableWidth <= 0) explicit else explicit.map { cut(text, it, availableWidth) }
+        if (availableWidth <= 0) return explicit
         val sheet = TextFonts.sheet(text.weight, text.size)
         val space = sheet.spaceAdvance
         val out = mutableListOf<String>()
@@ -246,6 +249,15 @@ object Layout {
             out += line.toString()
         }
         return limit(text, out, availableWidth)
+    }
+
+    /** One line, cut to fit and ended in an ellipsis if it had to be. */
+    private fun cut(text: Text, line: String, availableWidth: Int): String {
+        val sheet = TextFonts.sheet(text.weight, text.size)
+        if (sheet.width(line) <= availableWidth) return line
+        var kept = line
+        while (kept.isNotEmpty() && sheet.width("$kept…") > availableWidth) kept = kept.dropLast(1).trimEnd()
+        return "$kept…"
     }
 
     /**
@@ -329,8 +341,14 @@ object Layout {
 
             is Image -> {
                 val size = Icons.nearestSize(view.size)
-                Icons.glyph(view.item)?.let { glyph ->
+                val glyph = Icons.glyph(view.item)
+                if (glyph != null) {
                     out += Sprite(x, y, glyph, Icons.advance(view.item, size), font = Icons.fontName(size))
+                } else {
+                    // The client has no picture of this — a few items are drawn from models
+                    // rather than a texture. An empty slot says so; nothing at all looks
+                    // like a bug in the page.
+                    out += Rect(x, y, size, size, Paint(Theme.LINE, 0.12))
                 }
             }
 
@@ -490,13 +508,32 @@ object Layout {
             index.takeIf { child.growsAlong(panel.direction) }
         }.filterNotNull()
 
-        val used = wanted.sum() + panel.gap * (panel.children.size - 1)
-        val spare = (span - used).coerceAtLeast(0)
+        val gaps = panel.gap * (panel.children.size - 1)
+        val used = wanted.sum() + gaps
         val sizes = wanted.toMutableList()
-        if (greedy.isNotEmpty() && spare > 0) {
-            val share = spare / greedy.size
-            greedy.forEachIndexed { position, index ->
-                sizes[index] += if (position == greedy.lastIndex) spare - share * greedy.lastIndex else share
+
+        if (used > span) {
+            // Too much to fit: everything gives up room in proportion to what it asked
+            // for, which is what a browser does and what keeps a row inside its panel
+            // instead of hanging out over the edge of the page.
+            val room = (span - gaps).coerceAtLeast(0)
+            val asked = wanted.sum().coerceAtLeast(1)
+            var handed = 0
+            sizes.indices.forEach { index ->
+                val share = (wanted[index].toLong() * room / asked).toInt()
+                sizes[index] = share
+                handed += share
+            }
+            // Rounding leaves a unit or two over; the widest child takes them.
+            val widest = sizes.indices.maxByOrNull { sizes[it] } ?: 0
+            sizes[widest] += room - handed
+        } else {
+            val spare = span - used
+            if (greedy.isNotEmpty() && spare > 0) {
+                val share = spare / greedy.size
+                greedy.forEachIndexed { position, index ->
+                    sizes[index] += if (position == greedy.lastIndex) spare - share * greedy.lastIndex else share
+                }
             }
         }
 

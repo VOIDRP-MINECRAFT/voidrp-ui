@@ -21,7 +21,7 @@ import ru.voidrp.ui.pack.Icons
 class IconWidthTest {
 
     @Test
-    fun `shipped item widths match the client's textures`() {
+    fun `shipped icon widths match the client's textures`() {
         val jar = System.getenv("VOIDRP_CLIENT_JAR")?.let(::File)?.takeIf { it.isFile }
         if (jar == null) {
             println("VOIDRP_CLIENT_JAR не задан — проверка ширин иконок пропущена")
@@ -32,7 +32,7 @@ class IconWidthTest {
         var checked = 0
         ZipFile(jar).use { zip ->
             Icons.NAMES.forEach { name ->
-                val entry = zip.getEntry("assets/minecraft/textures/item/$name.png") ?: return@forEach
+                val entry = zip.getEntry("assets/minecraft/textures/$name.png") ?: return@forEach
                 val image = zip.getInputStream(entry).use { ImageIO.read(it) }
                 if (image.width != 16 || image.height != 16) {
                     wrong += "$name: текстура ${image.width}×${image.height}, а в таблице она есть"

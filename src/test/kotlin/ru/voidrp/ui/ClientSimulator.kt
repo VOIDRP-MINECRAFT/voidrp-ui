@@ -109,7 +109,7 @@ class ClientSimulator(pack: File) {
                     if (!file.startsWith("voidrp:")) {
                         if (font.startsWith("icons_")) {
                             val size = font.removePrefix("icons_").toInt()
-                            val item = file.removePrefix("minecraft:item/").removeSuffix(".png")
+                            val item = file.removePrefix("minecraft:").removeSuffix(".png")
                             provider.getAsJsonArray("chars").forEach { row ->
                                 row.asString.codePoints().toArray().forEach { code ->
                                     out.putIfAbsent(code, Icons.advance(item, size))

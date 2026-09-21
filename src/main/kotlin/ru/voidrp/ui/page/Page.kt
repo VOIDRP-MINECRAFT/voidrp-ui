@@ -58,14 +58,19 @@ abstract class Page {
     open fun onDrag(id: String, x: Int, y: Int) {}
 
     /**
-     * A number key, 1 to 9.
+     * The player chose hotbar slot [key], 1 to 9 — by pressing the number or by scrolling
+     * onto it.
+     *
+     * It is a choice rather than a keystroke: the hotbar really moves, the player sees
+     * which slot is lit, and choosing the one already chosen says nothing. That suits
+     * tabs and modes, which is what number keys are good for in an interface.
      *
      * Only reaches pages that ask for it with [usesKeys], because the game sends the same
-     * packet for a number key and for the scroll wheel: a page has to say which it means.
+     * packet for a number key and for the wheel.
      */
     open fun onKey(key: Int) {}
 
-    /** Whether number keys reach [onKey] instead of being read as scrolling. */
+    /** Whether hotbar slots reach [onKey] instead of being read as scrolling. */
     open val usesKeys: Boolean get() = false
 
     /** The player scrolled; [direction] is 1 down the list and −1 up. */

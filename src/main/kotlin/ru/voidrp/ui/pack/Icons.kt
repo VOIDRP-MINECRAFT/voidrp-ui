@@ -1,7 +1,7 @@
 package ru.voidrp.ui.pack
 
 /**
- * Item pictures, borrowed from the client's own textures.
+ * Pictures of items and blocks, borrowed from the client's own textures.
  *
  * A shop, a quest list or an inventory screen is mostly pictures of items, and the client
  * already has every one of them. A bitmap glyph can point at any texture in the assets, so
@@ -10,6 +10,10 @@ package ru.voidrp.ui.pack
  *
  * The colour bits are still spent on the vertical position, so an icon is drawn white:
  * white leaves the texture exactly as it is, while everything else on the page is tinted.
+ *
+ * Blocks are included because a shop is mostly blocks, and a shop that cannot show stone
+ * is not a shop. They are drawn flat — one face of the texture, not the little cube the
+ * inventory draws — since a glyph is a picture and nothing here can turn a model into one.
  */
 object Icons {
 
@@ -27,8 +31,8 @@ object Icons {
      * icons on it drift sideways. The numbers are measured once from the client's own
      * textures; only the numbers travel with us.
      *
-     * Textures that are not 16×16 — animated ones like the clock, and the oversized
-     * in-hand pictures — are left out, because a glyph would draw every frame at once.
+     * Textures that are not 16×16, and animated ones, are left out: a glyph would draw
+     * every frame of an animation stacked on top of each other.
      */
     private val table: List<Pair<String, Int>> by lazy {
         Icons::class.java.getResourceAsStream("/icons/vanilla_items.txt")
@@ -51,11 +55,10 @@ object Icons {
 
     fun nearestSize(size: Int): Int = SIZES.minByOrNull { Math.abs(it - size) } ?: SIZES.first()
 
-    fun has(name: String): Boolean = index.containsKey(normalise(name))
+    fun has(name: String): Boolean = lookup(name) != null
 
     /** The glyph for an item, or null if the client has no picture of it. */
-    fun glyph(name: String): String? =
-        index[normalise(name)]?.let { String(Character.toChars(BASE + it)) }
+    fun glyph(name: String): String? = lookup(name)?.let { String(Character.toChars(BASE + it)) }
 
     /**
      * How far the pen moves past an icon: the ink of that picture, scaled to the size it
@@ -63,13 +66,19 @@ object Icons {
      */
     fun advance(name: String, size: Int): Int {
         val drawn = nearestSize(size)
-        val ink = index[normalise(name)]?.let { table[it].second } ?: 16
+        val ink = lookup(name)?.let { table[it].second } ?: 16
         return Math.round(ink.toDouble() * drawn / 16).toInt() + 1
     }
 
-    /** `minecraft:diamond`, `diamond` and `DIAMOND` all name the same picture. */
-    private fun normalise(name: String): String =
-        name.substringAfter(':').lowercase().trim()
+    /**
+     * `minecraft:diamond`, `diamond` and `DIAMOND` all name the same picture, and a plain
+     * name finds the item before the block — which is what anyone naming `stone` means.
+     */
+    private fun lookup(name: String): Int? {
+        val plain = name.substringAfter(':').lowercase().trim()
+        if (plain.startsWith("item/") || plain.startsWith("block/")) return index[plain]
+        return index["item/$plain"] ?: index["block/$plain"]
+    }
 
     /**
      * One font per size, each naming every item texture the client already has.
@@ -82,7 +91,7 @@ object Icons {
             "\"${Fonts.escapeJson(char)}\": $advance"
         }
         val providers = table.mapIndexed { i, (name, _) ->
-            """{"type": "bitmap", "file": "minecraft:item/$name.png", "ascent": 0,
+            """{"type": "bitmap", "file": "minecraft:$name.png", "ascent": 0,
                 "height": $size, "chars": ["${Fonts.escapeJson(String(Character.toChars(BASE + i)))}"]}"""
         }
         return """{"providers": [{"type": "space", "advances": { $advances }},

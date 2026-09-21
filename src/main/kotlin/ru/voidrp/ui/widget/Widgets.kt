@@ -183,6 +183,10 @@ fun Page.slider(
     style = Style(background = Paint(Theme.LINE, 0.12), radius = height / 2),
     width = Size.Fixed(width),
     height = Size.Fixed(height),
+    // A row, not a column: in a column the fill would be centred across the track, which
+    // is what made a slider at seven tenths look like a quarter, in the middle.
+    direction = Direction.ROW,
+    justify = Justify.START,
     align = Align.CENTER,
     id = id,
     children = listOf(
