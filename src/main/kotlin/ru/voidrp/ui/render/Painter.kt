@@ -27,6 +27,7 @@ object Painter {
             is Rect -> out += node.copy(x = node.x + dx, y = node.y + dy)
             is CornerPiece -> out += node.copy(x = node.x + dx, y = node.y + dy)
             is Label -> out += node.copy(x = node.x + dx, y = node.y + dy)
+            is Sprite -> out += node.copy(x = node.x + dx, y = node.y + dy)
         }
     }
 

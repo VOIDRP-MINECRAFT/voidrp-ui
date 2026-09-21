@@ -29,8 +29,16 @@ class BossBarRenderer(private val log: Logger? = null) {
 
     private val bars = mutableMapOf<UUID, BossBar>()
 
-    fun render(player: Player, nodes: List<Node>) {
-        val title = GlyphEncoder.encode(nodes)
+    fun render(player: Player, nodes: List<Node>) = render(player, GlyphEncoder.encode(nodes))
+
+    /**
+     * Sends a page that is already encoded.
+     *
+     * Every run the encoder produces returns the pen to where it started, so runs can be
+     * put one after another and the line stays as wide as nothing — which is what lets the
+     * page be encoded once and only the cursor redone each tick.
+     */
+    fun render(player: Player, title: net.kyori.adventure.text.Component) {
         val length = PlainTextComponentSerializer.plainText().serialize(title).length
         if (length > BUSY_PAGE) {
             log?.warning("Страница для ${player.name} — $length символов; это близко к пределу пакета.")

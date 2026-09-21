@@ -27,6 +27,7 @@ import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 import ru.voidrp.ui.render.Rect
+import ru.voidrp.ui.render.Sprite
 
 /**
  * The proof the whole design rests on: put a panel at a spot on the canvas and move it.
@@ -124,6 +125,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                         is CornerPiece -> "  corner r${node.radius} ${node.corner} @ ${node.x},${node.y} a%.2f".format(node.paint.alpha)
                         is Label -> "  label \"${node.text}\" size ${node.size} @ ${node.x},${node.y}"
                         is Box -> "  box (не развёрнут)"
+                        is Sprite -> "  sprite @ ${node.x},${node.y}"
                     }
                 )
             }

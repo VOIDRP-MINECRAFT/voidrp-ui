@@ -72,7 +72,9 @@ class DemoPage : Page() {
         return Panel(
             width = Size.Fixed(Shaders.CANVAS_WIDTH),
             height = Size.Fixed(Shaders.CANVAS_HEIGHT),
-            style = Theme.scrim,
+            // Nearly opaque on purpose: aiming turns the player's head, and behind a solid
+            // backdrop that is invisible.
+            style = Style(background = Paint(0x05060D, 0.93)),
             justify = Justify.CENTER,
             align = Align.CENTER,
             children = listOf(page),

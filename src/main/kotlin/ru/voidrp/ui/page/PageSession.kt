@@ -1,12 +1,14 @@
 package ru.voidrp.ui.page
 
 import org.bukkit.entity.Player
+import net.kyori.adventure.text.Component
 import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
+import ru.voidrp.ui.render.GlyphEncoder
 import ru.voidrp.ui.render.Node
-import ru.voidrp.ui.render.Rect
-import ru.voidrp.ui.style.Paint
+import ru.voidrp.ui.pack.Glyphs
+import ru.voidrp.ui.render.Sprite
 
 /**
  * One open page, and the cursor the player drives it with.
@@ -24,8 +26,8 @@ class PageSession(
     val player: Player,
     val page: Page,
     private val renderer: BossBarRenderer,
-    /** Canvas units per degree of turn: the canvas is about forty degrees wide. */
-    private val sensitivity: Double = 45.0,
+    /** Canvas units per degree of turn: the canvas is about twenty-five degrees wide. */
+    private val sensitivity: Double = 72.0,
 ) {
 
     var cursorX = Shaders.CANVAS_WIDTH / 2
@@ -96,16 +98,20 @@ class PageSession(
         if (closed) return
         val placement = Layout.centred(page.view(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
         regions = placement.regions
-        nodes = placement.nodes
+        // The page is encoded once and kept: the cursor moves every tick, the page does not.
+        encoded = GlyphEncoder.encode(placement.nodes)
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         draw()
     }
 
-    private var nodes: List<Node> = emptyList()
+    private var encoded: Component = Component.empty()
 
-    /** Sends what is already laid out, with the pointer on top. */
+    /** Sends what is already encoded, with the pointer on top. */
     private fun draw() {
-        renderer.render(player, nodes + cursor(cursorX, cursorY))
+        renderer.render(
+            player,
+            Component.text().append(encoded).append(GlyphEncoder.encode(cursor(cursorX, cursorY))).build(),
+        )
     }
 
     fun close() {
@@ -125,20 +131,8 @@ class PageSession(
             return wrapped
         }
 
-        /**
-         * A pointer, drawn as a stack of rows that narrow towards the tip, with a dark
-         * edge under a light one so it reads against anything behind it.
-         */
-        fun cursor(x: Int, y: Int): List<Node> {
-            val shadow = Paint(0x000000, 0.55)
-            val ink = Paint(0xFFFFFF, 0.95)
-            val out = mutableListOf<Node>()
-            for (row in 0 until 14) {
-                val width = (14 - row).coerceAtLeast(2)
-                out += Rect(x, y + row, width + 2, 1, shadow)
-                out += Rect(x + 1, y + row, width, 1, ink)
-            }
-            return out
-        }
+        /** The pointer: one glyph, drawn with its own colours. */
+        fun cursor(x: Int, y: Int): List<Node> =
+            listOf(Sprite(x, y, Glyphs.cursor(), Glyphs.cursorAdvance()))
     }
 }

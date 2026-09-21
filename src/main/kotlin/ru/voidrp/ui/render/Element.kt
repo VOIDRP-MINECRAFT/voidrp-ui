@@ -37,6 +37,21 @@ data class CornerPiece(
 ) : Node
 
 /**
+ * A picture from the pack, drawn at its own colours.
+ *
+ * The colour bits still carry the vertical position, so the fill has to be white: white
+ * leaves a texture exactly as it was baked, which is how a pointer or an item icon keeps
+ * its own colours while everything else is tinted.
+ */
+data class Sprite(
+    override val x: Int,
+    override val y: Int,
+    val glyph: String,
+    val advance: Int,
+    val colour: Int = 0xFFFFFF,
+) : Node
+
+/**
  * A line of text, set in the site's typeface. [size] is in canvas units, which are the
  * site's pixels near enough, so a 14 here is a 14px label there. [y] is the top of the
  * line, like a rectangle's top edge.
@@ -92,6 +107,7 @@ object GlyphEncoder {
                 is Rect -> appendRect(line, node, pen)
                 is CornerPiece -> appendCorner(line, node, pen)
                 is Label -> appendLabel(line, node, pen)
+                is Sprite -> appendSprite(line, node, pen)
                 is Box -> pen // Painter has already expanded every box.
             }
         }
@@ -151,6 +167,14 @@ object GlyphEncoder {
         val glyph = Glyphs.moveBy(piece.x - penIn) + Glyphs.corner(piece.radius, piece.corner)
         line.append(shapes(glyph, level).color(colour))
         return piece.x + Glyphs.cornerAdvance(piece.radius)
+    }
+
+    private fun appendSprite(line: TextComponent.Builder, sprite: Sprite, penIn: Int): Int {
+        val colour = TextColor.color(pack(sprite.y, quantise(sprite.colour)))
+        line.append(
+            shapes(Glyphs.moveBy(sprite.x - penIn) + sprite.glyph, Glyphs.ALPHA_LEVELS).color(colour)
+        )
+        return sprite.x + sprite.advance
     }
 
     /**
