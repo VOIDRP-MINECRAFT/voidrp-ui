@@ -181,9 +181,10 @@ class PageSession(
          * milliseconds apart, whether the crosshair is on a block or on the sky, while
          * clicking as fast as a hand can manage leaves at least a hundred and forty. The
          * two never meet, so the line sits between them and a held button is one press
-         * while every real click counts.
+         * while every real click counts. Eighty leaves room for a swing that arrives a
+         * little late without letting a held button through.
          */
-        const val HOLD_GAP_MS = 110L
+        const val HOLD_GAP_MS = 80L
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f
