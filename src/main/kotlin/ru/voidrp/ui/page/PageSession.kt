@@ -113,10 +113,24 @@ class PageSession(
         draw()
     }
 
+    /**
+     * A click, once per press.
+     *
+     * The game gives us a swing of the arm, not a button going down: holding the button on
+     * a block swings it again every few ticks, which arrived as a button being pressed over
+     * and over. A press is therefore taken as the first swing after a pause — held down,
+     * the swings keep arriving too close together to count as anything new.
+     */
     fun click(button: Button) {
         if (closed) return
+        val now = System.currentTimeMillis()
+        val pressed = now - lastSwing > HOLD_GAP_MS
+        lastSwing = now
+        if (!pressed) return
         hovered?.let { page.onClick(it, button) }
     }
+
+    private var lastSwing = 0L
 
     fun scroll(direction: Int) {
         if (closed) return
@@ -159,6 +173,13 @@ class PageSession(
          * immediate, gentle enough to hide that the aim itself arrives in steps.
          */
         const val EASING = 0.35
+
+        /**
+         * Swings closer together than this are one press being held. The client swings
+         * about every three hundred milliseconds while a button is down, so this sits just
+         * above that.
+         */
+        const val HOLD_GAP_MS = 400L
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f

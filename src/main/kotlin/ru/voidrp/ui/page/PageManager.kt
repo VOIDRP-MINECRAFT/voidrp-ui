@@ -135,6 +135,12 @@ class PageManager(
         if (isOpen(event.player)) event.isCancelled = true
     }
 
+    /** Stops a block from taking damage while its owner is busy pressing buttons. */
+    @EventHandler(priority = EventPriority.LOWEST)
+    fun onDamageBlock(event: org.bukkit.event.block.BlockDamageEvent) {
+        if (isOpen(event.player)) event.isCancelled = true
+    }
+
     @EventHandler(priority = EventPriority.LOWEST)
     fun onHit(event: EntityDamageByEntityEvent) {
         val damager = event.damager
