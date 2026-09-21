@@ -16,8 +16,14 @@ package ru.voidrp.ui.pack
  */
 object Glyphs {
 
-    /** Rectangle sides go up to 2^10 = 1024 canvas pixels in each direction. */
-    const val MAX_EXP = 10
+    /**
+     * Rectangle sides go up to 2^9 = 512 canvas units in each direction.
+     *
+     * A full-screen fill was not drawn at all while the alphabet went up to 1024: the
+     * client renders a 512-unit glyph happily and a 1024-unit one not at all, so shapes
+     * are built from pieces no larger than that.
+     */
+    const val MAX_EXP = 9
 
     /** Opacity steps: font `ui_aN` draws at N/16, so 1 is 6.25% and 16 is opaque. */
     const val ALPHA_LEVELS = 16

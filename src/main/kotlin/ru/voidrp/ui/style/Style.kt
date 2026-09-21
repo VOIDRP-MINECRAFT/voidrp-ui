@@ -1,5 +1,7 @@
 package ru.voidrp.ui.style
 
+import ru.voidrp.ui.pack.TextFonts
+
 /**
  * How a box looks, in the terms a web page would use.
  *
@@ -46,7 +48,8 @@ data class Style(
     val padding: Insets = Insets.NONE,
     val shadow: Shadow? = null,
     val textColour: Int = Theme.INK,
-    val textSize: Int = 2,
+    val textSize: Int = Theme.TEXT_BODY,
+    val textWeight: TextFonts.Weight = TextFonts.Weight.REGULAR,
 ) {
     fun background(paint: Paint) = copy(background = paint)
     fun border(width: Int, paint: Paint) = copy(border = Border(width, paint))
@@ -54,5 +57,9 @@ data class Style(
     fun padding(value: Int) = copy(padding = Insets.all(value))
     fun padding(vertical: Int, horizontal: Int) = copy(padding = Insets.symmetric(vertical, horizontal))
     fun shadow(shadow: Shadow?) = copy(shadow = shadow)
-    fun text(colour: Int = textColour, size: Int = textSize) = copy(textColour = colour, textSize = size)
+    fun text(
+        colour: Int = textColour,
+        size: Int = textSize,
+        weight: TextFonts.Weight = textWeight,
+    ) = copy(textColour = colour, textSize = size, textWeight = weight)
 }

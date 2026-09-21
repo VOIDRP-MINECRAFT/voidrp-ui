@@ -97,6 +97,11 @@ class PackBuilder(
             Fonts.SIZES.forEach { size ->
                 zip.put("assets/voidrp/font/${Fonts.fontName(size)}.json", Fonts.fontJson(size))
             }
+            // Inter, the face the site is set in, baked at each size pages use.
+            TextFonts.all().forEach { sheet ->
+                zip.put("assets/voidrp/font/${sheet.fontName}.json", TextFonts.fontJson(sheet))
+                zip.put("assets/voidrp/textures/${sheet.textureName}", sheet.png)
+            }
         }
 
         val data = bytes.toByteArray()

@@ -5,7 +5,7 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.ShadowColor
 import net.kyori.adventure.text.format.TextColor
-import ru.voidrp.ui.pack.Fonts
+import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.pack.Glyphs
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.style.Paint
@@ -37,18 +37,22 @@ data class CornerPiece(
 ) : Node
 
 /**
- * A line of text. [size] is a multiple of the 8-pixel cell, so 2 is 16 canvas pixels tall.
- * [y] is the top of the line, like a rectangle's top edge. Text has no opacity of its own —
- * it is drawn from the client's own glyphs — so use a dimmer colour instead.
+ * A line of text, set in the site's typeface. [size] is in canvas units, which are the
+ * site's pixels near enough, so a 14 here is a 14px label there. [y] is the top of the
+ * line, like a rectangle's top edge.
+ *
+ * Text has no opacity of its own — a text component carries none — so use a dimmer colour
+ * where a stylesheet would use a lower opacity.
  */
 data class Label(
     override val x: Int,
     override val y: Int,
     val text: String,
-    val size: Int = 2,
+    val size: Int = 16,
     val colour: Int = Theme.INK,
+    val weight: TextFonts.Weight = TextFonts.Weight.REGULAR,
 ) : Node {
-    val width: Int get() = Fonts.width(text, size)
+    val width: Int get() = TextFonts.width(text, weight, size)
 }
 
 /**
@@ -103,23 +107,41 @@ object GlyphEncoder {
         if (rect.width <= 0 || rect.height <= 0 || level == 0) return penIn
         var pen = penIn
         val fill = quantise(rect.paint.rgb)
-        var top = rect.y
 
-        // Rows from the largest piece down, pieces left to right within each row. Neither
-        // dimension may run far ahead of the other, or the piece would need a texture the
-        // client's font atlas will not hold — see Glyphs.MAX_ASPECT_EXP.
-        val widest = highestPower(rect.width)
-        for (h in pieces(rect.height, widest + Glyphs.MAX_ASPECT_EXP)) {
-            val colour = TextColor.color(pack(top, fill))
-            var left = rect.x
-            for (w in pieces(rect.width, h + Glyphs.MAX_ASPECT_EXP)) {
-                line.append(shapes(Glyphs.moveBy(left - pen) + Glyphs.rect(w, h), level).color(colour))
-                pen = left + Glyphs.rectAdvance(w)
-                left += 1 shl w
-            }
-            top += 1 shl h
+        val tiles = mutableListOf<Tile>()
+        tile(rect.x, rect.y, rect.width, rect.height, tiles)
+        for (piece in tiles) {
+            val colour = TextColor.color(pack(piece.top, fill))
+            line.append(shapes(Glyphs.moveBy(piece.left - pen) + Glyphs.rect(piece.w, piece.h), level).color(colour))
+            pen = piece.left + Glyphs.rectAdvance(piece.w)
         }
         return pen
+    }
+
+    /** One rectangle of the alphabet: 2^[w] by 2^[h], with its top-left corner on the canvas. */
+    private data class Tile(val left: Int, val top: Int, val w: Int, val h: Int)
+
+    /**
+     * Cuts a rectangle into pieces the alphabet actually has.
+     *
+     * Each step takes the largest piece that fits in the corner, narrowed until its sides
+     * are within [Glyphs.MAX_ASPECT_EXP] of each other, then fills the strip to its right
+     * and everything below it the same way. Doing both sides together matters: choosing
+     * rows first and columns after left a four-pixel column a thousand pixels tall at the
+     * edge of a full-screen fill — a shape with no glyph, which simply went missing.
+     */
+    private fun tile(x: Int, y: Int, width: Int, height: Int, out: MutableList<Tile>) {
+        if (width <= 0 || height <= 0) return
+        var w = minOf(highestPower(width), Glyphs.MAX_EXP)
+        var h = minOf(highestPower(height), Glyphs.MAX_EXP)
+        if (w - h > Glyphs.MAX_ASPECT_EXP) w = h + Glyphs.MAX_ASPECT_EXP
+        if (h - w > Glyphs.MAX_ASPECT_EXP) h = w + Glyphs.MAX_ASPECT_EXP
+        val pieceWidth = 1 shl w
+        val pieceHeight = 1 shl h
+
+        out += Tile(x, y, w, h)
+        tile(x + pieceWidth, y, width - pieceWidth, pieceHeight, out)
+        tile(x, y + pieceHeight, width, height - pieceHeight, out)
     }
 
     private fun appendCorner(line: TextComponent.Builder, piece: CornerPiece, penIn: Int): Int {
@@ -132,23 +154,28 @@ object GlyphEncoder {
     }
 
     /**
-     * A label is one run in one font: the letters themselves plus spacer characters
-     * between them, so large text keeps its letter spacing proportional.
+     * A label is one run in one font: each letter followed by the spacer that makes up the
+     * difference between the ink the client measures and the advance the typeface asks for.
      */
     private fun appendLabel(line: TextComponent.Builder, label: Label, penIn: Int): Int {
-        val size = label.size.coerceIn(Fonts.SIZES.first(), Fonts.SIZES.last())
+        val size = TextFonts.nearestSize(label.size)
+        val sheet = TextFonts.sheet(label.weight, size)
         val colour = TextColor.color(pack(label.y, quantise(label.colour)))
-        val font = Key.key("voidrp", Fonts.fontName(size))
+        val font = Key.key("voidrp", sheet.fontName)
         var pen = penIn
 
         val run = StringBuilder(Glyphs.moveBy(label.x - pen))
         pen = label.x
         for (char in label.text) {
-            if (!Fonts.known(char)) continue
+            if (char == ' ') {
+                run.append(char)
+                pen += sheet.spaceAdvance
+                continue
+            }
+            val metric = sheet.metrics[char] ?: continue
             run.append(char)
-            // A bitmap glyph always advances one extra pixel; the rest of the gap is ours.
-            if (char != ' ' && size > 1) run.append(Glyphs.moveBy(size - 1))
-            pen += Fonts.advance(char, size)
+            run.append(Glyphs.moveBy(metric.advance - metric.clientAdvance))
+            pen += metric.advance
         }
 
         line.append(
@@ -158,26 +185,6 @@ object GlyphEncoder {
                 .shadowColor(ShadowColor.none())
         )
         return pen
-    }
-
-    /**
-     * Exponents whose powers of two sum to [value], largest first (600 → 9, 6, 4, 3).
-     * Nothing bigger than [maxExp] is used, so a long strip comes out as several equal
-     * pieces (752 within 2^7 → 128 five times, then 64, 32, 16).
-     */
-    private fun pieces(value: Int, maxExp: Int): List<Int> {
-        val out = mutableListOf<Int>()
-        var rest = value.coerceAtLeast(0)
-        var k = minOf(maxExp, Glyphs.MAX_EXP)
-        while (rest > 0 && k >= 0) {
-            val step = 1 shl k
-            while (rest >= step) {
-                out += k
-                rest -= step
-            }
-            k--
-        }
-        return out
     }
 
     /** The exponent of the largest power of two that fits in [value]. */

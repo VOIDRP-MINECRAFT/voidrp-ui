@@ -9,6 +9,7 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
 import ru.voidrp.ui.pack.Shaders
+import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.Box
 import ru.voidrp.ui.render.CornerPiece
 import ru.voidrp.ui.render.Painter
@@ -36,14 +37,14 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         val width = 800
         val inner = width - Theme.SPACE_6 * 2 - 2
         fun centred(text: String, size: Int, colour: Int, boxWidth: Int, top: Int): Label {
-            val label = Label(0, top, text, size, colour)
+            val label = Label(0, top, text, size, colour, TextFonts.Weight.SEMIBOLD)
             return label.copy(x = (boxWidth - label.width) / 2)
         }
         fun stat(top: Int, caption: String, value: String, style: Style) = Box(
             0, top, inner, 92, style,
             listOf(
-                Label(0, 0, caption, 2, Theme.INK_DIM),
-                Label(0, 28, value, 3, Theme.INK),
+                Label(0, 0, caption, Theme.TEXT_CAPTION, Theme.INK_DIM),
+                Label(0, 22, value, Theme.TEXT_H3, Theme.INK, TextFonts.Weight.SEMIBOLD),
             ),
         )
 
@@ -53,8 +54,8 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             Box(
                 (Shaders.CANVAS_WIDTH - width) / 2, (Shaders.CANVAS_HEIGHT - height) / 2, width, height, Theme.page,
                 listOf(
-                    Label(0, 0, "VoidRP: Origins", 3, Theme.INK),
-                    Label(0, 34, "Интерфейс рисует ванильный клиент", 2, Theme.INK_SOFT),
+                    Label(0, 0, "VoidRP: Origins", Theme.TEXT_H2, Theme.INK, TextFonts.Weight.SEMIBOLD),
+                    Label(0, 38, "Интерфейс рисует ванильный клиент", Theme.TEXT_BODY, Theme.INK_SOFT),
                     Box(0, 74, inner, 1, Theme.divider),
                     stat(94, "Игроков онлайн", "42 из 200", Theme.card),
                     stat(202, "Сезон пропуска", "15 уровень", Theme.cardAccent),
@@ -63,13 +64,13 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                     Box(0, 318, inner * 2 / 3, 12, Style(background = Paint(Theme.VIOLET, 0.95), radius = 6)),
                     Box(
                         0, 366, 240, 56, Theme.buttonPrimary,
-                        listOf(centred("Продолжить", 2, Theme.buttonPrimary.textColour, 240 - Theme.SPACE_4 * 2, 4)),
+                        listOf(centred("Продолжить", Theme.TEXT_BODY, Theme.buttonPrimary.textColour, 240 - Theme.SPACE_4 * 2, 4)),
                     ),
                     Box(
                         260, 366, 240, 56, Theme.buttonGhost,
-                        listOf(centred("Отмена", 2, Theme.buttonGhost.textColour, 240 - Theme.SPACE_4 * 2 - 2, 4)),
+                        listOf(centred("Отмена", Theme.TEXT_BODY, Theme.buttonGhost.textColour, 240 - Theme.SPACE_4 * 2 - 2, 4)),
                     ),
-                    Label(0, 452, "void-rp.ru", 1, Theme.INK_DIM),
+                    Label(0, 452, "void-rp.ru", Theme.TEXT_CAPTION, Theme.INK_DIM),
                 ),
             ),
         )
@@ -152,14 +153,14 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                     Box(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, Theme.scrim),
                     Box(
                         (Shaders.CANVAS_WIDTH - w) / 2, (Shaders.CANVAS_HEIGHT - h) / 2, w, h, style,
-                        listOf(Label(0, 0, name, 3, style.textColour)),
+                        listOf(Label(0, 0, name, Theme.TEXT_H3, style.textColour, style.textWeight)),
                     ),
                 ))
                 sender.sendMessage(Component.text("Стиль «$name», блок $w×$h.", NamedTextColor.AQUA))
             }
 
             "text" -> {
-                val size = args.getOrNull(1)?.toIntOrNull() ?: 2
+                val size = args.getOrNull(1)?.toIntOrNull() ?: Theme.TEXT_LEAD
                 val text = args.drop(2).joinToString(" ").ifBlank { "Съешь ещё этих булок, ABC 123" }
                 val label = Label(0, Shaders.CANVAS_HEIGHT / 2, text, size, 0xFFFFFF)
                 plugin.renderer.render(sender, listOf(label.copy(x = (Shaders.CANVAS_WIDTH - label.width) / 2)))

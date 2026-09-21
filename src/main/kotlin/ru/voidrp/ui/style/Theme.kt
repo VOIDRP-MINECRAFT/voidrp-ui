@@ -1,5 +1,7 @@
 package ru.voidrp.ui.style
 
+import ru.voidrp.ui.pack.TextFonts
+
 /**
  * The design tokens of the VoidRP look, so an in-game page and the website are recognisably
  * the same product. The values mirror the site's own stylesheet (`gui-premium.css`): a very
@@ -28,6 +30,14 @@ object Theme {
     const val GREEN = 0x34D399
     const val GOLD = 0xFBBF24
     const val RED = 0xFB7185
+
+    // Type scale, in canvas units — the same numbers the site's stylesheet uses
+    const val TEXT_CAPTION = 12
+    const val TEXT_BODY = 14
+    const val TEXT_LEAD = 16
+    const val TEXT_H3 = 20
+    const val TEXT_H2 = 28
+    const val TEXT_H1 = 40
 
     // Radius scale
     const val R_SM = 8
@@ -83,7 +93,8 @@ object Theme {
         radius = R_SM,
         padding = Insets.symmetric(SPACE_2, SPACE_4),
         textColour = 0x0B0A1F,
-        textSize = 2,
+        textSize = TEXT_BODY,
+        textWeight = TextFonts.Weight.SEMIBOLD,
     )
 
     val buttonGhost = Style(
@@ -92,7 +103,7 @@ object Theme {
         radius = R_SM,
         padding = Insets.symmetric(SPACE_2, SPACE_4),
         textColour = INK_SOFT,
-        textSize = 2,
+        textSize = TEXT_BODY,
     )
 
     /** A hairline separator: a one-pixel box with nothing but a background. */
