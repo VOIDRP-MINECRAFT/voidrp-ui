@@ -64,6 +64,29 @@ data class Panel(
     val id: String? = null,
 ) : View
 
+/** One piece of a line with its own look: a price in gold inside a sentence in grey. */
+data class Span(
+    val text: String,
+    val colour: Int? = null,
+    val weight: TextFonts.Weight? = null,
+    val size: Int? = null,
+)
+
+/**
+ * A line made of pieces, each with its own colour, weight or size.
+ *
+ * For a sentence that changes part way through — a name in white and a price in gold — and
+ * it stays on one line, because a page that needs a paragraph of mixed styling usually
+ * wants several [Text]s in a column instead.
+ */
+data class RichText(
+    val spans: List<Span>,
+    val size: Int = Theme.TEXT_BODY,
+    val colour: Int = Theme.INK,
+    val weight: TextFonts.Weight = TextFonts.Weight.REGULAR,
+    val align: TextAlign = TextAlign.START,
+) : View
+
 /**
  * Text. It measures itself, so a panel around it fits it exactly, and it breaks into
  * lines when the space it is given is narrower than the words in it.
@@ -78,6 +101,8 @@ data class Text(
     val wrap: Boolean = true,
     /** Distance from one line's top to the next; the typeface's own spacing by default. */
     val lineHeight: Int? = null,
+    /** At most this many lines; what does not fit ends in an ellipsis. */
+    val maxLines: Int? = null,
 ) : View
 
 /**
@@ -106,6 +131,21 @@ data class Scroll(
     /** Whether to draw the little bar showing where in the list we are. */
     val bar: Boolean = true,
     val id: String? = null,
+) : View
+
+/**
+ * A grid: children laid out in rows of [columns], wrapping as they go.
+ *
+ * An inventory, a shop or a set of rewards is a grid, and building one out of rows and
+ * columns by hand means doing the wrapping yourself every time.
+ */
+data class Grid(
+    val children: List<View> = emptyList(),
+    val columns: Int = 4,
+    val gap: Int = 0,
+    val rowGap: Int = gap,
+    val width: Size = Size.Auto,
+    val align: Align = Align.START,
 ) : View
 
 /** Empty space, for when a gap is not enough — the flexible kind pushes things apart. */

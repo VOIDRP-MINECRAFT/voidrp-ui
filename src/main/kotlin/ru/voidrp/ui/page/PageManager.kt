@@ -151,6 +151,13 @@ class PageManager(
         val session = session(event.player) ?: return
         event.isCancelled = true
         // The hotbar wraps around, so the short way between the two slots is the scroll.
+        // The game sends the same packet for the wheel and for a number key, and since the
+        // slot is put back every time, a key press shows up as a jump to that slot. A page
+        // says which of the two it means.
+        if (session.page.usesKeys) {
+            session.key(event.newSlot + 1)
+            return
+        }
         val raw = event.newSlot - event.previousSlot
         val direction = when {
             raw > 4 -> raw - 9

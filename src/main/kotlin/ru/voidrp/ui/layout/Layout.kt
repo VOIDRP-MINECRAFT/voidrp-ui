@@ -116,6 +116,26 @@ object Layout {
 
         is Image -> Icons.nearestSize(view.size).let { Extent(it, it) }
 
+        is RichText -> {
+            var width = 0
+            var height = 0
+            view.spans.forEach { span ->
+                val sheet = TextFonts.sheet(span.weight ?: view.weight, span.size ?: view.size)
+                width += sheet.width(span.text)
+                height = maxOf(height, sheet.cellHeight)
+            }
+            Extent(width, height)
+        }
+
+        is Grid -> {
+            val cells = cellSize(view, availableWidth)
+            val rows = (view.children.size + view.columns - 1) / view.columns
+            Extent(
+                resolve(view.width, cells.width * view.columns + view.gap * (view.columns - 1), availableWidth),
+                (cells.height * rows + view.rowGap * (rows - 1)).coerceAtLeast(0),
+            )
+        }
+
         is Scroll -> {
             val content = contentHeight(view, availableWidth)
             Extent(
@@ -136,6 +156,25 @@ object Layout {
                 resolve(view.height, content.height + frame.height, availableHeight),
             )
         }
+    }
+
+    /**
+     * How big one cell of a grid is: as big as the largest child, so the grid lines up.
+     */
+    private fun cellSize(grid: Grid, availableWidth: Int): Extent {
+        val perCell = if (grid.columns > 0) {
+            (availableWidth - grid.gap * (grid.columns - 1)) / grid.columns
+        } else {
+            availableWidth
+        }
+        var width = 0
+        var height = 0
+        grid.children.forEach { child ->
+            val size = measure(child, perCell.coerceAtLeast(0), Int.MAX_VALUE / 4)
+            width = maxOf(width, size.width)
+            height = maxOf(height, size.height)
+        }
+        return Extent(width, height)
     }
 
     /** How tall everything in a scroll is together, and how wide the widest of it is. */
@@ -206,7 +245,25 @@ object Layout {
             }
             out += line.toString()
         }
-        return out
+        return limit(text, out, availableWidth)
+    }
+
+    /**
+     * Keeps a paragraph to the number of lines it is allowed, ending it in an ellipsis —
+     * the honest way to show that something was cut rather than letting it run on.
+     */
+    private fun limit(text: Text, lines: List<String>, availableWidth: Int): List<String> {
+        val max = text.maxLines ?: return lines
+        if (max <= 0 || lines.size <= max) return lines
+        val sheet = TextFonts.sheet(text.weight, text.size)
+        val kept = lines.take(max).toMutableList()
+        var last = kept.removeAt(kept.size - 1)
+        val ellipsis = "…"
+        while (last.isNotEmpty() && sheet.width(last + ellipsis) > availableWidth) {
+            last = last.dropLast(1).trimEnd()
+        }
+        kept += last + ellipsis
+        return kept
     }
 
     /** The space a panel's own border and padding take, before any content. */
@@ -279,6 +336,38 @@ object Layout {
 
             is Scroll -> arrangeScroll(view, x, y, width, height, out, regions)
 
+            is Grid -> {
+                val cells = cellSize(view, width)
+                view.children.forEachIndexed { index, child ->
+                    val column = index % view.columns
+                    val row = index / view.columns
+                    arrange(
+                        child,
+                        x + column * (cells.width + view.gap),
+                        y + row * (cells.height + view.rowGap),
+                        cells.width,
+                        cells.height,
+                        out,
+                        regions,
+                    )
+                }
+            }
+
+            is RichText -> {
+                val total = measure(view, width, height).width
+                var pen = x + when (view.align) {
+                    TextAlign.START -> 0
+                    TextAlign.CENTER -> (width - total) / 2
+                    TextAlign.END -> width - total
+                }
+                view.spans.forEach { span ->
+                    val weight = span.weight ?: view.weight
+                    val size = span.size ?: view.size
+                    out += Label(pen, y, span.text, size, span.colour ?: view.colour, weight)
+                    pen += TextFonts.sheet(weight, size).width(span.text)
+                }
+            }
+
             is Panel -> {
                 view.id?.let { regions += Region(it, x, y, width, height) }
                 // The panel itself is painted first, then filled: a box with no children of
@@ -340,10 +429,17 @@ object Layout {
 
         if (scroll.bar && limit > 0) {
             val trackX = x + width - SCROLLBAR + 2
+            // The bar is something the player can grab, so it gets regions of its own.
+            scroll.id?.let { id ->
+                regions += Region("$id:track", trackX, y, SCROLLBAR - 4, height)
+            }
             val thumbHeight = (height.toDouble() * height / (height + limit)).toInt().coerceAtLeast(16)
             val thumbY = y + ((height - thumbHeight).toDouble() * offset / limit).toInt()
             out += Box(trackX, y, SCROLLBAR - 4, height, Style(background = Paint(Theme.LINE, 0.1), radius = 4))
             out += Box(trackX, thumbY, SCROLLBAR - 4, thumbHeight, Style(background = Paint(Theme.LINE, 0.35), radius = 4))
+            scroll.id?.let { id ->
+                regions += Region("$id:thumb", trackX, thumbY, SCROLLBAR - 4, thumbHeight)
+            }
         }
     }
 

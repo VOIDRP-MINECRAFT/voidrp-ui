@@ -1,6 +1,7 @@
 package ru.voidrp.ui.page
 
 import org.bukkit.entity.Player
+import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.layout.View
 
 /** Which mouse button the player used. */
@@ -27,11 +28,45 @@ abstract class Page {
     /** The id of the panel under the cursor, if any. */
     val hovered: String? get() = session?.hovered
 
+    /** Where the cursor is on the canvas. */
+    val cursorX: Int get() = session?.cursorX ?: 0
+    val cursorY: Int get() = session?.cursorY ?: 0
+
+    /** Where a named panel ended up when the page was last laid out. */
+    fun region(id: String): Layout.Region? = session?.region(id)
+
     /** What the page looks like right now. Called again whenever something changes. */
     abstract fun view(): View
 
+    /**
+     * What to show next to the cursor, usually depending on [hovered].
+     *
+     * Tooltips ride the cursor's own boss bar, which is sent every frame anyway, so one
+     * follows the mouse without the page being redrawn.
+     */
+    open fun tooltip(): View? = null
+
     /** The player clicked a named panel. */
     open fun onClick(id: String, button: Button) {}
+
+    /**
+     * The button is being held over a named panel — a drag.
+     *
+     * [x] and [y] are where the cursor is on the canvas, so a scrollbar or a slider can
+     * work out what the player means by it.
+     */
+    open fun onDrag(id: String, x: Int, y: Int) {}
+
+    /**
+     * A number key, 1 to 9.
+     *
+     * Only reaches pages that ask for it with [usesKeys], because the game sends the same
+     * packet for a number key and for the scroll wheel: a page has to say which it means.
+     */
+    open fun onKey(key: Int) {}
+
+    /** Whether number keys reach [onKey] instead of being read as scrolling. */
+    open val usesKeys: Boolean get() = false
 
     /** The player scrolled; [direction] is 1 down the list and −1 up. */
     open fun onScroll(direction: Int) {}

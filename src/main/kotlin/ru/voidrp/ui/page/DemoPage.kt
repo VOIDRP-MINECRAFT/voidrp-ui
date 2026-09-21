@@ -2,10 +2,13 @@ package ru.voidrp.ui.page
 
 import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Direction
+import ru.voidrp.ui.layout.Grid
 import ru.voidrp.ui.layout.Image
 import ru.voidrp.ui.layout.Justify
 import ru.voidrp.ui.layout.Panel
+import ru.voidrp.ui.layout.RichText
 import ru.voidrp.ui.layout.Size
+import ru.voidrp.ui.layout.Span
 import ru.voidrp.ui.layout.Text
 import ru.voidrp.ui.layout.View
 import ru.voidrp.ui.pack.Shaders
@@ -13,21 +16,45 @@ import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
+import ru.voidrp.ui.widget.button
+import ru.voidrp.ui.widget.checkbox
+import ru.voidrp.ui.widget.select
+import ru.voidrp.ui.widget.slider
+import ru.voidrp.ui.widget.sliderValue
+import ru.voidrp.ui.widget.tooltipPanel
 
 /**
- * A page that answers back: the buttons light up under the cursor and do something when
- * clicked. It is written as one function of its own state, so "the bar moved" is a field
- * changing and a redraw, not a redraw written by hand.
+ * Everything in one page, so it can be judged by eye: controls, a grid, tooltips, keys.
+ *
+ * It is written as one function of its own fields — tick a box, the field changes, the
+ * page says what it looks like now. Nothing is updated by hand.
  */
 class DemoPage : Page() {
 
-    private var progress = 0.4
-    private var clicks = 0
+    private val rewards = listOf(
+        "diamond" to "Алмаз",
+        "emerald" to "Изумруд",
+        "golden_apple" to "Золотое яблоко",
+        "netherite_ingot" to "Незерит",
+        "totem_of_undying" to "Тотем",
+        "enchanted_book" to "Книга",
+        "elytra" to "Элитры",
+        "beacon" to "Маяк",
+    )
+
+    private val modes = listOf("Выживание", "Творческий", "Приключение")
+
+    private var notifications = true
+    private var mode = 0
+    private var modeOpen = false
+    private var volume = 0.7
     private var note = "нажмите, чтобы ввести"
+    private var lastKey: Int? = null
+
+    override val usesKeys: Boolean get() = true
 
     override fun view(): View {
-        val width = 760
-        val inner = width - Theme.SPACE_6 * 2 - 2
+        val width = 780
 
         val page = Panel(
             style = Theme.page,
@@ -38,85 +65,111 @@ class DemoPage : Page() {
                     gap = 2,
                     children = listOf(
                         Text("VoidRP: Origins", Theme.TEXT_H2, Theme.INK, TextFonts.Weight.SEMIBOLD),
-                        Text("Наведите прицел и нажмите", Theme.TEXT_BODY, Theme.INK_SOFT),
+                        RichText(
+                            spans = listOf(
+                                Span("Прицел — курсор, "),
+                                Span("ЛКМ", Theme.INK, TextFonts.Weight.SEMIBOLD),
+                                Span(" — нажать, "),
+                                Span("Shift", Theme.INK, TextFonts.Weight.SEMIBOLD),
+                                Span(" — назад"),
+                            ),
+                            colour = Theme.INK_SOFT,
+                        ),
                     ),
                 ),
                 Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
-                Text(
-                    "Страница живёт на сервере: всё, что вы видите, нарисовал обычный клиент " +
-                        "без единого мода. Текст переносится сам, по ширине того, во что его положили.",
-                    Theme.TEXT_BODY,
-                    Theme.INK_SOFT,
-                ),
-                stat("Игроков онлайн", "42 из 200", Theme.card, "stat-online"),
-                stat("Нажатий", clicks.toString(), Theme.cardAccent, "stat-clicks"),
-                // Item pictures come from the client's own textures, so they cost the pack
-                // nothing at all.
+
                 Panel(
                     style = Theme.card,
                     width = Size.Fill,
                     gap = Theme.SPACE_2,
                     children = listOf(
                         Text("Награды сезона", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                        Grid(
+                            columns = 8,
+                            gap = Theme.SPACE_2,
+                            rowGap = Theme.SPACE_2,
+                            width = Size.Fill,
+                            children = rewards.map { (item, _) ->
+                                Panel(
+                                    style = if (hovered == "reward:$item") Theme.cardAccent else Theme.card,
+                                    width = Size.Fixed(56),
+                                    height = Size.Fixed(56),
+                                    justify = Justify.CENTER,
+                                    align = Align.CENTER,
+                                    id = "reward:$item",
+                                    children = listOf(Image(item, 32)),
+                                )
+                            },
+                        ),
+                    ),
+                ),
+
+                Panel(
+                    direction = Direction.ROW,
+                    width = Size.Fill,
+                    gap = Theme.SPACE_4,
+                    align = Align.START,
+                    children = listOf(
                         Panel(
-                            direction = Direction.ROW,
-                            gap = Theme.SPACE_3,
-                            align = Align.CENTER,
+                            gap = Theme.SPACE_2,
+                            width = Size.Fixed(320),
                             children = listOf(
-                                Image("diamond", 32),
-                                Image("netherite_ingot", 32),
-                                Image("golden_apple", 32),
-                                Image("emerald", 32),
-                                Image("enchanted_book", 32),
-                                Image("totem_of_undying", 32),
-                                Text("и ещё 12", Theme.TEXT_BODY, Theme.INK_SOFT),
+                                checkbox("Уведомления", "notifications", notifications),
+                                Panel(
+                                    style = Theme.card,
+                                    width = Size.Fill,
+                                    gap = Theme.SPACE_2,
+                                    children = listOf(
+                                        Text("Громкость", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                                        slider("volume", volume, width = 272),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        Panel(
+                            gap = Theme.SPACE_2,
+                            children = listOf(
+                                Text("Режим", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                                select("mode", modes, mode, modeOpen, width = 240),
+                            ),
+                        ),
+                        Panel(width = Size.Fill),
+                        Panel(
+                            style = if (hovered == "note") Theme.cardAccent else Theme.card,
+                            gap = 2,
+                            id = "note",
+                            children = listOf(
+                                Text("Заметка", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                                Text(note, Theme.TEXT_LEAD, Theme.INK, wrap = false),
                             ),
                         ),
                     ),
                 ),
-                Panel(
-                    style = Style(background = Paint(Theme.LINE, 0.14), radius = 6),
-                    width = Size.Fill,
-                    height = Size.Fixed(12),
-                    children = listOf(
-                        Panel(
-                            style = Style(background = Theme.accentBar, radius = 6),
-                            width = Size.Fixed((inner * progress).toInt().coerceAtLeast(12)),
-                            height = Size.Fill,
-                        )
-                    ),
-                ),
+
                 Panel(
                     direction = Direction.ROW,
+                    width = Size.Fill,
                     gap = Theme.SPACE_3,
-                    width = Size.Fill,
+                    align = Align.CENTER,
                     children = listOf(
-                        button("Добавить", Theme.buttonPrimary, "add"),
-                        button("Сбросить", Theme.buttonGhost, "reset"),
+                        button("Магазин", "shop", Theme.buttonPrimary, Size.Fixed(180)),
+                        button("Закрыть", "close", Theme.buttonGhost, Size.Fixed(150)),
                         Panel(width = Size.Fill),
-                        button("Магазин", Theme.buttonGhost, "shop"),
-                        button("Закрыть", Theme.buttonGhost, "close"),
+                        Text(
+                            lastKey?.let { "Клавиша $it" } ?: "Нажмите цифру 1–9",
+                            Theme.TEXT_CAPTION,
+                            Theme.INK_DIM,
+                            wrap = false,
+                        ),
                     ),
                 ),
-                Panel(
-                    style = Theme.card,
-                    width = Size.Fill,
-                    gap = 2,
-                    id = "note",
-                    children = listOf(
-                        Text("Заметка", Theme.TEXT_CAPTION, Theme.INK_DIM),
-                        Text(note, Theme.TEXT_LEAD, Theme.INK),
-                    ),
-                ),
-                Text("Колесо мыши — шкала · Shift — закрыть · void-rp.ru", Theme.TEXT_CAPTION, Theme.INK_DIM),
             ),
         )
 
         return Panel(
             width = Size.Fixed(Shaders.CANVAS_WIDTH),
             height = Size.Fixed(Shaders.CANVAS_HEIGHT),
-            // Nearly opaque on purpose: aiming turns the player's head, and behind a solid
-            // backdrop that is invisible.
             style = Style(background = Paint(0x05060D, 0.93)),
             justify = Justify.CENTER,
             align = Align.CENTER,
@@ -124,35 +177,41 @@ class DemoPage : Page() {
         )
     }
 
+    override fun tooltip(): View? {
+        val hovered = hovered ?: return null
+        if (!hovered.startsWith("reward:")) return null
+        val reward = rewards.firstOrNull { it.first == hovered.removePrefix("reward:") } ?: return null
+        return tooltipPanel(reward.second, listOf("Награда сезона", "Выдаётся за уровень пропуска"))
+    }
+
     override fun onClick(id: String, button: Button) {
-        when (id) {
-            "add" -> {
-                clicks++
-                progress = (progress + 0.1).coerceAtMost(1.0)
-            }
-
-            "reset" -> {
-                clicks = 0
-                progress = 0.0
-            }
-
-            "close" -> {
+        when {
+            id == "close" -> {
                 close()
                 return
             }
 
-            "shop" -> {
+            id == "shop" -> {
                 push(ShopPage())
                 return
             }
 
-            "note" -> {
+            id == "notifications" -> notifications = !notifications
+            id == "mode" -> modeOpen = !modeOpen
+            id.startsWith("mode:option:") -> {
+                mode = id.removePrefix("mode:option:").toIntOrNull() ?: mode
+                modeOpen = false
+            }
+
+            id == "volume" -> volume = sliderValue("volume")
+
+            id == "note" -> {
                 prompt(
                     title = "Заметка",
                     label = "Текст",
                     initial = note,
-                    hint = "Поле ввода — это родное окно игры: страница остаётся на экране.",
-                    maxLength = 64,
+                    hint = "Поле ввода — родное окно игры: страница остаётся на экране.",
+                    maxLength = 48,
                 ) { value ->
                     note = value.ifBlank { "пусто" }
                     refresh()
@@ -163,30 +222,15 @@ class DemoPage : Page() {
         refresh()
     }
 
-    override fun onScroll(direction: Int) {
-        progress = (progress - direction * 0.05).coerceIn(0.0, 1.0)
+    /** Dragging the slider is clicking it, repeatedly. */
+    override fun onDrag(id: String, x: Int, y: Int) {
+        if (id != "volume") return
+        volume = sliderValue("volume")
         refresh()
     }
 
-    private fun stat(caption: String, value: String, style: Style, id: String) = Panel(
-        style = if (hovered == id) style.copy(border = style.border?.copy(paint = Paint(Theme.VIOLET, 0.5))) else style,
-        width = Size.Fill,
-        gap = 2,
-        id = id,
-        children = listOf(
-            Text(caption, Theme.TEXT_CAPTION, Theme.INK_DIM),
-            Text(value, Theme.TEXT_H3, Theme.INK, TextFonts.Weight.SEMIBOLD),
-        ),
-    )
-
-    /** A button knows it is being pointed at, which is all "hover" ever was. */
-    private fun button(caption: String, style: Style, id: String) = Panel(
-        style = if (hovered == id) style.copy(background = (style.background as? Paint)?.let { it.alpha(minOf(1.0, it.alpha + 0.15)) } ?: style.background) else style,
-        width = Size.Fixed(165),
-        height = Size.Fixed(48),
-        justify = Justify.CENTER,
-        align = Align.CENTER,
-        id = id,
-        children = listOf(Text(caption, style.textSize, style.textColour, style.textWeight)),
-    )
+    override fun onKey(key: Int) {
+        lastKey = key
+        refresh()
+    }
 }

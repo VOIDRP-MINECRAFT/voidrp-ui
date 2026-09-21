@@ -155,14 +155,27 @@ class PageSession(
         return true
     }
 
+    /** Where a named panel is right now, for a page that needs to know. */
+    fun region(id: String): Layout.Region? = regions.lastOrNull { it.id == id }
+
     fun click(button: Button) {
         if (closed) return
         val now = System.currentTimeMillis()
         val pressed = now - lastSwing > HOLD_GAP_MS
+        val held = !pressed && now - lastSwing < DRAG_GAP_MS
         lastSwing = now
+        if (held) {
+            // A held button over something is a drag: the swings that mean "still down"
+            // arrive every tick, which is as good a stream of drag events as we can get.
+            dragging?.let { page.onDrag(it, cursorX, cursorY) }
+            return
+        }
         if (!pressed) return
+        dragging = hovered
         hovered?.let { page.onClick(it, button) }
     }
+
+    private var dragging: String? = null
 
     private var lastSwing = 0L
 
@@ -183,6 +196,16 @@ class PageSession(
         page.onScroll(direction)
     }
 
+    fun key(number: Int) {
+        if (closed) return
+        page.onKey(number)
+    }
+
+    /** The tooltip as the page last described it; re-laid out as the cursor moves. */
+    private var tooltip: ru.voidrp.ui.layout.View? = null
+    private var tooltipEncoded: Component? = null
+    private var tooltipAt = Int.MIN_VALUE
+
     /** Builds the page again from scratch and sends it. */
     fun render() {
         if (closed) return
@@ -190,13 +213,41 @@ class PageSession(
         regions = placement.regions
         // The page is encoded once and kept: the cursor moves every tick, the page does not.
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
+        tooltip = page.tooltip()
+        tooltipEncoded = null
         renderer.render(player, GlyphEncoder.encode(placement.nodes))
         draw()
     }
 
     /** Sends what is already encoded, with the pointer on top. */
     private fun draw() {
-        renderer.cursor(player, GlyphEncoder.encode(cursor(cursorX, cursorY - cursorBarOffset())))
+        val lift = cursorBarOffset()
+        val pointer = GlyphEncoder.encode(cursor(cursorX, cursorY - lift))
+        val tip = tooltipAt(cursorX, cursorY - lift)
+        renderer.cursor(
+            player,
+            if (tip == null) pointer else Component.text().append(tip).append(pointer).build(),
+        )
+    }
+
+    /**
+     * Lays the tooltip out beside the cursor, keeping it on screen.
+     *
+     * Re-done only when the cursor has actually moved a few units, because at sixty frames
+     * a second the difference between following the mouse and chasing it is not worth the
+     * work.
+     */
+    private fun tooltipAt(x: Int, y: Int): Component? {
+        val view = tooltip ?: return null
+        val moved = Math.abs(x + y * 2 - tooltipAt) >= TOOLTIP_STEP
+        tooltipEncoded?.takeIf { !moved }?.let { return it }
+        tooltipAt = x + y * 2
+
+        val size = Layout.measure(view, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
+        val left = (x + TOOLTIP_OFFSET).coerceAtMost(Shaders.CANVAS_WIDTH - size.width - 4)
+        val top = (y + TOOLTIP_OFFSET).coerceAtMost(Shaders.CANVAS_HEIGHT - size.height - 4)
+        val placement = Layout.place(view, left.coerceAtLeast(4), top.coerceAtLeast(4), size.width, size.height)
+        return GlyphEncoder.encode(placement.nodes).also { tooltipEncoded = it }
     }
 
     fun close() {
@@ -228,6 +279,15 @@ class PageSession(
          * little late without letting a held button through.
          */
         const val HOLD_GAP_MS = 80L
+
+        /** Swings this close together are the same press still being held: a drag. */
+        const val DRAG_GAP_MS = 200L
+
+        /** How far the cursor moves before a tooltip is laid out again. */
+        const val TOOLTIP_STEP = 6
+
+        /** How far from the cursor a tooltip sits, so the pointer does not cover it. */
+        const val TOOLTIP_OFFSET = 16
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f
