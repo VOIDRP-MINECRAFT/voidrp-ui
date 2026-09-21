@@ -61,6 +61,14 @@ abstract class Page {
         session?.render()
     }
 
+    /** Opens another page on top of this one. Crouching, or [back], returns here. */
+    fun push(next: Page) {
+        session?.push(next)
+    }
+
+    /** Goes back to the page this one was opened from, if there is one. */
+    fun back(): Boolean = session?.back() ?: false
+
     /** Close this page. */
     fun close() {
         session?.close()

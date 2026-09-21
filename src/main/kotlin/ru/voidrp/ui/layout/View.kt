@@ -86,6 +86,28 @@ data class Text(
  */
 data class Image(val item: String, val size: Int = 32) : View
 
+/**
+ * A column of things taller than the space it is given, shown through a window into it.
+ *
+ * Nothing can be clipped halfway on the way to the client — a glyph is drawn whole or not
+ * at all — so what falls outside the window is cut where it can be (a rectangle) and left
+ * out where it cannot (a word, an icon). At the sizes a list is built from, that reads as
+ * an ordinary scrolling panel.
+ *
+ * [offset] belongs to the page, like everything else it shows: the wheel changes a number,
+ * the page draws itself again.
+ */
+data class Scroll(
+    val children: List<View> = emptyList(),
+    val offset: Int = 0,
+    val gap: Int = 0,
+    val width: Size = Size.Fill,
+    val height: Size = Size.Fill,
+    /** Whether to draw the little bar showing where in the list we are. */
+    val bar: Boolean = true,
+    val id: String? = null,
+) : View
+
 /** Empty space, for when a gap is not enough — the flexible kind pushes things apart. */
 data class Gap(val size: Int = 0, val grow: Boolean = false) : View
 

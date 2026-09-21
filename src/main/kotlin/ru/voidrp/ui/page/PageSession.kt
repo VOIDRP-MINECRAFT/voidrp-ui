@@ -25,7 +25,7 @@ import ru.voidrp.ui.render.Sprite
 class PageSession(
     private val plugin: org.bukkit.plugin.Plugin,
     val player: Player,
-    val page: Page,
+    first: Page,
     private val renderer: BossBarRenderer,
     /**
      * Canvas units per degree of turn, read fresh each tick so it can be tuned while a
@@ -47,6 +47,12 @@ class PageSession(
 
     var hovered: String? = null
         private set
+
+    /** The page on screen, and the ones it was opened from. */
+    var page: Page = first
+        private set
+
+    private val stack = ArrayDeque<Page>()
 
     private var anchorYaw = 0f
     private var anchorPitch = 0f
@@ -122,6 +128,27 @@ class PageSession(
      * and over. A press is therefore taken as the first swing after a pause — held down,
      * the swings keep arriving too close together to count as anything new.
      */
+    /** Opens another page on top of this one; crouching, or back(), returns here. */
+    fun push(next: Page) {
+        if (closed) return
+        stack.addLast(page)
+        page = next
+        next.session = this
+        render()
+    }
+
+    /** Goes back to the page underneath, and says whether there was one. */
+    fun back(): Boolean {
+        if (closed || stack.isEmpty()) return false
+        val previous = stack.removeLast()
+        page.onClose()
+        page.session = null
+        page = previous
+        previous.session = this
+        render()
+        return true
+    }
+
     fun click(button: Button) {
         if (closed) return
         val now = System.currentTimeMillis()
@@ -177,6 +204,8 @@ class PageSession(
         renderer.clear(player)
         page.onClose()
         page.session = null
+        stack.forEach { it.session = null }
+        stack.clear()
     }
 
     private companion object {

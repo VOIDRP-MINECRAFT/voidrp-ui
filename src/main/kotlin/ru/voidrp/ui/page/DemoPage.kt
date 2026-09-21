@@ -94,6 +94,7 @@ class DemoPage : Page() {
                         button("Добавить", Theme.buttonPrimary, "add"),
                         button("Сбросить", Theme.buttonGhost, "reset"),
                         Panel(width = Size.Fill),
+                        button("Магазин", Theme.buttonGhost, "shop"),
                         button("Закрыть", Theme.buttonGhost, "close"),
                     ),
                 ),
@@ -140,6 +141,11 @@ class DemoPage : Page() {
                 return
             }
 
+            "shop" -> {
+                push(ShopPage())
+                return
+            }
+
             "note" -> {
                 prompt(
                     title = "Заметка",
@@ -176,7 +182,7 @@ class DemoPage : Page() {
     /** A button knows it is being pointed at, which is all "hover" ever was. */
     private fun button(caption: String, style: Style, id: String) = Panel(
         style = if (hovered == id) style.copy(background = (style.background as? Paint)?.let { it.alpha(minOf(1.0, it.alpha + 0.15)) } ?: style.background) else style,
-        width = Size.Fixed(190),
+        width = Size.Fixed(165),
         height = Size.Fixed(48),
         justify = Justify.CENTER,
         align = Align.CENTER,

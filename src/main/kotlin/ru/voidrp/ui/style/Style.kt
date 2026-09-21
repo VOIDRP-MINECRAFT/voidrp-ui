@@ -34,8 +34,8 @@ data class Gradient(
     val from: Paint,
     val to: Paint,
     val direction: GradientDirection = GradientDirection.VERTICAL,
-    /** How many stripes; more is smoother and costs more glyphs. */
-    val steps: Int = 24,
+    /** How many stripes; left alone, one every few pixels. More is smoother and costs more. */
+    val steps: Int? = null,
 ) : Fill
 
 enum class GradientDirection { VERTICAL, HORIZONTAL }

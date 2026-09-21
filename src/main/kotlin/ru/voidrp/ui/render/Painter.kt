@@ -18,6 +18,13 @@ import ru.voidrp.ui.style.Style
  */
 object Painter {
 
+    /** How tall a stripe of a gradient is by default, in canvas units. */
+    private const val BAND = 3
+
+    /** The order neighbouring stripes are sent up or down the palette in. */
+    private val DITHER = doubleArrayOf(0.125, 0.625, 0.375, 0.875)
+
+
     fun flatten(nodes: List<Node>): List<Node> {
         val out = mutableListOf<Node>()
         nodes.forEach { paint(it, 0, 0, out) }
@@ -148,13 +155,14 @@ object Painter {
         val vertical = gradient.direction == GradientDirection.VERTICAL
         val span = if (vertical) height else width
         if (span <= 0 || width <= 0 || height <= 0) return
-        val steps = gradient.steps.coerceIn(2, span.coerceAtLeast(2))
+        val steps = (gradient.steps ?: (span / BAND)).coerceIn(2, span.coerceAtLeast(2))
 
         for (step in 0 until steps) {
             val start = span * step / steps
             val end = span * (step + 1) / steps
             if (end <= start) continue
-            val paint = blend(gradient.from, gradient.to, (step + 0.5) / steps)
+            val exact = blend(gradient.from, gradient.to, (step + 0.5) / steps)
+            val paint = dither(exact, DITHER[step % DITHER.size])
             if (vertical) {
                 rounded(
                     x, y + start, width, end - start, radius, paint, out,
@@ -171,6 +179,30 @@ object Painter {
                 )
             }
         }
+    }
+
+    /**
+     * Nudges a stripe to the palette colour above or below the one it wants, by turns.
+     *
+     * Colour travels in ten bits, so between violet and fuchsia there are only three or
+     * four colours to be had: more stripes cannot invent more of them, and a gradient
+     * drawn honestly comes out in bands. Neighbouring stripes are therefore sent to
+     * neighbouring palette entries in a repeating pattern, and at a few pixels wide the
+     * eye mixes them back into the colour that was asked for — the same trick a printer
+     * plays with dots. Opacity, which has sixteen steps, is dithered the same way.
+     */
+    private fun dither(paint: Paint, bias: Double): Paint {
+        fun channel(shift: Int, levels: Int): Int {
+            val value = ((paint.rgb shr shift) and 0xFF) / 255.0
+            val level = Math.floor(value * levels + bias).toInt().coerceIn(0, levels)
+            return Math.round(level * 255.0 / levels).toInt()
+        }
+        val alphaLevels = Glyphs.ALPHA_LEVELS
+        val alphaLevel = Math.floor(paint.alpha * alphaLevels + bias).toInt().coerceIn(0, alphaLevels)
+        return Paint(
+            (channel(16, 7) shl 16) or (channel(8, 15) shl 8) or channel(0, 7),
+            alphaLevel.toDouble() / alphaLevels,
+        )
     }
 
     /** One colour part of the way to another, opacity included. */

@@ -132,11 +132,12 @@ class PageManager(
         if (direction != 0) session.scroll(if (direction > 0) 1 else -1)
     }
 
+    /** Crouching goes back a page, or closes the last one — like the escape key. */
     @EventHandler(priority = EventPriority.LOWEST)
     fun onSneak(event: PlayerToggleSneakEvent) {
         if (!event.isSneaking) return
-        val player = event.player
-        if (isOpen(player)) close(player)
+        val session = session(event.player) ?: return
+        if (!session.back()) close(event.player)
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

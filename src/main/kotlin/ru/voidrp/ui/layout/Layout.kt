@@ -4,8 +4,14 @@ import ru.voidrp.ui.pack.Icons
 import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.Box
 import ru.voidrp.ui.render.Label
+import ru.voidrp.ui.render.CornerPiece
 import ru.voidrp.ui.render.Node
+import ru.voidrp.ui.render.Painter
+import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.render.Sprite
+import ru.voidrp.ui.style.Paint
+import ru.voidrp.ui.style.Style
+import ru.voidrp.ui.style.Theme
 
 /**
  * Works out where everything goes.
@@ -19,6 +25,9 @@ import ru.voidrp.ui.render.Sprite
  * things inside it — which is exactly what the encoder wants.
  */
 object Layout {
+
+    /** How much room the little bar at the side of a scroll takes. */
+    private const val SCROLLBAR = 10
 
     /** Measured size of a view, in canvas units. */
     data class Extent(val width: Int, val height: Int)
@@ -67,6 +76,11 @@ object Layout {
 
         is Image -> Icons.nearestSize(view.size).let { Extent(it, it) }
 
+        is Scroll -> Extent(
+            resolve(view.width, contentHeight(view, availableWidth).second, availableWidth),
+            resolve(view.height, contentHeight(view, availableWidth).first, availableHeight),
+        )
+
         is Raw -> Extent(0, 0)
 
         is Panel -> {
@@ -80,6 +94,22 @@ object Layout {
             )
         }
     }
+
+    /** How tall everything in a scroll is together, and how wide the widest of it is. */
+    private fun contentHeight(scroll: Scroll, availableWidth: Int): Pair<Int, Int> {
+        var height = 0
+        var width = 0
+        scroll.children.forEachIndexed { index, child ->
+            val size = measure(child, availableWidth, Int.MAX_VALUE / 4)
+            height += size.height + if (index > 0) scroll.gap else 0
+            width = maxOf(width, size.width)
+        }
+        return height to width
+    }
+
+    /** How far down a scroll can go before it runs out of content. */
+    fun maxOffset(scroll: Scroll, width: Int, height: Int): Int =
+        (contentHeight(scroll, width).first - height).coerceAtLeast(0)
 
     /**
      * From one line's top to the next. The typeface's own line box is tight, so a little
@@ -192,6 +222,8 @@ object Layout {
                 }
             }
 
+            is Scroll -> arrangeScroll(view, x, y, width, height, out, regions)
+
             is Panel -> {
                 view.id?.let { regions += Region(it, x, y, width, height) }
                 // The panel itself is painted first, then filled: a box with no children of
@@ -205,6 +237,75 @@ object Layout {
                 val innerHeight = (height - frame(view).height).coerceAtLeast(0)
                 arrangeChildren(view, innerX, innerY, innerWidth, innerHeight, out, regions)
             }
+        }
+    }
+
+    /**
+     * Lays the contents out as if there were room for all of it, then keeps only what
+     * shows through the window — rectangles cut to the edge, anything that cannot be cut
+     * kept only while it fits whole.
+     */
+    private fun arrangeScroll(
+        scroll: Scroll,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        out: MutableList<Node>,
+        regions: MutableList<Region>,
+    ) {
+        val barWidth = if (scroll.bar) SCROLLBAR else 0
+        val innerWidth = (width - barWidth).coerceAtLeast(0)
+        val limit = maxOffset(scroll, innerWidth, height)
+        val offset = scroll.offset.coerceIn(0, limit)
+
+        val inner = mutableListOf<Node>()
+        val innerRegions = mutableListOf<Region>()
+        var cursor = y - offset
+        scroll.children.forEach { child ->
+            val size = measure(child, innerWidth, Int.MAX_VALUE / 4)
+            arrange(child, x, cursor, innerWidth, size.height, inner, innerRegions)
+            cursor += size.height + scroll.gap
+        }
+
+        // Panels become rectangles before anything is cut, because a panel is drawn as
+        // shapes and it is the shapes that have to fit the window.
+        Painter.flatten(inner).forEach { node -> clip(node, x, y, width, height)?.let { out += it } }
+        innerRegions.forEach { region ->
+            if (region.y + region.height > y && region.y < y + height) {
+                regions += Region(
+                    region.id,
+                    region.x,
+                    region.y.coerceAtLeast(y),
+                    region.width,
+                    minOf(region.y + region.height, y + height) - region.y.coerceAtLeast(y),
+                )
+            }
+        }
+
+        if (scroll.bar && limit > 0) {
+            val trackX = x + width - SCROLLBAR + 2
+            val thumbHeight = (height.toDouble() * height / (height + limit)).toInt().coerceAtLeast(16)
+            val thumbY = y + ((height - thumbHeight).toDouble() * offset / limit).toInt()
+            out += Box(trackX, y, SCROLLBAR - 4, height, Style(background = Paint(Theme.LINE, 0.1), radius = 4))
+            out += Box(trackX, thumbY, SCROLLBAR - 4, thumbHeight, Style(background = Paint(Theme.LINE, 0.35), radius = 4))
+        }
+    }
+
+    /** What is left of a shape once the window has had its way with it. */
+    private fun clip(node: Node, x: Int, y: Int, width: Int, height: Int): Node? {
+        val bottom = y + height
+        return when (node) {
+            is Rect -> {
+                val top = node.y.coerceAtLeast(y)
+                val end = (node.y + node.height).coerceAtMost(bottom)
+                if (end <= top) null else node.copy(y = top, height = end - top)
+            }
+            // A letter, an icon or a rounded corner is drawn whole or not at all.
+            is Label -> node.takeIf { it.y >= y && it.y + it.size <= bottom }
+            is Sprite -> node.takeIf { it.y >= y && it.y + it.advance <= bottom }
+            is CornerPiece -> node.takeIf { it.y >= y && it.y + it.radius <= bottom }
+            else -> node
         }
     }
 

@@ -116,8 +116,10 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         // turn into, which is exactly what is needed when something lands in the wrong place.
         if (args.firstOrNull()?.lowercase() == "stats") {
             val shapes = Painter.flatten(demoPage())
-            sender.sendMessage("Демо-страница: ${shapes.size} фигур — список в логе сервера.")
-            plugin.logger.info("Демо-страница: ${shapes.size} фигур")
+            val length = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                .serialize(ru.voidrp.ui.render.GlyphEncoder.encode(demoPage())).length
+            sender.sendMessage("Демо-страница: ${shapes.size} фигур, $length символов — список в логе.")
+            plugin.logger.info("Демо-страница: ${shapes.size} фигур, $length символов в строке")
             shapes.forEach { node ->
                 plugin.logger.info(
                     when (node) {
