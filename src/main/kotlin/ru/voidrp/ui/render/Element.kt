@@ -68,8 +68,10 @@ data class Label(
     val size: Int = 16,
     val colour: Int = Theme.INK,
     val weight: TextFonts.Weight = TextFonts.Weight.REGULAR,
+    /** Extra air after every letter — what a stylesheet calls letter-spacing. */
+    val tracking: Int = 0,
 ) : Node {
-    val width: Int get() = TextFonts.width(text, weight, size)
+    val width: Int get() = TextFonts.width(text, weight, size) + tracking * (text.length - 1).coerceAtLeast(0)
 }
 
 /**
@@ -201,13 +203,14 @@ object GlyphEncoder {
         for (char in label.text) {
             if (char == ' ') {
                 run.append(char)
-                pen += sheet.spaceAdvance
+                run.append(Glyphs.moveBy(label.tracking))
+                pen += sheet.spaceAdvance + label.tracking
                 continue
             }
             val metric = sheet.metrics[char] ?: continue
             run.append(char)
-            run.append(Glyphs.moveBy(metric.advance - metric.clientAdvance))
-            pen += metric.advance
+            run.append(Glyphs.moveBy(metric.advance - metric.clientAdvance + label.tracking))
+            pen += metric.advance + label.tracking
         }
 
         line.append(

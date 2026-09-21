@@ -33,6 +33,9 @@ object TextFonts {
     enum class Weight(val id: String, val resource: String) {
         REGULAR("regular", "Inter-Regular.ttf"),
         SEMIBOLD("semibold", "Inter-SemiBold.ttf"),
+
+        /** Headings are set heavy on the site, and a heading in semibold reads as a label. */
+        BOLD("bold", "Inter-Bold.ttf"),
     }
 
     /** The type scale, in canvas units — which are the site's pixels, near enough. */
@@ -50,7 +53,9 @@ object TextFonts {
         for (code in 0x410..0x44F) add(code.toChar())
         add('Ё') // Ё
         add('ё') // ё
-        "«»—–…·×°№→←•₽©".forEach { add(it) }
+        // Everything an interface reaches for: dashes, arrows, ticks, the minus sign that
+        // is not a hyphen, and the triangles a dropdown is marked with.
+        "«»—–…·×÷°№±−✓✔✕✖→←↑↓▲▼◀▶•₽©§™".forEach { add(it) }
     }.distinct()
 
     /** How the client and the encoder each see one character. */

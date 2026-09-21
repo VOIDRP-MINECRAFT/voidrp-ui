@@ -17,6 +17,7 @@ import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 import ru.voidrp.ui.widget.button
+import ru.voidrp.ui.widget.eyebrow
 import ru.voidrp.ui.widget.scrollFromBar
 import ru.voidrp.ui.widget.stepper
 import ru.voidrp.ui.widget.tooltipPanel
@@ -53,7 +54,9 @@ class ShopPage : Page() {
 
     private val width = 760
     private val inner = width - Theme.SPACE_6 * 2 - 2
-    private val listHeight = 340
+    /** Four rows and the gaps between them, so the list never shows a sliver of a fifth. */
+    private val rowHeight = 64
+    private val listHeight = rowHeight * 4 + Theme.SPACE_2 * 3
 
     private var offset = 0
     private var amount = 1
@@ -82,16 +85,16 @@ class ShopPage : Page() {
                         Panel(
                             gap = 2,
                             children = listOf(
-                                Text("Магазин", Theme.TEXT_H2, Theme.INK, TextFonts.Weight.SEMIBOLD),
-                                Text("Колесо или полоса справа — прокрутка", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                                eyebrow("VoidRP"),
+                                Text("Магазин", Theme.TEXT_H1, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                             ),
                         ),
                         Panel(width = Size.Fill),
                         Panel(
-                            style = Theme.cardAccent,
+                            style = Theme.cardSelected,
                             gap = 2,
                             children = listOf(
-                                Text("Баланс", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                                eyebrow("Баланс"),
                                 RichText(
                                     spans = listOf(
                                         Span(balance.toString(), Theme.INK, TextFonts.Weight.SEMIBOLD),
@@ -111,7 +114,7 @@ class ShopPage : Page() {
                     gap = Theme.SPACE_3,
                     align = Align.CENTER,
                     children = listOf(
-                        Text("Количество", Theme.TEXT_BODY, Theme.INK_SOFT, wrap = false),
+                        eyebrow("Количество"),
                         stepper("amount", amount.toString()),
                         Panel(width = Size.Fill),
                         button("Назад", "back", Theme.buttonGhost, Size.Fixed(150)),
@@ -145,6 +148,7 @@ class ShopPage : Page() {
     private fun row(offer: Offer) = Panel(
         style = if (hovered == offer.item) Theme.cardAccent else Theme.card,
         width = Size.Fill,
+        height = Size.Fixed(rowHeight),
         direction = Direction.ROW,
         gap = Theme.SPACE_3,
         align = Align.CENTER,
@@ -153,13 +157,12 @@ class ShopPage : Page() {
             Image(offer.item, 32),
             Panel(
                 gap = 2,
-                width = Size.Fixed(360),
+                width = Size.Fill,
                 children = listOf(
                     Text(offer.name, Theme.TEXT_LEAD, Theme.INK, wrap = false),
                     Text(offer.about, Theme.TEXT_CAPTION, Theme.INK_DIM, maxLines = 1),
                 ),
             ),
-            Panel(width = Size.Fill),
             RichText(
                 spans = listOf(
                     Span(offer.price.toString(), Theme.GOLD, TextFonts.Weight.SEMIBOLD),

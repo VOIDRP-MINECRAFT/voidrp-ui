@@ -108,7 +108,9 @@ object Layout {
     private fun measureUncached(view: View, availableWidth: Int, availableHeight: Int): Extent = when (view) {
         is Text -> {
             val lines = lines(view, availableWidth)
-            val width = lines.maxOfOrNull { TextFonts.width(it, view.weight, view.size) } ?: 0
+            val width = lines.maxOfOrNull { line ->
+                TextFonts.width(line, view.weight, view.size) + view.tracking * (line.length - 1).coerceAtLeast(0)
+            } ?: 0
             Extent(width, lineHeight(view) * lines.size)
         }
 
@@ -307,6 +309,7 @@ object Layout {
 
     private fun resolve(size: Size, content: Int, available: Int): Int = when (size) {
         is Size.Fixed -> size.value
+        is Size.Percent -> (available * size.fraction).toInt().coerceIn(0, available)
         // Never smaller than what it holds: measuring a greedy child against no space at
         // all is how its own size is found, below.
         is Size.Fill -> maxOf(content, available)
@@ -329,13 +332,14 @@ object Layout {
             is Text -> {
                 val step = lineHeight(view)
                 lines(view, width).forEachIndexed { index, line ->
-                    val lineWidth = TextFonts.width(line, view.weight, view.size)
+                    val lineWidth = TextFonts.width(line, view.weight, view.size) +
+                        view.tracking * (line.length - 1).coerceAtLeast(0)
                     val offset = when (view.align) {
                         TextAlign.START -> 0
                         TextAlign.CENTER -> (width - lineWidth) / 2
                         TextAlign.END -> width - lineWidth
                     }
-                    out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight)
+                    out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight, view.tracking)
                 }
             }
 
@@ -553,10 +557,13 @@ object Layout {
             val alongSize = sizes[index]
             val crossWanted = measure(child, width, height).let { if (row) it.height else it.width }
             val crossSpan = if (row) height else width
+            // Never wider than what it is inside. A child with a size of its own, in a
+            // panel that had to give up room, would otherwise stick out sideways and lie
+            // over its neighbour — which is how a dropdown ended up on top of a card.
             val crossSize = if (panel.align == Align.STRETCH || child.fillsAcross(panel.direction)) {
                 crossSpan
             } else {
-                crossWanted
+                minOf(crossWanted, crossSpan)
             }
             val crossOffset = when (panel.align) {
                 Align.START, Align.STRETCH -> 0

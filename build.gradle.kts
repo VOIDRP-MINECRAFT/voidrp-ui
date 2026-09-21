@@ -69,6 +69,18 @@ dependencies {
     testImplementation("com.google.code.gson:gson:2.11.0")
 }
 
+/**
+ * Renders the demo pages to PNGs, so the design can be looked at without logging in:
+ * `./gradlew preview`.
+ */
+tasks.register<JavaExec>("preview") {
+    group = "voidrp"
+    description = "Рисует демо-страницы в build/preview"
+    mainClass.set("ru.voidrp.ui.Preview")
+    classpath = sourceSets["test"].runtimeClasspath
+    environment("VOIDRP_CLIENT_JAR", System.getenv("VOIDRP_CLIENT_JAR") ?: "")
+}
+
 tasks.test {
     useJUnitPlatform()
     testLogging { events("passed", "failed") }

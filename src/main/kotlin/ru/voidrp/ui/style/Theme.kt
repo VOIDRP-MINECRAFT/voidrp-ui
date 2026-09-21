@@ -31,6 +31,9 @@ object Theme {
     const val GOLD = 0xFBBF24
     const val RED = 0xFB7185
 
+    /** Letter-spacing for the small uppercase labels the site puts above everything. */
+    const val TRACKING = 2
+
     // Type scale, in canvas units — the same numbers the site's stylesheet uses
     const val TEXT_CAPTION = 12
     const val TEXT_BODY = 14
@@ -123,6 +126,36 @@ object Theme {
         padding = Insets.symmetric(SPACE_2, SPACE_4),
         textColour = INK_SOFT,
         textSize = TEXT_BODY,
+    )
+
+    /** A pill: the little tag the site marks a version or a mode with. */
+    val chip = Style(
+        background = Paint(LINE, 0.1),
+        border = Border(1, Paint(LINE, 0.16)),
+        radius = 8,
+        padding = Insets.symmetric(4, SPACE_2),
+        textColour = INK_SOFT,
+        textSize = TEXT_CAPTION,
+        textWeight = TextFonts.Weight.SEMIBOLD,
+    )
+
+    /** The same, in the accent colour, for the one thing that matters on a card. */
+    val chipAccent = chip.copy(
+        background = Paint(VIOLET, 0.22),
+        border = Border(1, Paint(VIOLET, 0.45)),
+        textColour = INK,
+    )
+
+    /**
+     * A card that is chosen, or is the current one: a violet edge and a violet tint.
+     *
+     * No glow. A shadow here is a couple of larger copies underneath, which at this size
+     * reads as a second, blurry border rather than light — the effect a stylesheet gets
+     * from a blur radius is one of the few things that does not survive.
+     */
+    val cardSelected = card.copy(
+        background = Paint(VIOLET, 0.12),
+        border = Border(1, Paint(VIOLET, 0.55)),
     )
 
     /** A hairline separator: a one-pixel box with nothing but a background. */

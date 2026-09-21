@@ -18,16 +18,21 @@ import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 import ru.voidrp.ui.widget.button
 import ru.voidrp.ui.widget.checkbox
+import ru.voidrp.ui.widget.chip
+import ru.voidrp.ui.widget.eyebrow
+import ru.voidrp.ui.widget.progress
 import ru.voidrp.ui.widget.select
 import ru.voidrp.ui.widget.slider
 import ru.voidrp.ui.widget.sliderValue
 import ru.voidrp.ui.widget.tooltipPanel
 
 /**
- * Everything in one page, so it can be judged by eye: controls, a grid, tooltips, keys.
+ * The library's own front page, set the way the site is set: a tracked-out label above a
+ * heavy heading, pills for the facts, a thin bar for a number out of a number, and one
+ * violet button that is the thing to press.
  *
  * It is written as one function of its own fields — tick a box, the field changes, the
- * page says what it looks like now. Nothing is updated by hand.
+ * page says what it looks like now.
  */
 class DemoPage : Page() {
 
@@ -50,118 +55,42 @@ class DemoPage : Page() {
     private var volume = 0.7
     private var note = "нажмите, чтобы ввести"
     private var lastKey: Int? = null
+    private var claimed: String? = null
 
     override val usesKeys: Boolean get() = true
 
     override fun view(): View {
-        val width = 780
+        val width = 720
+        val inner = width - Theme.SPACE_6 * 2 - 2
 
         val page = Panel(
             style = Theme.page,
             width = Size.Fixed(width),
-            gap = Theme.SPACE_4,
+            gap = Theme.SPACE_5,
             children = listOf(
-                Panel(
-                    gap = 2,
-                    children = listOf(
-                        Text("VoidRP: Origins", Theme.TEXT_H2, Theme.INK, TextFonts.Weight.SEMIBOLD),
-                        RichText(
-                            spans = listOf(
-                                Span("Прицел — курсор, "),
-                                Span("ЛКМ", Theme.INK, TextFonts.Weight.SEMIBOLD),
-                                Span(" — нажать, "),
-                                Span("Shift", Theme.INK, TextFonts.Weight.SEMIBOLD),
-                                Span(" — назад"),
-                            ),
-                            colour = Theme.INK_SOFT,
-                        ),
-                    ),
-                ),
+                header(),
                 Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
-
-                Panel(
-                    style = Theme.card,
-                    width = Size.Fill,
-                    gap = Theme.SPACE_2,
-                    children = listOf(
-                        Text("Награды сезона", Theme.TEXT_CAPTION, Theme.INK_DIM),
-                        Grid(
-                            columns = 8,
-                            gap = Theme.SPACE_2,
-                            rowGap = Theme.SPACE_2,
-                            width = Size.Fill,
-                            children = rewards.map { (item, _) ->
-                                Panel(
-                                    style = if (hovered == "reward:$item") Theme.cardAccent else Theme.card,
-                                    width = Size.Fixed(56),
-                                    height = Size.Fixed(56),
-                                    justify = Justify.CENTER,
-                                    align = Align.CENTER,
-                                    id = "reward:$item",
-                                    children = listOf(Image(item, 32)),
-                                )
-                            },
-                        ),
-                    ),
-                ),
-
-                Panel(
-                    direction = Direction.ROW,
-                    width = Size.Fill,
-                    gap = Theme.SPACE_4,
-                    align = Align.START,
-                    children = listOf(
-                        Panel(
-                            gap = Theme.SPACE_2,
-                            width = Size.Fixed(320),
-                            children = listOf(
-                                checkbox("Уведомления", "notifications", notifications),
-                                Panel(
-                                    style = Theme.card,
-                                    width = Size.Fill,
-                                    gap = Theme.SPACE_2,
-                                    children = listOf(
-                                        Text("Громкость", Theme.TEXT_CAPTION, Theme.INK_DIM),
-                                        slider("volume", volume, width = 272),
-                                    ),
-                                ),
-                            ),
-                        ),
-                        Panel(
-                            gap = Theme.SPACE_2,
-                            children = listOf(
-                                Text("Режим", Theme.TEXT_CAPTION, Theme.INK_DIM),
-                                select("mode", modes, mode, modeOpen, width = 240),
-                            ),
-                        ),
-                        Panel(width = Size.Fill),
-                        Panel(
-                            style = if (hovered == "note") Theme.cardAccent else Theme.card,
-                            gap = 2,
-                            id = "note",
-                            children = listOf(
-                                Text("Заметка", Theme.TEXT_CAPTION, Theme.INK_DIM),
-                                Text(note, Theme.TEXT_LEAD, Theme.INK, wrap = false),
-                            ),
-                        ),
-                    ),
-                ),
-
+                progress("Игроков онлайн", 0.42, "21 / 50"),
+                seasonRewards(inner),
+                settings(),
                 Panel(
                     direction = Direction.ROW,
                     width = Size.Fill,
                     gap = Theme.SPACE_3,
                     align = Align.CENTER,
                     children = listOf(
-                        button("Магазин", "shop", Theme.buttonPrimary, Size.Fixed(180)),
+                        button("Открыть магазин", "shop", Theme.buttonPrimary, Size.Fill),
                         button("Закрыть", "close", Theme.buttonGhost, Size.Fixed(150)),
+                    ),
+                ),
+                Panel(
+                    direction = Direction.ROW,
+                    width = Size.Fill,
+                    align = Align.CENTER,
+                    children = listOf(
+                        eyebrow(lastKey?.let { "выбран слот $it" } ?: "цифры 1–9 — выбор слота"),
                         Panel(width = Size.Fill),
-                        Text(
-                            lastKey?.let { "Выбран слот $it" } ?: "Цифры 1–9 — выбор слота",
-                            Theme.TEXT_CAPTION,
-                            Theme.INK_DIM,
-                            wrap = false,
-                        ),
+                        eyebrow("void-rp.ru"),
                     ),
                 ),
             ),
@@ -176,6 +105,125 @@ class DemoPage : Page() {
             children = listOf(page),
         )
     }
+
+    private fun header() = Panel(
+        direction = Direction.ROW,
+        width = Size.Fill,
+        align = Align.CENTER,
+        children = listOf(
+            Panel(
+                gap = 4,
+                children = listOf(
+                    eyebrow("VoidRP", Theme.VIOLET_SOFT),
+                    Text("Origins", Theme.TEXT_H1, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
+                    RichText(
+                        spans = listOf(
+                            Span("Прицел — курсор, "),
+                            Span("ЛКМ", Theme.INK, TextFonts.Weight.SEMIBOLD),
+                            Span(" — нажать, "),
+                            Span("Shift", Theme.INK, TextFonts.Weight.SEMIBOLD),
+                            Span(" — назад"),
+                        ),
+                        colour = Theme.INK_SOFT,
+                    ),
+                ),
+            ),
+            Panel(width = Size.Fill),
+            Panel(
+                direction = Direction.ROW,
+                gap = Theme.SPACE_2,
+                align = Align.CENTER,
+                children = listOf(
+                    chip("MC 26.2"),
+                    chip("paper"),
+                    chip("Открытый", Theme.chipAccent),
+                ),
+            ),
+        ),
+    )
+
+    private fun seasonRewards(inner: Int) = Panel(
+        style = Theme.card,
+        width = Size.Fill,
+        gap = Theme.SPACE_3,
+        children = listOf(
+            Panel(
+                direction = Direction.ROW,
+                width = Size.Fill,
+                align = Align.CENTER,
+                children = listOf(
+                    eyebrow("Награды сезона"),
+                    Panel(width = Size.Fill),
+                    eyebrow(claimed?.let { "забрано: $it" } ?: "наведите на предмет"),
+                ),
+            ),
+            Grid(
+                columns = 8,
+                gap = Theme.SPACE_2,
+                rowGap = Theme.SPACE_2,
+                width = Size.Fill,
+                children = rewards.map { (item, _) ->
+                    val id = "reward:$item"
+                    Panel(
+                        style = when {
+                            claimed == item -> Theme.cardSelected
+                            hovered == id -> Theme.cardAccent
+                            else -> Theme.card
+                        },
+                        width = Size.Fixed(56),
+                        height = Size.Fixed(56),
+                        justify = Justify.CENTER,
+                        align = Align.CENTER,
+                        id = id,
+                        children = listOf(Image(item, 32)),
+                    )
+                },
+            ),
+        ),
+    )
+
+    private fun settings() = Panel(
+        direction = Direction.ROW,
+        width = Size.Fill,
+        gap = Theme.SPACE_3,
+        align = Align.START,
+        children = listOf(
+            Panel(
+                gap = Theme.SPACE_2,
+                width = Size.Fixed(300),
+                children = listOf(
+                    checkbox("Уведомления", "notifications", notifications, width = Size.Fill),
+                    Panel(
+                        style = Theme.card,
+                        width = Size.Fill,
+                        gap = Theme.SPACE_2,
+                        children = listOf(
+                            eyebrow("Громкость"),
+                            slider("volume", volume),
+                        ),
+                    ),
+                ),
+            ),
+            Panel(
+                gap = Theme.SPACE_2,
+                width = Size.Fixed(200),
+                children = listOf(
+                    eyebrow("Режим"),
+                    select("mode", modes, mode, modeOpen),
+                ),
+            ),
+            Panel(
+                style = if (hovered == "note") Theme.cardAccent else Theme.card,
+                width = Size.Fill,
+                gap = 4,
+                id = "note",
+                children = listOf(
+                    eyebrow("Заметка"),
+                    Text(note, Theme.TEXT_LEAD, Theme.INK, wrap = false),
+                ),
+            ),
+        ),
+    )
 
     override fun tooltip(): View? {
         val hovered = hovered ?: return null
@@ -196,6 +244,7 @@ class DemoPage : Page() {
                 return
             }
 
+            id.startsWith("reward:") -> claimed = id.removePrefix("reward:")
             id == "notifications" -> notifications = !notifications
             id == "mode" -> modeOpen = !modeOpen
             id.startsWith("mode:option:") -> {

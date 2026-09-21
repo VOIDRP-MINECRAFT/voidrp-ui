@@ -28,6 +28,9 @@ sealed interface Size {
 
     /** Exactly this many canvas units. */
     data class Fixed(val value: Int) : Size
+
+    /** A fraction of what the parent offers — a progress bar at two thirds. */
+    data class Percent(val fraction: Double) : Size
 }
 
 /** Which way a panel stacks its children. */
@@ -103,6 +106,8 @@ data class Text(
     val lineHeight: Int? = null,
     /** At most this many lines; what does not fit ends in an ellipsis. */
     val maxLines: Int? = null,
+    /** Extra air after every letter, the way a stylesheet spaces out a small caps label. */
+    val tracking: Int = 0,
 ) : View
 
 /**

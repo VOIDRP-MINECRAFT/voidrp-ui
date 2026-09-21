@@ -52,8 +52,10 @@ fun Page.checkbox(
     id: String,
     checked: Boolean,
     style: Style = Theme.card,
+    width: Size = Size.Auto,
 ): View = Panel(
     style = if (hovered == id) style.hover() else style,
+    width = width,
     direction = Direction.ROW,
     gap = Theme.SPACE_3,
     align = Align.CENTER,
@@ -107,14 +109,14 @@ fun Page.stepper(
     gap = Theme.SPACE_2,
     align = Align.CENTER,
     children = listOf(
-        button("−", "$id:-", Theme.buttonGhost, Size.Fixed(36), 32),
+        button("−", "$id:-", stepperButton, Size.Fixed(36), 32),
         Panel(
             width = Size.Fixed(64),
             justify = Justify.CENTER,
             align = Align.CENTER,
             children = listOf(Text(value, Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false)),
         ),
-        button("+", "$id:+", Theme.buttonGhost, Size.Fixed(36), 32),
+        button("+", "$id:+", stepperButton, Size.Fixed(36), 32),
     ),
 )
 
@@ -127,10 +129,10 @@ fun Page.select(
     options: List<String>,
     selected: Int,
     open: Boolean,
-    width: Int = 220,
+    width: Size = Size.Fill,
 ): View = Panel(
     gap = 4,
-    width = Size.Fixed(width),
+    width = width,
     children = buildList {
         add(
             Panel(
@@ -173,15 +175,20 @@ fun Page.select(
     },
 )
 
-/** A slider. Clicking or dragging it reports [id]; [sliderValue] says what was meant. */
+/**
+ * A slider. Clicking or dragging it reports [id]; [sliderValue] says what was meant.
+ *
+ * It fills what it is given rather than taking a width of its own: a control with a fixed
+ * width inside a panel that had to give up room is a control hanging over the edge.
+ */
 fun Page.slider(
     id: String,
     value: Double,
-    width: Int = 260,
+    width: Size = Size.Fill,
     height: Int = 18,
 ): View = Panel(
     style = Style(background = Paint(Theme.LINE, 0.12), radius = height / 2),
-    width = Size.Fixed(width),
+    width = width,
     height = Size.Fixed(height),
     // A row, not a column: in a column the fill would be centred across the track, which
     // is what made a slider at seven tenths look like a quarter, in the middle.
@@ -192,7 +199,7 @@ fun Page.slider(
     children = listOf(
         Panel(
             style = Style(background = Paint(Theme.VIOLET, if (hovered == id) 1.0 else 0.9), radius = height / 2),
-            width = Size.Fixed((width * value.coerceIn(0.0, 1.0)).toInt().coerceAtLeast(height)),
+            width = Size.Percent(value.coerceIn(0.0, 1.0)),
             height = Size.Fill,
         )
     ),
@@ -228,8 +235,72 @@ fun tooltipPanel(title: String, lines: List<String> = emptyList(), width: Int = 
     },
 )
 
+/** The minus and plus are symbols, not words: bigger, brighter, centred. */
+private val stepperButton = Theme.buttonGhost.copy(
+    textSize = Theme.TEXT_H3,
+    textColour = Theme.INK,
+    padding = Insets.NONE,
+)
+
 /** The same style, a little brighter — what "hovered" means throughout. */
 private fun Style.hover(): Style {
     val paint = background as? Paint ?: return this
     return copy(background = paint.alpha(minOf(1.0, paint.alpha + 0.15)))
 }
+
+/**
+ * The small uppercase label the site puts above everything: tracked out, dim, and quiet.
+ *
+ * It exists as a helper rather than a style because the letters themselves change — an
+ * eyebrow is set in capitals, and doing that at the call site is one more thing to forget.
+ */
+fun eyebrow(text: String, colour: Int = Theme.INK_DIM): View =
+    Text(text.uppercase(), Theme.TEXT_CAPTION, colour, TextFonts.Weight.SEMIBOLD, tracking = Theme.TRACKING, wrap = false)
+
+/** A pill with a word in it: a version, a mode, a state. */
+fun chip(text: String, style: Style = Theme.chip): View = Panel(
+    style = style,
+    justify = Justify.CENTER,
+    align = Align.CENTER,
+    children = listOf(Text(text, style.textSize, style.textColour, style.textWeight, wrap = false)),
+)
+
+/**
+ * A progress bar with its own caption row — the way the site shows players online: a
+ * tracked-out label on the left, the value in bold on the right, a thin track underneath.
+ */
+fun progress(
+    caption: String,
+    value: Double,
+    valueText: String,
+    colour: Int = Theme.GREEN,
+    width: Size = Size.Fill,
+): View = Panel(
+    width = width,
+    gap = 6,
+    children = listOf(
+        Panel(
+            direction = Direction.ROW,
+            width = Size.Fill,
+            align = Align.CENTER,
+            children = listOf(
+                eyebrow(caption),
+                Panel(width = Size.Fill),
+                Text(valueText, Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
+            ),
+        ),
+        Panel(
+            style = Style(background = Paint(Theme.LINE, 0.12), radius = 4),
+            width = Size.Fill,
+            height = Size.Fixed(6),
+            direction = Direction.ROW,
+            children = listOf(
+                Panel(
+                    style = Style(background = Paint(colour, 0.95), radius = 4),
+                    width = Size.Percent(value),
+                    height = Size.Fill,
+                )
+            ),
+        ),
+    ),
+)
