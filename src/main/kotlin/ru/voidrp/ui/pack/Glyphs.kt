@@ -46,7 +46,7 @@ object Glyphs {
     val RADII = listOf(4, 6, 8, 12, 16, 20, 24)
 
     /** The pointer, drawn from a texture of its own so it costs one glyph, not thirty. */
-    const val CURSOR_SIZE = 18
+    const val CURSOR_SIZE = Pointer.SIZE
 
     private const val CURSOR_CODE = 0xE900
     private const val RECT_BASE = 0xE000
@@ -69,7 +69,7 @@ object Glyphs {
 
     fun cursor(): String = cp(CURSOR_CODE)
 
-    fun cursorAdvance(): Int = CURSOR_SIZE + 1
+    fun cursorAdvance(): Int = Pointer.INK_WIDTH + 1
 
     /** Whether a rectangle of these proportions exists in the alphabet. */
     fun hasRect(w: Int, h: Int): Boolean = Math.abs(w - h) <= MAX_ASPECT_EXP

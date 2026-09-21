@@ -49,7 +49,12 @@ class PageSession(
     fun open() {
         page.session = this
         anchorYaw = player.location.yaw
-        anchorPitch = player.location.pitch
+        // The look is levelled once, on opening. Pitch stops at straight down, so a page
+        // opened while looking at the ground had no room left to move the cursor lower —
+        // from the horizon there is as much room below as above. One packet, sent once, is
+        // nothing like the tick-by-tick correction that made the screen shake.
+        anchorPitch = 0f
+        player.setRotation(anchorYaw, 0f)
         render()
     }
 

@@ -212,49 +212,8 @@ class PackBuilder(
         for (radius in Glyphs.RADII) for (corner in Glyphs.Corner.entries) {
             out[Glyphs.cornerTextureName(radius, corner)] = cornerTexture(radius, corner, alpha)
         }
-        out["cursor"] = cursorTexture(alpha)
+        out["cursor"] = Pointer.png(alpha)
         return out
-    }
-
-    /**
-     * The pointer: a white arrow with a dark edge, baked with its own colours.
-     *
-     * It is drawn white, so the shader's tint leaves it alone, and it is one glyph rather
-     * than a stack of rectangles — the cursor is redrawn every tick, and everything sent
-     * that often is worth keeping small.
-     */
-    private fun cursorTexture(alpha: Double): ByteArray {
-        val size = Glyphs.CURSOR_SIZE
-        val image = BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB)
-        val g = image.createGraphics()
-        g.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON)
-
-        val arrow = java.awt.geom.Path2D.Double()
-        arrow.moveTo(1.5, 1.0)
-        arrow.lineTo(1.5, 13.5)
-        arrow.lineTo(5.0, 10.4)
-        arrow.lineTo(7.4, 16.4)
-        arrow.lineTo(10.0, 15.3)
-        arrow.lineTo(7.7, 9.6)
-        arrow.lineTo(12.2, 9.6)
-        arrow.closePath()
-
-        g.color = java.awt.Color(0x10, 0x14, 0x26)
-        g.stroke = java.awt.BasicStroke(2.2f, java.awt.BasicStroke.CAP_ROUND, java.awt.BasicStroke.JOIN_ROUND)
-        g.draw(arrow)
-        g.color = java.awt.Color.WHITE
-        g.fill(arrow)
-        g.dispose()
-
-        // The alphabet exists once per opacity step, and the pointer follows the same rule.
-        if (alpha < 1.0) {
-            for (y in 0 until size) for (x in 0 until size) {
-                val argb = image.getRGB(x, y)
-                val a = Math.round((argb ushr 24) * alpha).toInt()
-                image.setRGB(x, y, (a shl 24) or (argb and 0xFFFFFF))
-            }
-        }
-        return image.toPng()
     }
 
     /**
