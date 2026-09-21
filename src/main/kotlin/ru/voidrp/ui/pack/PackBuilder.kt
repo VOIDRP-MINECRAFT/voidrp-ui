@@ -87,8 +87,16 @@ class PackBuilder(
             zip.put("assets/minecraft/textures/gui/sprites/boss_bar/white_background.png", transparent(182, 5))
             zip.put("assets/minecraft/textures/gui/sprites/boss_bar/white_progress.png", transparent(182, 5))
 
-            zip.put("assets/voidrp/font/ui.json", fontDefinition())
-            rectTextures().forEach { (name, png) -> zip.put("assets/voidrp/textures/gui/$name.png", png) }
+            // One shape font per opacity step, and one text font per size.
+            for (level in 1..Glyphs.ALPHA_LEVELS) {
+                zip.put("assets/voidrp/font/${Glyphs.fontName(level)}.json", fontDefinition(level))
+                shapeTextures(level).forEach { (name, png) ->
+                    zip.put("assets/voidrp/textures/gui/a$level/$name.png", png)
+                }
+            }
+            Fonts.SIZES.forEach { size ->
+                zip.put("assets/voidrp/font/${Fonts.fontName(size)}.json", Fonts.fontJson(size))
+            }
         }
 
         val data = bytes.toByteArray()
@@ -126,19 +134,33 @@ class PackBuilder(
      *  - **Rectangles** of every power-of-two width and height, 1…1024 each way. Any
      *    rectangle is a handful of these side by side, so the client draws quads of the
      *    exact size and the shader never has to scale anything.
+     *  - **Corners** — a quarter disc per radius on the design system's scale, which is
+     *    what turns four rectangles into a rounded panel.
      *  - **Spacers** that move the pen by ±1, ±2, ±4 … ±1024 without drawing, which is how
      *    a page places every glyph horizontally to the pixel.
      *
-     * Ascent 0 puts a rectangle's top on the line's baseline, so the y carried in its
-     * colour is exactly where its top edge lands.
+     * Ascent 0 puts a shape's top on the line's baseline, so the y carried in its colour
+     * is exactly where its top edge lands.
+     *
+     * The same alphabet is written once per opacity step, each pointing at textures baked
+     * at that opacity — see [Glyphs] for why opacity cannot travel with the element.
      */
-    private fun fontDefinition(): String {
+    private fun fontDefinition(level: Int): String {
+        val dir = "voidrp:gui/a$level"
         val providers = mutableListOf<String>()
         for (w in 0..Glyphs.MAX_EXP) {
             for (h in 0..Glyphs.MAX_EXP) {
                 providers += """
-                    {"type": "bitmap", "file": "voidrp:gui/${Glyphs.textureName(w, h)}.png",
+                    {"type": "bitmap", "file": "$dir/${Glyphs.textureName(w, h)}.png",
                      "ascent": 0, "height": ${1 shl h}, "chars": ["${Glyphs.rect(w, h).escaped()}"]}
+                """.trimIndent()
+            }
+        }
+        for (radius in Glyphs.RADII) {
+            for (corner in Glyphs.Corner.entries) {
+                providers += """
+                    {"type": "bitmap", "file": "$dir/${Glyphs.cornerTextureName(radius, corner)}.png",
+                     "ascent": 0, "height": $radius, "chars": ["${Glyphs.corner(radius, corner).escaped()}"]}
                 """.trimIndent()
             }
         }
@@ -150,11 +172,17 @@ class PackBuilder(
     }
 
     /**
-     * One white texture per aspect ratio. The bitmap provider scales a texture to the glyph
-     * height and keeps its proportions, so a W×H rectangle needs a W:H texture — kept to
-     * the smallest pixels that express the ratio (at most 1024×1).
+     * The textures behind the alphabet at one opacity step.
+     *
+     * One white texture per aspect ratio: the bitmap provider scales a texture to the
+     * glyph height and keeps its proportions, so a W×H rectangle needs a W:H texture —
+     * kept to the smallest pixels that express the ratio (at most 1024×1).
+     *
+     * Corners are drawn at their real size, one pixel per canvas pixel, with the curve
+     * antialiased the way a browser would draw `border-radius`.
      */
-    private fun rectTextures(): Map<String, ByteArray> {
+    private fun shapeTextures(level: Int): Map<String, ByteArray> {
+        val alpha = level.toDouble() / Glyphs.ALPHA_LEVELS
         val out = mutableMapOf<String, ByteArray>()
         for (w in 0..Glyphs.MAX_EXP) for (h in 0..Glyphs.MAX_EXP) {
             val name = Glyphs.textureName(w, h)
@@ -162,20 +190,44 @@ class PackBuilder(
             val tw = if (w >= h) 1 shl (w - h) else 1
             val th = if (h > w) 1 shl (h - w) else 1
             val image = BufferedImage(tw, th, BufferedImage.TYPE_INT_ARGB)
-            for (x in 0 until tw) for (y in 0 until th) image.setRGB(x, y, 0xFFFFFFFF.toInt())
+            val argb = (Math.round(alpha * 255).toInt() shl 24) or 0xFFFFFF
+            for (x in 0 until tw) for (y in 0 until th) image.setRGB(x, y, argb)
             out[name] = image.toPng()
+        }
+        for (radius in Glyphs.RADII) for (corner in Glyphs.Corner.entries) {
+            out[Glyphs.cornerTextureName(radius, corner)] = cornerTexture(radius, corner, alpha)
         }
         return out
     }
 
-    private fun String.escaped(): String = codePoints().toArray().joinToString("") { "\\u%04x".format(it) }
-
-    /** A plain white square — pages tint it, so one texture serves every panel. */
-    private fun panelTexture(): ByteArray {
-        val image = BufferedImage(8, 8, BufferedImage.TYPE_INT_ARGB)
-        for (x in 0 until 8) for (y in 0 until 8) image.setRGB(x, y, 0xFFFFFFFF.toInt())
+    /**
+     * A quarter disc filling the inside of one corner. Coverage is measured by sampling
+     * each pixel 4×4, so the curve has soft edges instead of a staircase.
+     */
+    private fun cornerTexture(radius: Int, corner: Glyphs.Corner, alpha: Double): ByteArray {
+        // The centre of the circle is the inner corner of the piece — the one that touches
+        // the rest of the panel.
+        val cx = if (corner == Glyphs.Corner.TOP_LEFT || corner == Glyphs.Corner.BOTTOM_LEFT) radius.toDouble() else 0.0
+        val cy = if (corner == Glyphs.Corner.TOP_LEFT || corner == Glyphs.Corner.TOP_RIGHT) radius.toDouble() else 0.0
+        val image = BufferedImage(radius, radius, BufferedImage.TYPE_INT_ARGB)
+        val steps = 4
+        for (x in 0 until radius) for (y in 0 until radius) {
+            var inside = 0
+            for (sx in 0 until steps) for (sy in 0 until steps) {
+                val px = x + (sx + 0.5) / steps
+                val py = y + (sy + 0.5) / steps
+                val dx = px - cx
+                val dy = py - cy
+                if (dx * dx + dy * dy <= radius.toDouble() * radius) inside++
+            }
+            val coverage = inside.toDouble() / (steps * steps)
+            val a = Math.round(coverage * alpha * 255).toInt()
+            image.setRGB(x, y, (a shl 24) or 0xFFFFFF)
+        }
         return image.toPng()
     }
+
+    private fun String.escaped(): String = Fonts.escapeJson(this)
 
     private fun transparent(width: Int, height: Int): ByteArray =
         BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB).toPng()

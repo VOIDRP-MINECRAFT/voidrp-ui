@@ -17,6 +17,7 @@ import ru.voidrp.ui.command.UiCommand
 import ru.voidrp.ui.pack.PackBuilder
 import ru.voidrp.ui.render.BossBarRenderer
 import ru.voidrp.ui.render.Rect
+import ru.voidrp.ui.style.Paint
 
 /**
  * Real interfaces on a vanilla client: no mods, no launcher of ours, nothing for the
@@ -26,7 +27,7 @@ import ru.voidrp.ui.render.Rect
  */
 class VoidRpUiPlugin : JavaPlugin(), Listener {
 
-    val renderer = BossBarRenderer()
+    val renderer = BossBarRenderer(logger)
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
@@ -109,7 +110,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             }
             val x = (tick * 16) % (1920 - 64)
             val y = 540 + (Math.sin(tick / 10.0) * 300).toInt()
-            renderer.render(player, listOf(Rect(x, y, 64, 64, 0xFFFFFF)))
+            renderer.render(player, listOf(Rect(x, y, 64, 64, Paint(0xFFFFFF))))
             tick++
         }, 0L, 2L)
     }

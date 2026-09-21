@@ -18,6 +18,8 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.124-stable")
+    // Paper ships Gson at runtime; we only need it to read our own width table.
+    compileOnly("com.google.code.gson:gson:2.11.0")
     implementation(kotlin("stdlib"))
 }
 

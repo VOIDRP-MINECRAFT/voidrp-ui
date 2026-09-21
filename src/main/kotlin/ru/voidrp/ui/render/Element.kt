@@ -5,66 +5,159 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.TextComponent
 import net.kyori.adventure.text.format.ShadowColor
 import net.kyori.adventure.text.format.TextColor
+import ru.voidrp.ui.pack.Fonts
 import ru.voidrp.ui.pack.Glyphs
 import ru.voidrp.ui.pack.Shaders
+import ru.voidrp.ui.style.Paint
+import ru.voidrp.ui.style.Style
+import ru.voidrp.ui.style.Theme
 
-/**
- * A filled rectangle in canvas coordinates (1920×1080, stretched over the window).
- *
- * This is the whole vocabulary the renderer knows for now. Layout, data binding and
- * reactivity will all end up producing a list of these.
- */
+/** Anything a page can draw, in canvas coordinates (1920×1080 over the whole window). */
+sealed interface Node {
+    val x: Int
+    val y: Int
+}
+
+/** A filled rectangle. The colour is quantised to RGB 3-4-3, the opacity to eighths. */
 data class Rect(
-    val x: Int,
-    val y: Int,
+    override val x: Int,
+    override val y: Int,
     val width: Int,
     val height: Int,
-    /** 0xRRGGBB. Quantised to RGB 3-4-3 on the way to the client. */
-    val colour: Int = 0xFFFFFF,
-)
+    val paint: Paint = Paint(0xFFFFFF),
+) : Node
+
+/** One rounded corner of a box: a quarter disc filling the inside of that corner. */
+data class CornerPiece(
+    override val x: Int,
+    override val y: Int,
+    val radius: Int,
+    val corner: Glyphs.Corner,
+    val paint: Paint,
+) : Node
 
 /**
- * Turns rectangles into the single line of text the client draws.
+ * A line of text. [size] is a multiple of the 8-pixel cell, so 2 is 16 canvas pixels tall.
+ * [y] is the top of the line, like a rectangle's top edge. Text has no opacity of its own —
+ * it is drawn from the client's own glyphs — so use a dimmer colour instead.
+ */
+data class Label(
+    override val x: Int,
+    override val y: Int,
+    val text: String,
+    val size: Int = 2,
+    val colour: Int = Theme.INK,
+) : Node {
+    val width: Int get() = Fonts.width(text, size)
+}
+
+/**
+ * A styled container — the thing pages are actually written with.
+ *
+ * It owns a rectangle of the canvas and a [Style]; [Painter] turns the two into the shapes
+ * the client draws. Children are placed relative to the inside of the padding, so moving a
+ * box moves everything in it.
+ */
+data class Box(
+    override val x: Int,
+    override val y: Int,
+    val width: Int,
+    val height: Int,
+    val style: Style = Theme.card,
+    val children: List<Node> = emptyList(),
+) : Node
+
+/**
+ * Turns nodes into the single line of text the client draws.
  *
  * The client lays the line out left to right, so horizontal placement is spacer glyphs
- * that move its pen; each rectangle is split into power-of-two pieces baked into the
- * font; and every piece's colour carries its y and fill for the shader to read.
+ * that move its pen; rectangles are split into power-of-two pieces baked into the font;
+ * and every glyph's colour carries its y and fill for the shader to read. Opacity is the
+ * one thing not in the colour: it picks which of the shape fonts the run is written in.
  */
 object GlyphEncoder {
 
-    private val FONT: Key = Key.key("voidrp", "ui")
     private const val Y_MAX = (1 shl Shaders.Y_BITS) - 1
 
-    fun encode(rects: List<Rect>): Component {
-        val line = Component.text().font(FONT)
+    fun encode(nodes: List<Node>): Component {
+        val line = Component.text()
         var pen = 0
 
-        for (rect in rects) {
-            if (rect.width <= 0 || rect.height <= 0) continue
-            val fill = quantise(rect.colour)
-            var top = rect.y
-
-            // Rows from the largest piece down, pieces left to right within each row.
-            for (h in powersOfTwo(rect.height)) {
-                val colour = TextColor.color(pack(top, fill))
-                var left = rect.x
-                for (w in powersOfTwo(rect.width)) {
-                    line.append(spacer(left - pen))
-                    line.append(piece(w, h, colour))
-                    pen = left + Glyphs.rectAdvance(w)
-                    left += 1 shl w
-                }
-                top += 1 shl h
+        for (node in Painter.flatten(nodes)) {
+            pen = when (node) {
+                is Rect -> appendRect(line, node, pen)
+                is CornerPiece -> appendCorner(line, node, pen)
+                is Label -> appendLabel(line, node, pen)
+                is Box -> pen // Painter has already expanded every box.
             }
         }
         // Bring the pen back to zero so the whole line is zero wide: the boss bar centres
-        // its text, and a zero-width line starts exactly at the centre of the screen,
+        // its title, and a zero-width line starts exactly at the centre of the screen,
         // which is what the shader measures x from.
-        line.append(spacer(-pen))
+        line.append(shapes(Glyphs.moveBy(-pen), Glyphs.ALPHA_LEVELS))
         return line.build()
     }
 
-    /** Exponents whose powers of two sum to [value], largest first (e.g. 600 → 9, 6, 4, 3). */
+    private fun appendRect(line: TextComponent.Builder, rect: Rect, penIn: Int): Int {
+        val level = Glyphs.alphaLevel(rect.paint.alpha)
+        if (rect.width <= 0 || rect.height <= 0 || level == 0) return penIn
+        var pen = penIn
+        val fill = quantise(rect.paint.rgb)
+        var top = rect.y
+
+        // Rows from the largest piece down, pieces left to right within each row.
+        for (h in powersOfTwo(rect.height)) {
+            val colour = TextColor.color(pack(top, fill))
+            var left = rect.x
+            for (w in powersOfTwo(rect.width)) {
+                line.append(shapes(Glyphs.moveBy(left - pen) + Glyphs.rect(w, h), level).color(colour))
+                pen = left + Glyphs.rectAdvance(w)
+                left += 1 shl w
+            }
+            top += 1 shl h
+        }
+        return pen
+    }
+
+    private fun appendCorner(line: TextComponent.Builder, piece: CornerPiece, penIn: Int): Int {
+        val level = Glyphs.alphaLevel(piece.paint.alpha)
+        if (piece.radius !in Glyphs.RADII || level == 0) return penIn
+        val colour = TextColor.color(pack(piece.y, quantise(piece.paint.rgb)))
+        val glyph = Glyphs.moveBy(piece.x - penIn) + Glyphs.corner(piece.radius, piece.corner)
+        line.append(shapes(glyph, level).color(colour))
+        return piece.x + Glyphs.cornerAdvance(piece.radius)
+    }
+
+    /**
+     * A label is one run in one font: the letters themselves plus spacer characters
+     * between them, so large text keeps its letter spacing proportional.
+     */
+    private fun appendLabel(line: TextComponent.Builder, label: Label, penIn: Int): Int {
+        val size = label.size.coerceIn(Fonts.SIZES.first(), Fonts.SIZES.last())
+        val colour = TextColor.color(pack(label.y, quantise(label.colour)))
+        val font = Key.key("voidrp", Fonts.fontName(size))
+        var pen = penIn
+
+        val run = StringBuilder(Glyphs.moveBy(label.x - pen))
+        pen = label.x
+        for (char in label.text) {
+            if (!Fonts.known(char)) continue
+            run.append(char)
+            // A bitmap glyph always advances one extra pixel; the rest of the gap is ours.
+            if (char != ' ' && size > 1) run.append(Glyphs.moveBy(size - 1))
+            pen += Fonts.advance(char, size)
+        }
+
+        line.append(
+            Component.text(run.toString())
+                .font(font)
+                .color(colour)
+                .shadowColor(ShadowColor.none())
+        )
+        return pen
+    }
+
+    /** Exponents whose powers of two sum to [value], largest first (600 → 9, 6, 4, 3). */
     private fun powersOfTwo(value: Int): List<Int> {
         val out = mutableListOf<Int>()
         var rest = value.coerceIn(0, (1 shl (Glyphs.MAX_EXP + 1)) - 1)
@@ -77,18 +170,15 @@ object GlyphEncoder {
         return out
     }
 
-    private fun spacer(delta: Int): TextComponent = Component.text(Glyphs.moveBy(delta))
-
-    private fun piece(w: Int, h: Int, colour: TextColor): TextComponent =
-        Component.text(Glyphs.rect(w, h))
-            .color(colour)
+    private fun shapes(text: String, level: Int): TextComponent =
+        Component.text(text)
+            .font(Key.key("voidrp", Glyphs.fontName(level)))
             // The shadow is separate vertices in a darkened colour the shader cannot
             // recognise; left alone it would sit stranded where the text was laid out.
             .shadowColor(ShadowColor.none())
 
-    /** 0xRRGGBB → RGB 3-4-3 (red 0..7, green 0..15, blue 0..7). */
+    /** 0xRRGGBB → RGB 3-4-3. Rounded: truncation turned dark navy #0B1220 into green-black. */
     private fun quantise(rgb: Int): Int {
-        // Rounded, not truncated: truncation turned a dark navy #0B1220 into green-black.
         val r = Math.round((rgb shr 16 and 0xFF) * 7 / 255.0).toInt()
         val g = Math.round((rgb shr 8 and 0xFF) * 15 / 255.0).toInt()
         val b = Math.round((rgb and 0xFF) * 7 / 255.0).toInt()
@@ -98,7 +188,6 @@ object GlyphEncoder {
     /** Marker nibble, then y (10 bits), then fill (10 bits). */
     private fun pack(y: Int, fill: Int): Int {
         val qy = Math.round(y.toDouble() * Y_MAX / Shaders.CANVAS_HEIGHT).toInt().coerceIn(0, Y_MAX)
-        val bits = (qy shl Shaders.COLOUR_BITS) or fill
-        return (Shaders.MARKER shl 20) or bits
+        return (Shaders.MARKER shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
     }
 }

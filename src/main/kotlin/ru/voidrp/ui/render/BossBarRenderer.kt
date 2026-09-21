@@ -1,7 +1,9 @@
 package ru.voidrp.ui.render
 
 import java.util.UUID
+import java.util.logging.Logger
 import net.kyori.adventure.bossbar.BossBar
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.entity.Player
 
 /**
@@ -15,12 +17,24 @@ import org.bukkit.entity.Player
  * A boss bar's title is a text component, and our glyphs are text, so a page is sent by
  * setting the title — no packets by hand and no version-specific plumbing.
  */
-class BossBarRenderer {
+class BossBarRenderer(private val log: Logger? = null) {
+
+    companion object {
+        /**
+         * Past this many characters a page is worth complaining about: a title travels in
+         * one packet, so a page that keeps growing eventually stops arriving at all.
+         */
+        private const val BUSY_PAGE = 20_000
+    }
 
     private val bars = mutableMapOf<UUID, BossBar>()
 
-    fun render(player: Player, rects: List<Rect>) {
-        val title = GlyphEncoder.encode(rects)
+    fun render(player: Player, nodes: List<Node>) {
+        val title = GlyphEncoder.encode(nodes)
+        val length = PlainTextComponentSerializer.plainText().serialize(title).length
+        if (length > BUSY_PAGE) {
+            log?.warning("Страница для ${player.name} — $length символов; это близко к пределу пакета.")
+        }
         val bar = bars.getOrPut(player.uniqueId) {
             BossBar.bossBar(title, 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS).also { player.showBossBar(it) }
         }
