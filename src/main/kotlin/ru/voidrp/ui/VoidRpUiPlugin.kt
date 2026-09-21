@@ -56,6 +56,17 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      */
     private val packStatus = mutableMapOf<UUID, PlayerResourcePackStatusEvent.Status>()
 
+    /**
+     * Which build of the pack each player was last sent.
+     *
+     * Accepting a pack once is not enough: the plugin rebuilds it whenever it changes, and
+     * a client still holding yesterday's copy has none of today's glyphs. It draws the
+     * missing ones as empty squares and, because their widths are not what the server
+     * predicted, the rest of the page slides off across the screen. So a page is only
+     * opened for a player whose copy is the current one.
+     */
+    private val sentHash = mutableMapOf<UUID, String>()
+
     override fun onEnable() {
         saveDefaultConfig()
         // The look is a server's own: colours, type scale and rounding come from theme.yml.
@@ -76,6 +87,11 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         if (config.getString("pack.url").isNullOrBlank() && config.getBoolean("pack.serve.enabled", true)) {
             val port = config.getInt("pack.serve.port", 8123)
             packServer = PackServer(packFile, port, logger).takeIf { it.start() }
+        }
+
+        // Whoever is already online is holding the previous build; hand them this one.
+        server.onlinePlayers.forEach { player ->
+            if (config.getBoolean("pack.send-on-join", true)) sendPack(player)
         }
 
         server.pluginManager.registerEvents(this, this)
@@ -131,6 +147,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      */
     fun packReady(player: Player): Boolean {
         if (!config.getBoolean("pack.require-accepted", true)) return true
+        if (sentHash[player.uniqueId] != packHash) return false
         return packStatus[player.uniqueId] == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
     }
 
@@ -138,6 +155,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     fun onQuit(event: PlayerQuitEvent) {
         hostnames.remove(event.player.uniqueId)
         packStatus.remove(event.player.uniqueId)
+        sentHash.remove(event.player.uniqueId)
         stopSweep(event.player)
         renderer.clear(event.player)
     }
@@ -154,6 +172,8 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             player.sendMessage(messages.get("pack.unavailable"))
             return
         }
+        sentHash[player.uniqueId] = packHash
+        packStatus.remove(player.uniqueId)
         val info = ResourcePackInfo.resourcePackInfo()
             .id(PACK_ID)
             .uri(java.net.URI.create(url))

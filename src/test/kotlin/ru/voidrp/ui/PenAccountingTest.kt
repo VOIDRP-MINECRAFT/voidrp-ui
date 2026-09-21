@@ -123,6 +123,42 @@ class PenAccountingTest {
     }
 
     @Test
+    fun `the home page balances`() {
+        assertBalanced(
+            "главная",
+            Layout.centred(
+                ru.voidrp.ui.page.HomePage().view(),
+                Shaders.CANVAS_WIDTH,
+                Shaders.CANVAS_HEIGHT,
+            ).nodes,
+        )
+    }
+
+    @Test
+    fun `the shop page balances`() {
+        assertBalanced(
+            "магазин",
+            Layout.centred(
+                ru.voidrp.ui.page.ShopPage().view(),
+                Shaders.CANVAS_WIDTH,
+                Shaders.CANVAS_HEIGHT,
+            ).nodes,
+        )
+    }
+
+    @Test
+    fun `the demo page balances`() {
+        assertBalanced(
+            "демо",
+            Layout.centred(
+                ru.voidrp.ui.page.DemoPage().view(),
+                Shaders.CANVAS_WIDTH,
+                Shaders.CANVAS_HEIGHT,
+            ).nodes,
+        )
+    }
+
+    @Test
     fun `a whole page balances`() {
         assertBalanced("страница", Layout.centred(samplePage(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes)
     }
