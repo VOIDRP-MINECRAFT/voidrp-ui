@@ -69,6 +69,12 @@ data class Text(
     val weight: TextFonts.Weight = TextFonts.Weight.REGULAR,
 ) : View
 
+/**
+ * A picture of an item, drawn from the client's own texture for it. Names it the way the
+ * game does — `diamond`, `minecraft:golden_apple` — and it measures itself square.
+ */
+data class Image(val item: String, val size: Int = 32) : View
+
 /** Empty space, for when a gap is not enough — the flexible kind pushes things apart. */
 data class Gap(val size: Int = 0, val grow: Boolean = false) : View
 

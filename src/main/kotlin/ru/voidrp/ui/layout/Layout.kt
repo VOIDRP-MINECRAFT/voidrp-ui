@@ -1,9 +1,11 @@
 package ru.voidrp.ui.layout
 
+import ru.voidrp.ui.pack.Icons
 import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.Box
 import ru.voidrp.ui.render.Label
 import ru.voidrp.ui.render.Node
+import ru.voidrp.ui.render.Sprite
 
 /**
  * Works out where everything goes.
@@ -61,6 +63,8 @@ object Layout {
         }
 
         is Gap -> Extent(view.size, view.size)
+
+        is Image -> Icons.nearestSize(view.size).let { Extent(it, it) }
 
         is Raw -> Extent(0, 0)
 
@@ -125,6 +129,13 @@ object Layout {
             is Gap -> Unit
 
             is Text -> out += Label(x, y, view.value, view.size, view.colour, view.weight)
+
+            is Image -> {
+                val size = Icons.nearestSize(view.size)
+                Icons.glyph(view.item)?.let { glyph ->
+                    out += Sprite(x, y, glyph, Icons.advance(size), font = Icons.fontName(size))
+                }
+            }
 
             is Panel -> {
                 view.id?.let { regions += Region(it, x, y, width, height) }

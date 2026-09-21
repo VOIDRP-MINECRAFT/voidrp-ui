@@ -2,6 +2,7 @@ package ru.voidrp.ui.page
 
 import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Direction
+import ru.voidrp.ui.layout.Image
 import ru.voidrp.ui.layout.Justify
 import ru.voidrp.ui.layout.Panel
 import ru.voidrp.ui.layout.Size
@@ -42,6 +43,30 @@ class DemoPage : Page() {
                 Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
                 stat("Игроков онлайн", "42 из 200", Theme.card, "stat-online"),
                 stat("Нажатий", clicks.toString(), Theme.cardAccent, "stat-clicks"),
+                // Item pictures come from the client's own textures, so they cost the pack
+                // nothing at all.
+                Panel(
+                    style = Theme.card,
+                    width = Size.Fill,
+                    gap = Theme.SPACE_2,
+                    children = listOf(
+                        Text("Награды сезона", Theme.TEXT_CAPTION, Theme.INK_DIM),
+                        Panel(
+                            direction = Direction.ROW,
+                            gap = Theme.SPACE_3,
+                            align = Align.CENTER,
+                            children = listOf(
+                                Image("diamond", 32),
+                                Image("netherite_ingot", 32),
+                                Image("golden_apple", 32),
+                                Image("emerald", 32),
+                                Image("enchanted_book", 32),
+                                Image("totem_of_undying", 32),
+                                Text("и ещё 12", Theme.TEXT_BODY, Theme.INK_SOFT),
+                            ),
+                        ),
+                    ),
+                ),
                 Panel(
                     style = Style(background = Paint(Theme.LINE, 0.14), radius = 6),
                     width = Size.Fill,

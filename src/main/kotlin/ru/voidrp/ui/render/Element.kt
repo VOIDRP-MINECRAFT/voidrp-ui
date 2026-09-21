@@ -49,6 +49,8 @@ data class Sprite(
     val glyph: String,
     val advance: Int,
     val colour: Int = 0xFFFFFF,
+    /** Which font holds the picture; the shape alphabet when nothing is named. */
+    val font: String? = null,
 ) : Node
 
 /**
@@ -171,8 +173,14 @@ object GlyphEncoder {
 
     private fun appendSprite(line: TextComponent.Builder, sprite: Sprite, penIn: Int): Int {
         val colour = TextColor.color(pack(sprite.y, quantise(sprite.colour)))
+        val font = sprite.font ?: Glyphs.fontName(Glyphs.ALPHA_LEVELS)
+        // The move to the right place is written in the shape alphabet, which every font
+        // of ours carries, so the picture and the step before it are one run.
         line.append(
-            shapes(Glyphs.moveBy(sprite.x - penIn) + sprite.glyph, Glyphs.ALPHA_LEVELS).color(colour)
+            Component.text(Glyphs.moveBy(sprite.x - penIn) + sprite.glyph)
+                .font(Key.key("voidrp", font))
+                .color(colour)
+                .shadowColor(ShadowColor.none())
         )
         return sprite.x + sprite.advance
     }
