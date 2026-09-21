@@ -33,10 +33,16 @@ class PageSession(
     private val sensitivity: () -> Double,
 ) {
 
-    var cursorX = Shaders.CANVAS_WIDTH / 2
-        private set
-    var cursorY = Shaders.CANVAS_HEIGHT / 2
-        private set
+    /** Where the aim says the pointer should be: updated when the player's look arrives. */
+    private var targetX = (Shaders.CANVAS_WIDTH / 2).toDouble()
+    private var targetY = (Shaders.CANVAS_HEIGHT / 2).toDouble()
+
+    /** Where the pointer is drawn: eased towards the target between ticks. */
+    private var drawnX = targetX
+    private var drawnY = targetY
+
+    val cursorX: Int get() = drawnX.toInt()
+    val cursorY: Int get() = drawnY.toInt()
 
     var hovered: String? = null
         private set
@@ -73,23 +79,38 @@ class PageSession(
         val location = player.location
         val turnedX = wrapDegrees(location.yaw - anchorYaw)
         val turnedY = location.pitch - anchorPitch
-
         val speed = sensitivity()
-        val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed).toInt()
-            .coerceIn(0, Shaders.CANVAS_WIDTH - 1)
-        val y = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed).toInt()
-            .coerceIn(0, Shaders.CANVAS_HEIGHT - 1)
-        if (x == cursorX && y == cursorY) return
-        cursorX = x
-        cursorY = y
+
+        targetX = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed)
+            .coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
+        targetY = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed)
+            .coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
 
         val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         if (under != hovered) {
             hovered = under
             render()
-        } else {
-            draw()
         }
+    }
+
+    /**
+     * Draws one frame, more often than the server thinks.
+     *
+     * A client reports where it is looking twenty times a second, and that is the ceiling
+     * on knowing where the pointer should be — but not on drawing it. Between two reports
+     * the pointer eases towards the last one it was told about, sent at the rate a screen
+     * refreshes, which is the difference between a pointer that steps and one that moves.
+     * The page itself is already encoded, so a frame costs one small run and a packet.
+     */
+    fun frame() {
+        if (closed) return
+        val before = cursorX to cursorY
+        drawnX += (targetX - drawnX) * EASING
+        drawnY += (targetY - drawnY) * EASING
+        if (Math.abs(targetX - drawnX) < 0.5) drawnX = targetX
+        if (Math.abs(targetY - drawnY) < 0.5) drawnY = targetY
+        if (before == cursorX to cursorY) return
+        draw()
     }
 
     fun click(button: Button) {
@@ -132,6 +153,12 @@ class PageSession(
     }
 
     private companion object {
+
+        /**
+         * How much of the way to the target the pointer moves each frame. Enough to feel
+         * immediate, gentle enough to hide that the aim itself arrives in steps.
+         */
+        const val EASING = 0.35
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f

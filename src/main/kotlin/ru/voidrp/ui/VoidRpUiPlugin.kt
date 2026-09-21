@@ -48,6 +48,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         server.pluginManager.registerEvents(pages, this)
         // The cursor follows the player's aim, so it is read every tick.
         server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
+        pages.start()
         getCommand("vui")?.let {
             val handler = UiCommand(this)
             it.setExecutor(handler)
@@ -56,7 +57,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     }
 
     override fun onDisable() {
-        pages.closeAll()
+        pages.shutdown()
         sweeps.values.forEach { it.cancel() }
         sweeps.clear()
         renderer.clearAll()

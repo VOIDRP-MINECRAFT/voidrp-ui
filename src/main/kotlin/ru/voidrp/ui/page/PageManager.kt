@@ -31,7 +31,17 @@ class PageManager(
     private val renderer: BossBarRenderer,
 ) : Listener {
 
-    private val sessions = mutableMapOf<UUID, PageSession>()
+    private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
+
+    /**
+     * Frames are drawn off the server thread, because the server thread only runs twenty
+     * times a second and a pointer that moves twenty times a second looks like it is
+     * stuttering. Nothing here touches the world: the page is already encoded, and a frame
+     * only eases the pointer along and sends the result.
+     */
+    private val frames = java.util.concurrent.Executors.newSingleThreadScheduledExecutor { task ->
+        Thread(task, "VoidRpUI-frames").apply { isDaemon = true }
+    }
 
     /**
      * Canvas units per degree of turn. At 10 the canvas is a wide, easy sweep of the head —
@@ -39,6 +49,23 @@ class PageManager(
      * depends on their own mouse sensitivity.
      */
     var sensitivity: Double = plugin.config.getDouble("input.sensitivity", 10.0)
+
+    /** Starts drawing frames at about the rate a screen refreshes. */
+    fun start() {
+        frames.scheduleAtFixedRate(
+            {
+                runCatching { sessions.values.forEach { it.frame() } }
+            },
+            0,
+            16,
+            java.util.concurrent.TimeUnit.MILLISECONDS,
+        )
+    }
+
+    fun shutdown() {
+        frames.shutdownNow()
+        closeAll()
+    }
 
     fun open(player: Player, page: Page) {
         close(player)
