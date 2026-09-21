@@ -26,8 +26,11 @@ class PageSession(
     val player: Player,
     val page: Page,
     private val renderer: BossBarRenderer,
-    /** Canvas units per degree of turn: the canvas is about twenty-five degrees wide. */
-    private val sensitivity: Double = 72.0,
+    /**
+     * Canvas units per degree of turn, read fresh each tick so it can be tuned while a
+     * page is open. Higher means the pointer crosses the screen for less head movement.
+     */
+    private val sensitivity: () -> Double,
 ) {
 
     var cursorX = Shaders.CANVAS_WIDTH / 2
@@ -66,9 +69,10 @@ class PageSession(
         val turnedX = wrapDegrees(location.yaw - anchorYaw)
         val turnedY = location.pitch - anchorPitch
 
-        val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * sensitivity).toInt()
+        val speed = sensitivity()
+        val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed).toInt()
             .coerceIn(0, Shaders.CANVAS_WIDTH - 1)
-        val y = (Shaders.CANVAS_HEIGHT / 2 + turnedY * sensitivity).toInt()
+        val y = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed).toInt()
             .coerceIn(0, Shaders.CANVAS_HEIGHT - 1)
         if (x == cursorX && y == cursorY) return
         cursorX = x

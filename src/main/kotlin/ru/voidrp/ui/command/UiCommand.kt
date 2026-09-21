@@ -175,6 +175,26 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                 )
             }
 
+            // Pointer speed, tunable while a page is open, because the right value depends
+            // on the player's own mouse.
+            "sens" -> {
+                val value = args.getOrNull(1)?.toDoubleOrNull()
+                if (value == null) {
+                    sender.sendMessage(
+                        Component.text("Чувствительность: ${plugin.pages.sensitivity}. /vui sens <число>", NamedTextColor.AQUA)
+                    )
+                } else {
+                    plugin.pages.sensitivity = value.coerceIn(5.0, 200.0)
+                    val degrees = Shaders.CANVAS_WIDTH / plugin.pages.sensitivity
+                    sender.sendMessage(
+                        Component.text(
+                            "Чувствительность ${plugin.pages.sensitivity} — экран ${degrees.toInt()}° по ширине.",
+                            NamedTextColor.AQUA,
+                        )
+                    )
+                }
+            }
+
             "demo" -> {
                 plugin.renderer.render(sender, demoPage())
                 sender.sendMessage(Component.text("Демо-окно. /vui clear — убрать.", NamedTextColor.AQUA))
@@ -242,5 +262,5 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         command: Command,
         alias: String,
         args: Array<out String>,
-    ): List<String> = if (args.size == 1) listOf("pack", "open", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
+    ): List<String> = if (args.size == 1) listOf("pack", "open", "sens", "test", "text", "demo", "style", "sweep", "debug", "stats", "clear") else emptyList()
 }

@@ -9,3 +9,8 @@ pack:
   send-on-join: true
   # true = без пака на сервер не пустят.
   required: false
+
+# Ввод
+input:
+  # Единиц холста на градус поворота. Больше — курсор быстрее.
+  sensitivity: 30

@@ -33,9 +33,16 @@ class PageManager(
 
     private val sessions = mutableMapOf<UUID, PageSession>()
 
+    /**
+     * Canvas units per degree of turn. At 30 the canvas is about sixty degrees across —
+     * a comfortable sweep of the head. Configurable, because what feels right depends on
+     * the player's own mouse sensitivity.
+     */
+    var sensitivity: Double = plugin.config.getDouble("input.sensitivity", 30.0)
+
     fun open(player: Player, page: Page) {
         close(player)
-        val session = PageSession(player, page, renderer)
+        val session = PageSession(player, page, renderer) { sensitivity }
         sessions[player.uniqueId] = session
         session.open()
     }
