@@ -26,8 +26,19 @@ import javax.imageio.ImageIO
 class PackBuilder(
     /** "patched" — our shader, "vanilla" — the untouched one, "none" — no shaders at all. */
     private val shaderMode: String = "patched",
-    /** Older clients need the overlay; turning it off narrows down what a client dislikes. */
-    private val withOverlay: Boolean = true,
+    /**
+     * Whether to carry the older client's shader in an overlay.
+     *
+     * Off, because a 26.2 client rejects the whole pack when it is there — measured, not
+     * guessed: the same pack loads with `SUCCESSFULLY_LOADED` without the overlay and
+     * `FAILED_RELOAD` with it, and nothing else about it differs. The overlay's format
+     * range does not include 26.2, so the client is reading what it should be skipping.
+     *
+     * Older clients are therefore not served by this pack at all. Doing it properly means
+     * a second pack with the old shader at the root, handed out by the player's version —
+     * which is worth doing and is not this.
+     */
+    private val withOverlay: Boolean = false,
 ) {
 
     companion object {
@@ -131,7 +142,7 @@ class PackBuilder(
         {
           "pack": {
             "pack_format": $FORMAT_MODERN_MIN,
-            "supported_formats": { "min_inclusive": $FORMAT_OLDEST, "max_inclusive": $FORMAT_NEWEST },
+            "supported_formats": { "min_inclusive": ${if (withOverlay) FORMAT_OLDEST else FORMAT_MODERN_MIN}, "max_inclusive": $FORMAT_NEWEST },
             "description": "VoidRP UI — интерфейсы сервера. void-rp.ru"
           }${if (shaderMode == "patched" && withOverlay) "," else ""}
           ${if (shaderMode == "patched" && withOverlay) """"overlays": {

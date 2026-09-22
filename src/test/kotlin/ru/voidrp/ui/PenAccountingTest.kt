@@ -12,6 +12,7 @@ import ru.voidrp.ui.layout.Panel
 import ru.voidrp.ui.layout.Scroll
 import ru.voidrp.ui.layout.Size
 import ru.voidrp.ui.layout.Text
+import ru.voidrp.ui.pack.PackBuilder
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.GlyphEncoder
@@ -126,27 +127,31 @@ class PenAccountingTest {
     }
 
     @Test
-    fun `the pack carries a shader for every version it claims to support`() {
-        // The claim is in pack.mcmeta: formats 63 through 200, which is 1.21.6 to whatever
-        // comes next. Those two eras name the text shader differently — `text.vsh` now,
-        // `rendertype_text.vsh` before — and a pack that offers only one of them loads
-        // happily on the other and draws nothing at all.
+    fun `the pack claims only the versions it can actually draw on`() {
+        // A 26.2 client rejects the whole pack when the older client's shader rides along
+        // in an overlay — measured on a live client, the same pack loading with the
+        // overlay taken out. So the pack carries the modern shaders only, and says so:
+        // claiming an older format would mean an older client accepting a pack that draws
+        // nothing, instead of the plugin telling the player what is wrong.
         val paths = ClientSimulator.packPaths()
         assertTrue(
             "assets/minecraft/shaders/core/text.vsh" in paths,
-            "нет вершинного шейдера для 26.2",
+            "нет вершинного шейдера",
         )
         assertTrue(
             "assets/minecraft/shaders/core/text.fsh" in paths,
-            "нет фрагментного шейдера для 26.2 — тогда клиент выбросит всё слабее 0.1",
+            "нет фрагментного шейдера — тогда клиент выбросит всё слабее 0.1",
         )
         assertTrue(
-            "legacy_shaders/assets/minecraft/shaders/core/rendertype_text.vsh" in paths,
-            "нет оверлея для 1.21.6",
+            paths.none { it.startsWith("legacy_shaders/") },
+            "в паке оверлей, от которого 26.2 отказывается целиком",
         )
         val meta = ClientSimulator.packEntry("pack.mcmeta")
-        assertTrue("\"overlays\"" in meta, "pack.mcmeta не объявляет оверлей")
-        assertTrue("legacy_shaders" in meta, "pack.mcmeta не знает про папку оверлея")
+        assertTrue("\"overlays\"" !in meta, "pack.mcmeta объявляет оверлей")
+        assertTrue(
+            "\"min_inclusive\": ${PackBuilder.FORMAT_MODERN_MIN}" in meta,
+            "pack.mcmeta обещает версии, на которых страница не нарисуется:\n$meta",
+        )
     }
 
     @Test

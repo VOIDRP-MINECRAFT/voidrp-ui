@@ -80,7 +80,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         ru.voidrp.ui.pack.Shaders.fitCanvas = config.getBoolean("display.keep-proportions", false)
         packHash = PackBuilder(
             shaderMode = config.getString("pack.shader-mode", "patched")!!,
-            withOverlay = config.getBoolean("pack.legacy-overlay", true),
+            withOverlay = config.getBoolean("pack.legacy-overlay", false),
         ).build(packFile)
         logger.info("Ресурспак собран: ${packFile.name}, ${packFile.length() / 1024} КБ, sha1 $packHash")
 
