@@ -232,8 +232,19 @@ object Preview {
         return Color(base.red, base.green, base.blue, Math.round(alpha * 255).toInt())
     }
 
+    /**
+     * What the client throws away.
+     *
+     * Minecraft's text shader discards a fragment fainter than a tenth, and every shape
+     * here is a glyph of text — which is how a tint at a sixteenth of opacity looked right
+     * in this preview and came out pure black in the game. The pack ships that shader with
+     * one line changed, so our own glyphs are only dropped when they are empty; this is
+     * the same line, and the two have to agree or the preview goes back to lying.
+     */
+    private const val DISCARD_BELOW = 0.004
+
     private fun blend(image: BufferedImage, x: Int, y: Int, colour: Color, alpha: Double) {
-        if (x < 0 || y < 0 || x >= image.width || y >= image.height || alpha <= 0.0) return
+        if (x < 0 || y < 0 || x >= image.width || y >= image.height || alpha < DISCARD_BELOW) return
         val under = Color(image.getRGB(x, y))
         fun mix(over: Int, below: Int) = (over * alpha + below * (1 - alpha)).toInt().coerceIn(0, 255)
         image.setRGB(

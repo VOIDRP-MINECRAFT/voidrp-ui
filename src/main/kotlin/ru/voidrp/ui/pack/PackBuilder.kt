@@ -58,6 +58,7 @@ class PackBuilder(
             when (shaderMode) {
                 "patched" -> {
                     zip.put("assets/minecraft/shaders/core/text.vsh", Shaders.TEXT_VSH_MODERN)
+                    zip.put("assets/minecraft/shaders/core/text.fsh", Shaders.TEXT_FSH_MODERN)
                     if (withOverlay) {
                         zip.put("$OVERLAY_DIR/assets/minecraft/shaders/core/rendertype_text.vsh", Shaders.TEXT_VSH_LEGACY)
                     }

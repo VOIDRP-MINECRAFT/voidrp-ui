@@ -29,6 +29,21 @@ object Glyphs {
     const val ALPHA_LEVELS = 16
 
     /**
+     * The faintest step the client will actually draw.
+     *
+     * Minecraft's text shader throws away any fragment whose alpha is under a tenth, and
+     * every shape here is a glyph of text. The first step — a sixteenth, which is 0.063 —
+     * is under that line, so anything drawn at it is not dimmed but **discarded**: a page
+     * whose surfaces were tints at that opacity came out as black rectangles in the game
+     * while looking right in every preview.
+     *
+     * So the scale starts at two. Fifteen steps is plenty, and a colour that wanted the
+     * sixteenth can be had instead as a darker one at an eighth — which is the whole point
+     * of choosing colour and opacity together.
+     */
+    const val MIN_ALPHA_LEVEL = 2
+
+    /**
      * How lopsided a rectangle glyph may be: at most 2^7 = 128 to 1.
      *
      * A glyph's texture is stored in the client's font atlas at its own resolution, and a
@@ -58,9 +73,19 @@ object Glyphs {
     /** The font that draws shapes at [level]/8 opacity. */
     fun fontName(level: Int): String = "ui_a${level.coerceIn(1, ALPHA_LEVELS)}"
 
-    /** Rounds an opacity to the nearest step the alphabet is baked at; 0 means invisible. */
-    fun alphaLevel(alpha: Double): Int =
-        Math.round(alpha * ALPHA_LEVELS).toInt().coerceIn(0, ALPHA_LEVELS)
+    /**
+     * Rounds an opacity to the nearest step the alphabet is baked at; 0 means invisible.
+     *
+     * Nothing lands on the first step: see [MIN_ALPHA_LEVEL]. What asks for less than half
+     * of it is taken to mean invisible, and everything else is drawn at least that faintly.
+     */
+    fun alphaLevel(alpha: Double): Int {
+        val step = Math.round(alpha * ALPHA_LEVELS).toInt().coerceIn(0, ALPHA_LEVELS)
+        return when {
+            alpha < MIN_ALPHA_LEVEL / (2.0 * ALPHA_LEVELS) -> 0
+            else -> step.coerceAtLeast(MIN_ALPHA_LEVEL)
+        }
+    }
 
     /** The nearest radius the alphabet is baked at, never larger than [max]. */
     fun nearestRadius(radius: Int, max: Int): Int {
@@ -160,8 +185,10 @@ object Glyphs {
      * between a shadow at 37% and at 40% is not visible through a falloff that is itself
      * a fade.
      */
-    fun haloLevel(alpha: Double): Int =
-        (Math.round(alpha * ALPHA_LEVELS / 2).toInt() * 2).coerceIn(0, ALPHA_LEVELS)
+    fun haloLevel(alpha: Double): Int {
+        val step = (Math.round(alpha * ALPHA_LEVELS / 2).toInt() * 2).coerceIn(0, ALPHA_LEVELS)
+        return if (alpha < MIN_ALPHA_LEVEL / (2.0 * ALPHA_LEVELS)) 0 else step.coerceAtLeast(MIN_ALPHA_LEVEL)
+    }
 
     /** Whether the alphabet at this opacity step carries halo tiles at all. */
     fun bakesHalo(level: Int): Boolean = level % 2 == 0

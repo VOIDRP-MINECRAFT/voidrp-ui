@@ -118,6 +118,39 @@ object Shaders {
         }
     """.trimIndent()
 
+    /**
+     * The client's own fragment shader, with one line changed.
+     *
+     * It throws away every fragment fainter than a tenth. For text that is a tidy way to
+     * skip the empty corners of a glyph; for an interface built out of glyphs it means a
+     * surface laid on at a sixteenth of opacity is not dimmed but **discarded**, a rounded
+     * corner loses the softness of its edge, and a shadow stops dead where its falloff
+     * drops below the line. The game did all three, while every preview here showed the
+     * page as it was meant to look.
+     *
+     * So the glyphs the vertex shader recognised are let through unless they are empty
+     * altogether. The client's own text keeps the threshold it came with — that threshold
+     * is also what stops the transparent corners of a letter writing depth.
+     *
+     * Patched by replacing a line rather than rewritten, so if a version changes the
+     * shader underneath us the build fails loudly instead of shipping a broken pack.
+     */
+    val TEXT_FSH_MODERN: String
+        get() {
+            val vanilla = String(Shaders::class.java.getResourceAsStream("/vanilla/text.fsh")!!.readBytes())
+            val declared = vanilla.replace(
+                "in vec2 texCoord0;",
+                "in vec2 texCoord0;\nin float voidrpShape;",
+            )
+            check(declared != vanilla) { "Не нашёл texCoord0 в ванильном фрагментном шейдере" }
+            val patched = declared.replace(
+                "if (color.a < 0.1) {",
+                "if (color.a < (voidrpShape > 0.5 ? 0.004 : 0.1)) {",
+            )
+            check(patched != declared) { "Не нашёл отсечение по альфе в ванильном фрагментном шейдере" }
+            return patched
+        }
+
     val TEXT_VSH_MODERN: String get() = MODERN_TEMPLATE
 
     /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
@@ -147,6 +180,9 @@ object Shaders {
 
         out vec4 vertexColor;
         out vec2 texCoord0;
+        // 1 for our glyphs, 0 for the client's own text: the fragment shader throws away
+        // anything fainter than a tenth, which is most of what an interface is made of.
+        out float voidrpShape;
 
         //__VOIDRP_COMMON__
 
@@ -156,9 +192,11 @@ object Shaders {
 
             float canvasY;
             vec3 fill;
+            voidrpShape = 0.0;
             if (voidrp_decode(Color, canvasY, fill)) {
                 gl_Position = voidrp_place(canvasY, gl_Position);
                 tint = vec4(fill, 1.0);
+                voidrpShape = 1.0;
             }
 
         #if !defined(IS_GUI) && !defined(IS_SEE_THROUGH)
@@ -193,6 +231,9 @@ object Shaders {
         out float cylindricalVertexDistance;
         out vec4 vertexColor;
         out vec2 texCoord0;
+        // 1 for our glyphs, 0 for the client's own text: the fragment shader throws away
+        // anything fainter than a tenth, which is most of what an interface is made of.
+        out float voidrpShape;
 
         //__VOIDRP_COMMON__
 
@@ -202,9 +243,11 @@ object Shaders {
 
             float canvasY;
             vec3 fill;
+            voidrpShape = 0.0;
             if (voidrp_decode(Color, canvasY, fill)) {
                 gl_Position = voidrp_place(canvasY, gl_Position);
                 tint = vec4(fill, 1.0);
+                voidrpShape = 1.0;
             }
 
             sphericalVertexDistance = fog_spherical_distance(Position);

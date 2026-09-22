@@ -359,7 +359,9 @@ object Painter {
                 } else {
                     Math.floor(exact).toLong()
                 }
-                pass[step] = level.toInt().coerceIn(0, levels)
+                // Zero is nothing at all; anything else has to be a step the client draws.
+                val wanted2 = level.toInt().coerceIn(0, levels)
+                pass[step] = if (wanted2 == 0) 0 else wanted2.coerceAtLeast(Glyphs.MIN_ALPHA_LEVEL)
                 covered = 1.0 - (1.0 - covered) * (1.0 - pass[step].toDouble() / levels)
             }
         }

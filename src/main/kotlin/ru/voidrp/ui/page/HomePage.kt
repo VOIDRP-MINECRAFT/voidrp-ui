@@ -103,6 +103,9 @@ class HomePage : Page() {
     private val TILE = 0x11131E
     private val WELL = 0x191A28
 
+    /** What the middle of the well comes to, measured off the site. */
+    private val WELL_LIGHT = 0x2A284A
+
     /** The well the player stands in, in the profile card. */
     private val WELL_WIDTH = 286
     private val WELL_HEIGHT = 300
@@ -307,7 +310,15 @@ class HomePage : Page() {
                     // The site fades this one from the middle out; a fade across something
                     // this small has three opacity steps to work with and shows every one,
                     // so it is left flat.
-                    background = wellFill,
+                    // A wash rather than rings: the faintest opacity the client draws is an
+                    // eighth, so light laid on in squares steps three or four units at a
+                    // time and you see every square. A fade that knows the card behind it
+                    // steps by one.
+                    background = Gradient(
+                        Paint(WELL_LIGHT),
+                        Paint(WELL),
+                        over = CARD,
+                    ),
                     border = Border(1, Paint(Theme.LINE, 0.1)),
                     radius = Theme.R_LG,
                 ),
@@ -315,7 +326,7 @@ class HomePage : Page() {
                 height = Size.Fixed(WELL_HEIGHT),
                 justify = Justify.CENTER,
                 align = Align.CENTER,
-                children = wellGlow() + listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
+                children = listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
             ),
             Text(
                 "mironoouv",
@@ -563,18 +574,23 @@ class HomePage : Page() {
      * the brightness the site's centre has, and because each is rounded and each edge is
      * only five units of colour, what the eye gets is a blob rather than a set of boxes.
      */
+    /**
+     * The soft violet light the site has behind the player in this well.
+     *
+     * There is no radial gradient to be had — a glyph is one flat colour — so it is a few
+     * squares of light laid one inside the other. Each ring is given the colour it should
+     * come out as, and expressed against what the ring outside it actually came out as,
+     * which is the only way to step by two or three units when the faintest opacity the
+     * client will draw is an eighth.
+     */
     private fun wellGlow(): List<View> = buildList {
-        // The faintest opacity the alphabet has is a sixteenth, which of the theme's violet
-        // is a step you can see. A violet half as bright, at that same sixteenth, is a step
-        // you cannot — so the light is built from more layers of less.
-        //
-        // Red has eight steps to blue's eight and green's sixteen, and none of them sits
-        // where this violet wants to be: one is too grey, the next too pink. The layers
-        // alternate between them, and what the eye adds up is the colour in between.
-        val cool = Paint(0x2E3070, 1.0 / Glyphs.ALPHA_LEVELS)
-        val warm = Paint(0x4A3470, 1.0 / Glyphs.ALPHA_LEVELS)
-        listOf(272, 248, 224, 200, 176, 152, 128, 104, 82, 60).forEachIndexed { index, size ->
-            val light = if (index % 2 == 0) cool else warm
+        val rings = listOf(272, 240, 208, 176, 144, 112, 80)
+        var under = Palette.composite(wellFill, CARD)
+        rings.forEachIndexed { index, size ->
+            val towards = (index + 1).toDouble() / rings.size
+            val target = blend(WELL, WELL_LIGHT, towards)
+            val paint = Palette.express(target, under)
+            under = Palette.composite(paint, under)
             val shape = mutableListOf<ru.voidrp.ui.render.Node>()
             Painter.rounded(
                 (WELL_WIDTH - size) / 2,
@@ -582,11 +598,21 @@ class HomePage : Page() {
                 size,
                 size,
                 Glyphs.nearestRadius(24, size / 2),
-                light,
+                paint,
                 shape,
             )
             shape.forEach { add(Raw(it)) }
         }
+    }
+
+    /** One colour part of the way to another. */
+    private fun blend(from: Int, to: Int, position: Double): Int {
+        fun channel(shift: Int): Int {
+            val a = (from shr shift) and 0xFF
+            val b = (to shr shift) and 0xFF
+            return Math.round(a + (b - a) * position).toInt().coerceIn(0, 255)
+        }
+        return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
     }
 
     private fun kpi(icon: String, caption: String, value: String, colour: Int) = Panel(

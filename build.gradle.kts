@@ -81,6 +81,12 @@ tasks.register<JavaExec>("preview") {
     environment("VOIDRP_CLIENT_JAR", System.getenv("VOIDRP_CLIENT_JAR") ?: "")
 }
 
+tasks.register<JavaExec>("probe") {
+    group = "voidrp"
+    mainClass.set("ru.voidrp.ui.Probe")
+    classpath = sourceSets["test"].runtimeClasspath
+}
+
 tasks.register<JavaExec>("bench") {
     group = "voidrp"
     description = "Меряет, во что обходится отрисовка страницы"

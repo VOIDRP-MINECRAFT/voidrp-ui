@@ -70,7 +70,7 @@ object Palette {
         val previous = after?.let { oklab(it shr 16 and 0xFF, it shr 8 and 0xFF, it and 0xFF) }
         for (code in 0 until (1 shl 10)) {
             val colour = rgbOf(code)
-            for (step in 1..Glyphs.ALPHA_LEVELS) {
+            for (step in Glyphs.MIN_ALPHA_LEVEL..Glyphs.ALPHA_LEVELS) {
                 val alpha = step.toDouble() / Glyphs.ALPHA_LEVELS
                 val r = mix(colour shr 16 and 0xFF, over shr 16 and 0xFF, alpha)
                 val g = mix(colour shr 8 and 0xFF, over shr 8 and 0xFF, alpha)
