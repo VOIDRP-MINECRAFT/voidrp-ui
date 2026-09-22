@@ -66,6 +66,9 @@ class ClientSimulator(pack: File) {
         return pen
     }
 
+    /** What the client would advance for one glyph, for checking a prediction against it. */
+    fun advanceOf(font: String, glyph: String): Int? = fonts[font]?.get(glyph.codePointAt(0))
+
     /** Every code point the line asks for, so a missing glyph can be spotted. */
     fun missingGlyphs(component: Component): List<Pair<String, Int>> = runs(component).flatMap { (text, font) ->
         text.codePoints().toArray()

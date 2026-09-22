@@ -78,13 +78,7 @@ object Theme {
     /** A card that is the one thing on the screen worth looking at. */
     var cardAccent = Style()
 
-    /**
-     * A card that is chosen, or is the current one: a violet edge and a violet tint.
-     *
-     * No glow. A shadow here is a couple of larger copies underneath, which at this size
-     * reads as a second, blurry border rather than light — the effect a stylesheet gets
-     * from a blur radius is one of the few things that does not survive.
-     */
+    /** A card that is chosen, or is the current one: a violet edge, tint and halo. */
     var cardSelected = Style()
 
     var buttonPrimary = Style()
@@ -155,7 +149,8 @@ object Theme {
             border = Border(1, Paint(LINE, 0.25)),
             radius = R_XL,
             padding = Insets.all(SPACE_6),
-            shadow = Shadow(offsetY = 6, spread = 4, paint = Paint(0x000000, 0.2)),
+            shadow = Shadow(offsetY = 8, paint = Paint(0x000000, 0.45)),
+            highlight = Paint(0xFFFFFF, 0.06),
             textColour = INK,
             textSize = TEXT_BODY,
         )
@@ -165,6 +160,7 @@ object Theme {
             border = Border(1, Paint(LINE, 0.14)),
             radius = R_MD,
             padding = Insets.all(SPACE_4),
+            highlight = Paint(0xFFFFFF, 0.05),
             textColour = INK,
             textSize = TEXT_BODY,
         )
@@ -177,10 +173,13 @@ object Theme {
         cardSelected = card.copy(
             background = Paint(VIOLET, 0.12),
             border = Border(1, Paint(VIOLET, 0.55)),
+            glow = Paint(VIOLET, 0.3),
         )
 
         buttonPrimary = Style(
             background = Paint(VIOLET, 0.9),
+            glow = Paint(VIOLET, 0.28),
+            highlight = Paint(0xFFFFFF, 0.18),
             radius = R_SM,
             padding = Insets.symmetric(SPACE_2, SPACE_4),
             textColour = 0x0B0A1F,

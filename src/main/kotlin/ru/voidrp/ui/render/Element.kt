@@ -56,6 +56,22 @@ data class Sprite(
 ) : Node
 
 /**
+ * One tile of a halo — a shadow or a glow — around a panel.
+ *
+ * It is its own kind of shape because how far the pen moves past it depends on the opacity
+ * it is drawn at: the faintest columns of a fading picture round away to nothing at low
+ * opacity, and the client measures what is left.
+ */
+data class GlowPiece(
+    override val x: Int,
+    override val y: Int,
+    val part: Glyphs.GlowPart,
+    val corner: Glyphs.Corner,
+    val step: Int,
+    val paint: Paint,
+) : Node
+
+/**
  * A line of text, set in the site's typeface. [size] is in canvas units, which are the
  * site's pixels near enough, so a 14 here is a 14px label there. [y] is the top of the
  * line, like a rectangle's top edge.
@@ -112,6 +128,7 @@ object GlyphEncoder {
             pen = when (node) {
                 is Rect -> appendRect(line, node, pen)
                 is CornerPiece -> appendCorner(line, node, pen)
+                is GlowPiece -> appendGlow(line, node, pen)
                 is Label -> appendLabel(line, node, pen)
                 is Sprite -> appendSprite(line, node, pen)
                 is Box -> pen // Painter has already expanded every box.
@@ -177,7 +194,7 @@ object GlyphEncoder {
         }
         val glyph = Glyphs.moveBy(piece.x - penIn) + shape
         line.append(shapes(glyph, level).color(colour))
-        return piece.x + Glyphs.cornerAdvance(piece.radius)
+        return piece.x + ru.voidrp.ui.pack.Corners.advance(piece.radius, piece.corner, piece.ring, level)
     }
 
     private fun appendSprite(line: TextComponent.Builder, sprite: Sprite, penIn: Int): Int {
@@ -192,6 +209,15 @@ object GlyphEncoder {
                 .shadowColor(ShadowColor.none())
         )
         return sprite.x + sprite.advance
+    }
+
+    private fun appendGlow(line: TextComponent.Builder, piece: GlowPiece, penIn: Int): Int {
+        val level = Glyphs.alphaLevel(piece.paint.alpha)
+        if (level == 0) return penIn
+        val colour = TextColor.color(pack(piece.y, quantise(piece.paint.rgb)))
+        val glyph = Glyphs.moveBy(piece.x - penIn) + Glyphs.glow(piece.part, piece.corner, piece.step)
+        line.append(shapes(glyph, level).color(colour))
+        return piece.x + ru.voidrp.ui.pack.Glow.advance(piece.part, piece.corner, piece.step, level)
     }
 
     /**

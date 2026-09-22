@@ -348,6 +348,21 @@ object Layout {
                         TextAlign.CENTER -> (width - lineWidth) / 2
                         TextAlign.END -> width - lineWidth
                     }
+                    view.glow?.takeIf { it.visible }?.let { glow ->
+                        // Drawn around the word before the word itself, so the letters
+                        // stay crisp and the light sits behind them.
+                        listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1).forEach { (dx, dy) ->
+                            out += Label(
+                                x + offset + dx,
+                                y + index * step + dy,
+                                line,
+                                view.size,
+                                glow.rgb,
+                                view.weight,
+                                view.tracking,
+                            )
+                        }
+                    }
                     out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight, view.tracking)
                 }
             }

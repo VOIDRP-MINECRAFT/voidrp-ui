@@ -52,6 +52,7 @@ object Glyphs {
     private const val RECT_BASE = 0xE000
     private const val CORNER_BASE = 0xE400
     private const val RING_BASE = 0xE600
+    private const val GLOW_BASE = 0xEB00
     private const val SPACER_BASE = 0xE800
 
     /** The font that draws shapes at [level]/8 opacity. */
@@ -116,6 +117,58 @@ object Glyphs {
     fun rectAdvance(w: Int): Int = (1 shl w) + 1
 
     fun cornerAdvance(radius: Int): Int = radius + 1
+
+    /**
+     * How far a glow or a shadow reaches past the edge of what casts it.
+     *
+     * Blurring is impossible here — a vertex shader cannot see its neighbours — but a soft
+     * edge is just a picture with a fading alpha, and that we can bake. A halo is built
+     * the way a stylesheet's box-shadow would be if it had to be made of tiles: four
+     * corners with a round falloff and four sides that repeat along their length.
+     */
+    const val GLOW_SPREAD = 16
+
+    /** Side pieces come in powers of two so any length can be covered by a few of them. */
+    val GLOW_STEPS = listOf(1, 2, 4, 8, 16, 32, 64, 128)
+
+    enum class GlowPart { CORNER, HORIZONTAL, VERTICAL }
+
+    /**
+     * A piece of a halo. Corners are indexed by [Corner]; sides by how long the piece is,
+     * which is why they can be laid end to end along an edge of any length.
+     */
+    fun glow(part: GlowPart, corner: Corner = Corner.TOP_LEFT, step: Int = 1): String {
+        val index = when (part) {
+            GlowPart.CORNER -> corner.ordinal
+            // A side fades away from the box, so the top edge and the bottom edge are
+            // mirror images and need a glyph each — one texture for both would point the
+            // light the wrong way down one side and, worse, be a different width than the
+            // encoder predicted.
+            GlowPart.HORIZONTAL -> 4 + GLOW_STEPS.indexOf(step) * 2 + if (near(corner)) 0 else 1
+            GlowPart.VERTICAL -> 4 + GLOW_STEPS.size * 2 + GLOW_STEPS.indexOf(step) * 2 + if (near(corner)) 0 else 1
+        }
+        return cp(GLOW_BASE + index)
+    }
+
+    /** Whether a side piece fades towards its start (top, left) or its end (bottom, right). */
+    private fun near(corner: Corner): Boolean = corner == Corner.TOP_LEFT
+
+    fun glowTextureName(part: GlowPart, corner: Corner = Corner.TOP_LEFT, step: Int = 1): String = when (part) {
+        GlowPart.CORNER -> "glow_corner_${corner.name.lowercase()}"
+        GlowPart.HORIZONTAL -> "glow_h_${step}_${if (near(corner)) "near" else "far"}"
+        GlowPart.VERTICAL -> "glow_v_${step}_${if (near(corner)) "near" else "far"}"
+    }
+
+    /** Every halo piece, for the pack to bake and declare. */
+    fun glowPieces(): List<Triple<GlowPart, Corner, Int>> = buildList {
+        Corner.entries.forEach { add(Triple(GlowPart.CORNER, it, 1)) }
+        GLOW_STEPS.forEach { step ->
+            add(Triple(GlowPart.HORIZONTAL, Corner.TOP_LEFT, step))
+            add(Triple(GlowPart.HORIZONTAL, Corner.BOTTOM_LEFT, step))
+            add(Triple(GlowPart.VERTICAL, Corner.TOP_LEFT, step))
+            add(Triple(GlowPart.VERTICAL, Corner.TOP_RIGHT, step))
+        }
+    }
 
     /** Spacer characters: index 2k moves the pen by +2^k, index 2k+1 by −2^k. */
     fun spacers(): Map<String, Int> = buildMap {

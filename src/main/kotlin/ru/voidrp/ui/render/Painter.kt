@@ -5,7 +5,6 @@ import ru.voidrp.ui.style.Fill
 import ru.voidrp.ui.style.Gradient
 import ru.voidrp.ui.style.GradientDirection
 import ru.voidrp.ui.style.Paint
-import ru.voidrp.ui.style.Shadow
 import ru.voidrp.ui.style.Style
 
 /**
@@ -38,6 +37,7 @@ object Painter {
             is CornerPiece -> out += node.copy(x = node.x + dx, y = node.y + dy)
             is Label -> out += node.copy(x = node.x + dx, y = node.y + dy)
             is Sprite -> out += node.copy(x = node.x + dx, y = node.y + dy)
+            is GlowPiece -> out += node.copy(x = node.x + dx, y = node.y + dy)
         }
     }
 
@@ -47,7 +47,8 @@ object Painter {
         val style = box.style
         val radius = Glyphs.nearestRadius(style.radius, minOf(box.width, box.height) / 2)
 
-        style.shadow?.let { shadow(x, y, box.width, box.height, radius, it, out) }
+        style.shadow?.let { halo(x, y, box.width, box.height, it.paint, it.offsetY, out) }
+        style.glow?.let { halo(x, y, box.width, box.height, it, 0, out) }
 
         val border = style.border?.takeIf { it.width > 0 && it.paint.visible }
         if (border != null) {
@@ -65,6 +66,11 @@ object Painter {
                 it,
                 out,
             )
+        }
+
+        style.highlight?.takeIf { it.visible }?.let {
+            val edge = radius.coerceAtLeast(inset)
+            out += Rect(x + edge, y + inset, box.width - edge * 2, 1, it)
         }
 
         val contentX = x + inset + style.padding.left
@@ -251,24 +257,35 @@ object Painter {
     }
 
     /**
-     * Depth without a blur: two larger, dimmer copies of the box sitting under it and
-     * slightly lower. A vertex shader cannot blur, and stacking two soft-edged layers is
-     * close enough to a drop shadow at this scale.
+     * The halo around a panel: a shadow under it, or a glow around it.
+     *
+     * Four corners with a round falloff and four sides tiled along their length, which is
+     * as far as a medium without blurring can go — and at these sizes it is not far from
+     * what a blur would have left.
      */
-    private fun shadow(x: Int, y: Int, width: Int, height: Int, radius: Int, shadow: Shadow, out: MutableList<Node>) {
-        if (!shadow.paint.visible) return
-        for (step in 2 downTo 1) {
-            val grow = shadow.spread * step
-            val drop = shadow.offsetY * step / 2
-            rounded(
-                x - grow,
-                y - grow + drop,
-                width + grow * 2,
-                height + grow * 2,
-                Glyphs.nearestRadius(radius + grow, (height + grow * 2) / 2),
-                shadow.paint,
-                out,
-            )
+    private fun halo(x: Int, y: Int, width: Int, height: Int, paint: Paint, offsetY: Int, out: MutableList<Node>) {
+        if (!paint.visible || width <= 0 || height <= 0) return
+        val spread = Glyphs.GLOW_SPREAD
+        val top = y + offsetY
+
+        out += GlowPiece(x - spread, top - spread, Glyphs.GlowPart.CORNER, Glyphs.Corner.TOP_LEFT, 1, paint)
+        out += GlowPiece(x + width, top - spread, Glyphs.GlowPart.CORNER, Glyphs.Corner.TOP_RIGHT, 1, paint)
+        out += GlowPiece(x - spread, top + height, Glyphs.GlowPart.CORNER, Glyphs.Corner.BOTTOM_LEFT, 1, paint)
+        out += GlowPiece(x + width, top + height, Glyphs.GlowPart.CORNER, Glyphs.Corner.BOTTOM_RIGHT, 1, paint)
+
+        var covered = 0
+        while (covered < width) {
+            val step = Glyphs.GLOW_STEPS.lastOrNull { it <= width - covered } ?: break
+            out += GlowPiece(x + covered, top - spread, Glyphs.GlowPart.HORIZONTAL, Glyphs.Corner.TOP_LEFT, step, paint)
+            out += GlowPiece(x + covered, top + height, Glyphs.GlowPart.HORIZONTAL, Glyphs.Corner.BOTTOM_LEFT, step, paint)
+            covered += step
+        }
+        covered = 0
+        while (covered < height) {
+            val step = Glyphs.GLOW_STEPS.lastOrNull { it <= height - covered } ?: break
+            out += GlowPiece(x - spread, top + covered, Glyphs.GlowPart.VERTICAL, Glyphs.Corner.TOP_LEFT, step, paint)
+            out += GlowPiece(x + width, top + covered, Glyphs.GlowPart.VERTICAL, Glyphs.Corner.TOP_RIGHT, step, paint)
+            covered += step
         }
     }
 }

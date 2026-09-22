@@ -2,6 +2,7 @@ package ru.voidrp.ui.layout
 
 import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.Node
+import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 
@@ -108,6 +109,13 @@ data class Text(
     val maxLines: Int? = null,
     /** Extra air after every letter, the way a stylesheet spaces out a small caps label. */
     val tracking: Int = 0,
+    /**
+     * A light behind the letters.
+     *
+     * Text cannot be blurred, so this is the same word drawn a few times around itself in
+     * a faint colour — which is what a one-pixel text-shadow amounts to anyway.
+     */
+    val glow: Paint? = null,
 ) : View
 
 /**

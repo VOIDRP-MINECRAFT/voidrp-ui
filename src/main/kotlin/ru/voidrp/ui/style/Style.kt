@@ -64,11 +64,11 @@ data class Insets(val top: Int, val right: Int, val bottom: Int, val left: Int) 
 data class Border(val width: Int, val paint: Paint)
 
 /**
- * A soft drop shadow. Stacked translucent rectangles rather than a blur: a vertex shader
- * cannot blur anything, so depth comes from a couple of offset layers the way a paper
- * mock-up would fake it.
+ * A soft drop shadow: a halo of baked, fading tiles sitting [offsetY] units lower than
+ * what casts it. [spread] is kept for pages that set it, but the reach is the one the
+ * tiles are baked at.
  */
-data class Shadow(val offsetY: Int, val spread: Int, val paint: Paint)
+data class Shadow(val offsetY: Int, val spread: Int = 0, val paint: Paint)
 
 /** Everything that can be said about a box. Unset parts simply are not drawn. */
 data class Style(
@@ -77,6 +77,16 @@ data class Style(
     val radius: Int = 0,
     val padding: Insets = Insets.NONE,
     val shadow: Shadow? = null,
+    /** A halo in a colour, sitting square behind the box — light rather than depth. */
+    val glow: Paint? = null,
+    /**
+     * A single lit line just inside the top edge.
+     *
+     * The site gives every card a pale gradient from its top; a gradient across a whole
+     * panel bands badly here, but the part of it the eye actually reads is that first
+     * line of light, and one line costs one rectangle.
+     */
+    val highlight: Paint? = null,
     val textColour: Int = Theme.INK,
     val textSize: Int = Theme.TEXT_BODY,
     val textWeight: TextFonts.Weight = TextFonts.Weight.REGULAR,
@@ -87,6 +97,7 @@ data class Style(
     fun padding(value: Int) = copy(padding = Insets.all(value))
     fun padding(vertical: Int, horizontal: Int) = copy(padding = Insets.symmetric(vertical, horizontal))
     fun shadow(shadow: Shadow?) = copy(shadow = shadow)
+    fun glow(paint: Paint?) = copy(glow = paint)
     fun text(
         colour: Int = textColour,
         size: Int = textSize,

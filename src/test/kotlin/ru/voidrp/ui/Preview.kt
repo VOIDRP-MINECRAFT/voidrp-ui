@@ -88,24 +88,15 @@ object Preview {
             }
 
             is CornerPiece -> {
-                // The same quarter disc the pack bakes, drawn the same way.
-                val r = node.radius
-                val cx = if (node.corner == Glyphs.Corner.TOP_LEFT || node.corner == Glyphs.Corner.BOTTOM_LEFT) r.toDouble() else 0.0
-                val cy = if (node.corner == Glyphs.Corner.TOP_LEFT || node.corner == Glyphs.Corner.TOP_RIGHT) r.toDouble() else 0.0
-                val colour = colourOf(node.paint)
-                val inner = r - 1.0
-                for (y in 0 until r) for (x in 0 until r) {
-                    var inside = 0
-                    for (sx in 0 until 4) for (sy in 0 until 4) {
-                        val dx = x + (sx + 0.5) / 4 - cx
-                        val dy = y + (sy + 0.5) / 4 - cy
-                        val distance = dx * dx + dy * dy
-                        val within = distance <= r.toDouble() * r
-                        if (if (node.ring) within && distance > inner * inner else within) inside++
+                // The very picture the pack ships, tinted by the glyph's colour.
+                val level = Glyphs.alphaLevel(node.paint.alpha)
+                if (level > 0) {
+                    val tile = ru.voidrp.ui.pack.Corners.image(node.radius, node.corner, node.ring, level)
+                    val colour = quantise(node.paint.rgb)
+                    for (y in 0 until tile.height) for (x in 0 until tile.width) {
+                        val alpha = (tile.getRGB(x, y) ushr 24) / 255.0
+                        if (alpha > 0.0) blend(image, node.x + x, node.y + y, colour, alpha)
                     }
-                    if (inside == 0) continue
-                    val coverage = inside / 16.0
-                    blend(image, node.x + x, node.y + y, colour, coverage * colour.alpha / 255.0)
                 }
             }
 
@@ -118,6 +109,19 @@ object Preview {
                     RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR,
                 )
                 g.drawImage(picture, node.x, node.y, size, size, null)
+            }
+
+            // A halo tile is the very picture the pack ships, tinted by the glyph's colour.
+            is ru.voidrp.ui.render.GlowPiece -> {
+                val level = Glyphs.alphaLevel(node.paint.alpha)
+                if (level > 0) {
+                    val tile = ru.voidrp.ui.pack.Glow.image(node.part, node.corner, node.step, level)
+                    val colour = quantise(node.paint.rgb)
+                    for (y in 0 until tile.height) for (x in 0 until tile.width) {
+                        val alpha = (tile.getRGB(x, y) ushr 24) / 255.0
+                        if (alpha > 0.0) blend(image, node.x + x, node.y + y, colour, alpha)
+                    }
+                }
             }
 
             is Box -> Unit

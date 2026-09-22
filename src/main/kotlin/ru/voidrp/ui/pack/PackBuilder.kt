@@ -189,6 +189,17 @@ class PackBuilder(
             {"type": "bitmap", "file": "$dir/cursor.png",
              "ascent": 0, "height": ${Glyphs.CURSOR_SIZE}, "chars": ["${Glyphs.cursor().escaped()}"]}
         """.trimIndent()
+        Glyphs.glowPieces().forEach { (part, corner, step) ->
+            val name = Glyphs.glowTextureName(part, corner, step)
+            val height = when (part) {
+                Glyphs.GlowPart.VERTICAL -> step
+                else -> Glyphs.GLOW_SPREAD
+            }
+            providers += """
+                {"type": "bitmap", "file": "$dir/$name.png",
+                 "ascent": 0, "height": $height, "chars": ["${Glyphs.glow(part, corner, step).escaped()}"]}
+            """.trimIndent()
+        }
         val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
             "\"${char.escaped()}\": $advance"
         }
@@ -221,47 +232,14 @@ class PackBuilder(
             out[name] = image.toPng()
         }
         for (radius in Glyphs.RADII) for (corner in Glyphs.Corner.entries) {
-            out[Glyphs.cornerTextureName(radius, corner)] = cornerTexture(radius, corner, alpha, ring = false)
-            out[Glyphs.ringTextureName(radius, corner)] = cornerTexture(radius, corner, alpha, ring = true)
+            out[Glyphs.cornerTextureName(radius, corner)] = Corners.png(radius, corner, ring = false, level = level)
+            out[Glyphs.ringTextureName(radius, corner)] = Corners.png(radius, corner, ring = true, level = level)
         }
         out["cursor"] = Pointer.png(alpha)
-        return out
-    }
-
-    /**
-     * A quarter disc filling the inside of one corner. Coverage is measured by sampling
-     * each pixel 4×4, so the curve has soft edges instead of a staircase.
-     */
-    private fun cornerTexture(
-        radius: Int,
-        corner: Glyphs.Corner,
-        alpha: Double,
-        ring: Boolean,
-    ): ByteArray {
-        // The centre of the circle is the inner corner of the piece — the one that touches
-        // the rest of the panel.
-        val cx = if (corner == Glyphs.Corner.TOP_LEFT || corner == Glyphs.Corner.BOTTOM_LEFT) radius.toDouble() else 0.0
-        val cy = if (corner == Glyphs.Corner.TOP_LEFT || corner == Glyphs.Corner.TOP_RIGHT) radius.toDouble() else 0.0
-        val image = BufferedImage(radius, radius, BufferedImage.TYPE_INT_ARGB)
-        val steps = 4
-        for (x in 0 until radius) for (y in 0 until radius) {
-            var inside = 0
-            val innerRadius = radius - 1.0
-            for (sx in 0 until steps) for (sy in 0 until steps) {
-                val px = x + (sx + 0.5) / steps
-                val py = y + (sy + 0.5) / steps
-                val dx = px - cx
-                val dy = py - cy
-                val distance = dx * dx + dy * dy
-                val within = distance <= radius.toDouble() * radius
-                // A ring is the outermost unit of the disc and nothing else.
-                if (if (ring) within && distance > innerRadius * innerRadius else within) inside++
-            }
-            val coverage = inside.toDouble() / (steps * steps)
-            val a = Math.round(coverage * alpha * 255).toInt()
-            image.setRGB(x, y, (a shl 24) or 0xFFFFFF)
+        Glyphs.glowPieces().forEach { (part, corner, step) ->
+            out[Glyphs.glowTextureName(part, corner, step)] = Glow.png(part, corner, step, level)
         }
-        return image.toPng()
+        return out
     }
 
     private fun String.escaped(): String = Fonts.escapeJson(this)

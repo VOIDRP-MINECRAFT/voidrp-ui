@@ -252,12 +252,7 @@ class HomePage : Page() {
 
     /** The player card: the portrait stage, the name, the nation, the pass. */
     private fun profile() = Panel(
-        style = Style(
-            background = Paint(Theme.LINE, 0.05),
-            border = Border(1, Paint(Theme.LINE, 0.12)),
-            radius = Theme.R_XL,
-            padding = Insets.all(Theme.SPACE_4),
-        ),
+        style = panel(),
         width = Size.Fixed(318),
         gap = Theme.SPACE_3,
         align = Align.CENTER,
@@ -274,7 +269,14 @@ class HomePage : Page() {
                 align = Align.CENTER,
                 children = listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
             ),
-            Text("mironoouv", Theme.TEXT_H2, Theme.VIOLET_SOFT, TextFonts.Weight.BOLD, wrap = false),
+            Text(
+                "mironoouv",
+                Theme.TEXT_H2,
+                Theme.VIOLET_SOFT,
+                TextFonts.Weight.BOLD,
+                wrap = false,
+                glow = Paint(Theme.VIOLET, 0.35),
+            ),
             chip("VLD", Theme.chipAccent),
             Panel(
                 direction = Direction.ROW,
@@ -363,6 +365,9 @@ class HomePage : Page() {
             background = Paint(0x2A1B5E, 0.92),
             border = Border(1, Paint(Theme.VIOLET, 0.26)),
             radius = Theme.R_XL,
+            highlight = Paint(0xFFFFFF, 0.08),
+            glow = Paint(Theme.VIOLET, 0.22),
+            shadow = ru.voidrp.ui.style.Shadow(offsetY = 8, paint = Paint(0x000000, 0.4)),
         ),
         width = Size.Fill,
         height = Size.Fixed(196),
@@ -620,6 +625,8 @@ class HomePage : Page() {
         border = Border(1, Paint(Theme.LINE, 0.12)),
         radius = Theme.R_XL,
         padding = padding,
+        highlight = Paint(0xFFFFFF, 0.05),
+        shadow = ru.voidrp.ui.style.Shadow(offsetY = 6, paint = Paint(0x000000, 0.35)),
     )
 
     override fun onClick(id: String, button: Button) {

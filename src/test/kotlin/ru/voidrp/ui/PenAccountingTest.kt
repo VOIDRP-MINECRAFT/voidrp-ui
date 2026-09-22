@@ -134,6 +134,101 @@ class PenAccountingTest {
     }
 
     @Test
+    fun `each thing a style can add balances on its own`() {
+        val cases = mapOf(
+            "только фон" to ru.voidrp.ui.style.Style(background = Paint(0x8B7BFF, 0.5)),
+            "скругление" to ru.voidrp.ui.style.Style(background = Paint(0x8B7BFF, 0.5), radius = 12),
+            "рамка" to ru.voidrp.ui.style.Style(
+                background = Paint(0x8B7BFF, 0.5),
+                border = ru.voidrp.ui.style.Border(1, Paint(0x96A8DC, 0.2)),
+                radius = 12,
+            ),
+            "светлая кромка" to ru.voidrp.ui.style.Style(
+                background = Paint(0x8B7BFF, 0.5),
+                radius = 12,
+                highlight = Paint(0xFFFFFF, 0.06),
+            ),
+            "тень" to ru.voidrp.ui.style.Style(
+                background = Paint(0x8B7BFF, 0.5),
+                radius = 12,
+                shadow = ru.voidrp.ui.style.Shadow(offsetY = 8, paint = Paint(0x000000, 0.4)),
+            ),
+            "свечение" to ru.voidrp.ui.style.Style(
+                background = Paint(0x8B7BFF, 0.5),
+                radius = 12,
+                glow = Paint(0x8B7BFF, 0.3),
+            ),
+        )
+        cases.forEach { (name, style) ->
+            assertBalanced(name, listOf(ru.voidrp.ui.render.Box(120, 80, 260, 140, style)))
+        }
+    }
+
+    @Test
+    fun `parts of a halo balance`() {
+        val paint = Paint(0x000000, 0.4)
+        val spread = ru.voidrp.ui.pack.Glyphs.GLOW_SPREAD
+        fun piece(x: Int, y: Int, part: ru.voidrp.ui.pack.Glyphs.GlowPart, corner: ru.voidrp.ui.pack.Glyphs.Corner, step: Int) =
+            ru.voidrp.ui.render.GlowPiece(x, y, part, corner, step, paint)
+
+        val corners = listOf(
+            piece(100, 100, ru.voidrp.ui.pack.Glyphs.GlowPart.CORNER, ru.voidrp.ui.pack.Glyphs.Corner.TOP_LEFT, 1),
+            piece(300, 100, ru.voidrp.ui.pack.Glyphs.GlowPart.CORNER, ru.voidrp.ui.pack.Glyphs.Corner.TOP_RIGHT, 1),
+            piece(100, 300, ru.voidrp.ui.pack.Glyphs.GlowPart.CORNER, ru.voidrp.ui.pack.Glyphs.Corner.BOTTOM_LEFT, 1),
+            piece(300, 300, ru.voidrp.ui.pack.Glyphs.GlowPart.CORNER, ru.voidrp.ui.pack.Glyphs.Corner.BOTTOM_RIGHT, 1),
+        )
+        assertEquals(0, client.width(GlyphEncoder.encode(corners)), "углы ореола")
+
+        val horizontals = listOf(128, 128, 4).mapIndexed { index, step ->
+            piece(100 + index * 128, 200, ru.voidrp.ui.pack.Glyphs.GlowPart.HORIZONTAL, ru.voidrp.ui.pack.Glyphs.Corner.TOP_LEFT, step)
+        }
+        assertEquals(0, client.width(GlyphEncoder.encode(horizontals)), "верхняя сторона")
+
+        val verticals = listOf(128, 8, 4).mapIndexed { index, step ->
+            piece(100, 200 + index * 64, ru.voidrp.ui.pack.Glyphs.GlowPart.VERTICAL, ru.voidrp.ui.pack.Glyphs.Corner.TOP_LEFT, step)
+        }
+        assertEquals(0, client.width(GlyphEncoder.encode(verticals)), "левая сторона")
+
+        assertEquals(0, client.width(GlyphEncoder.encode(corners + horizontals + verticals)), "всё вместе")
+        assertEquals(0, spread - spread, "")
+    }
+
+    @Test
+    fun `one halo tile at a time balances`() {
+        val wrong = mutableListOf<String>()
+        listOf(3, 6, 11, 16).forEach { level ->
+            val alpha = level.toDouble() / ru.voidrp.ui.pack.Glyphs.ALPHA_LEVELS
+            ru.voidrp.ui.pack.Glyphs.glowPieces().forEach { (part, corner, step) ->
+                val line = GlyphEncoder.encode(
+                    listOf(ru.voidrp.ui.render.GlowPiece(200, 100, part, corner, step, Paint(0x000000, alpha)))
+                )
+                val width = client.width(line)
+                if (width != 0) wrong += "$part/$corner/$step на ступени $level: строка шириной $width"
+            }
+        }
+        assertTrue(wrong.isEmpty(), wrong.take(5).joinToString("\n"))
+    }
+
+    @Test
+    fun `halo tiles advance the way the client will`() {
+        // A halo fades out, and at low opacity its faintest columns round away to nothing,
+        // so how far the pen moves past one depends on the opacity it is drawn at. The
+        // encoder and the pack have to agree about that for every tile at every step.
+        val wrong = mutableListOf<String>()
+        (1..ru.voidrp.ui.pack.Glyphs.ALPHA_LEVELS).forEach { level ->
+            ru.voidrp.ui.pack.Glyphs.glowPieces().forEach { (part, corner, step) ->
+                val ours = ru.voidrp.ui.pack.Glow.advance(part, corner, step, level)
+                val theirs = client.advanceOf(
+                    ru.voidrp.ui.pack.Glyphs.fontName(level),
+                    ru.voidrp.ui.pack.Glyphs.glow(part, corner, step),
+                )
+                if (ours != theirs) wrong += "$part/$corner/$step на ступени $level: у нас $ours, у клиента $theirs"
+            }
+        }
+        assertTrue(wrong.isEmpty(), "шаг ореола разошёлся:\n" + wrong.take(6).joinToString("\n"))
+    }
+
+    @Test
     fun `the home page balances`() {
         assertBalanced(
             "главная",

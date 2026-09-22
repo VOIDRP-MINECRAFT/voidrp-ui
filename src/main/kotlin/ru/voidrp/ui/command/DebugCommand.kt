@@ -87,6 +87,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                             is Label -> "  label \"${node.text}\" ${node.size} @ ${node.x},${node.y}"
                             is Sprite -> "  sprite @ ${node.x},${node.y}"
                             is Box -> "  box @ ${node.x},${node.y}"
+                            is ru.voidrp.ui.render.GlowPiece -> "  halo ${node.part} @ ${node.x},${node.y}"
                         }
                     )
                 }
