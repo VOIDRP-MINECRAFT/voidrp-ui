@@ -688,6 +688,9 @@ open class HomePage : Page() {
                 gap = Theme.SPACE_2,
                 rowGap = Theme.SPACE_2,
                 width = Size.Fill,
+                // The card is as tall as the statistics beside it; the tiles take the rest
+                // rather than leaving a third of it empty.
+                grow = true,
                 children = tiles.map { (icon, label) ->
                     val id = "tile:$icon"
                     Panel(
@@ -705,7 +708,7 @@ open class HomePage : Page() {
                             )
                         },
                         width = Size.Fill,
-                        height = Size.Fixed(78),
+                        height = Size.Fill,
                         gap = 7,
                         justify = Justify.CENTER,
                         align = Align.CENTER,

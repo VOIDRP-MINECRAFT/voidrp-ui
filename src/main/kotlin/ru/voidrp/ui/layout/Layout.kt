@@ -211,7 +211,7 @@ object Layout {
         var widest = 0
         var tallest = 0
         grid.children.forEach { child ->
-            val size = measure(child, perCell, Int.MAX_VALUE / 4)
+            val size = measure(child, perCell, UNBOUNDED)
             widest = maxOf(widest, size.width)
             tallest = maxOf(tallest, size.height)
         }
@@ -228,7 +228,7 @@ object Layout {
         var height = 0
         var width = 0
         scroll.children.forEachIndexed { index, child ->
-            val size = measure(child, availableWidth, Int.MAX_VALUE / 4)
+            val size = measure(child, availableWidth, UNBOUNDED)
             height += size.height + if (index > 0) scroll.gap else 0
             width = maxOf(width, size.width)
         }
@@ -351,12 +351,22 @@ object Layout {
         return if (panel.direction == Direction.ROW) Extent(along, across) else Extent(across, along)
     }
 
+    /**
+     * What is passed for "as much room as you like".
+     *
+     * A grid measuring a cell, or a scroll measuring its contents, has no limit to offer
+     * along one axis. Something asking to fill would then be as big as that number, which
+     * is how a panel of tiles came out two hundred million units tall and took the page
+     * with it. Past this mark, filling means "as big as what is inside".
+     */
+    const val UNBOUNDED = Int.MAX_VALUE / 8
+
     private fun resolve(size: Size, content: Int, available: Int): Int = when (size) {
         is Size.Fixed -> size.value
         is Size.Percent -> (available * size.fraction).toInt().coerceIn(0, available)
         // Never smaller than what it holds: measuring a greedy child against no space at
         // all is how its own size is found, below.
-        is Size.Fill -> maxOf(content, available)
+        is Size.Fill -> if (available >= UNBOUNDED) content else maxOf(content, available)
         is Size.Auto -> content
     }
 
@@ -456,15 +466,24 @@ object Layout {
 
             is Grid -> {
                 val cells = cellSize(view, width)
+                val rows = (view.children.size + view.columns - 1) / view.columns
+                // A grid told to grow was handed more height than its rows asked for, and
+                // they share it out. Otherwise nothing changes: the row is as tall as the
+                // tallest thing in it.
+                val rowHeight = if (view.grow && rows > 0) {
+                    maxOf(cells.height, (height - view.rowGap * (rows - 1)) / rows)
+                } else {
+                    cells.height
+                }
                 view.children.forEachIndexed { index, child ->
                     val column = index % view.columns
                     val row = index / view.columns
                     arrange(
                         child,
                         x + column * (cells.width + view.gap),
-                        y + row * (cells.height + view.rowGap),
+                        y + row * (rowHeight + view.rowGap),
                         cells.width,
-                        cells.height,
+                        rowHeight,
                         out,
                         regions,
                     )
@@ -534,7 +553,7 @@ object Layout {
         val innerRegions = mutableListOf<Region>()
         var cursor = y - offset
         scroll.children.forEach { child ->
-            val size = measure(child, innerWidth, Int.MAX_VALUE / 4)
+            val size = measure(child, innerWidth, UNBOUNDED)
             arrange(child, x, cursor, innerWidth, size.height, inner, innerRegions)
             cursor += size.height + scroll.gap
         }
@@ -711,6 +730,7 @@ object Layout {
     /** Whether a child wants the space left over along the panel's own direction. */
     private fun View.growsAlong(direction: Direction): Boolean = when (this) {
         is Gap -> grow
+        is Grid -> grow && direction == Direction.COLUMN
         is Panel -> (if (direction == Direction.ROW) width else height) is Size.Fill
         else -> false
     }

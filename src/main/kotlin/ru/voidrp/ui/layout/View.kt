@@ -179,6 +179,18 @@ data class Grid(
     val gap: Int = 0,
     val rowGap: Int = gap,
     val width: Size = Size.Auto,
+    /**
+     * Whether the rows share out the room their panel has left over.
+     *
+     * Off, the grid is as tall as its rows need and any spare space stays at the bottom of
+     * the card. On, the rows divide it between them, which is how a panel of tiles reaches
+     * the bottom edge instead of floating above a third of it.
+     *
+     * It is a flag rather than a [Size] on purpose: a size takes part in measuring, and a
+     * grid that asks to fill while its own panel is being measured claims every unit the
+     * page has and takes the layout with it.
+     */
+    val grow: Boolean = false,
     val align: Align = Align.START,
 ) : View
 
