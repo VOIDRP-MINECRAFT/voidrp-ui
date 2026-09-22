@@ -76,6 +76,8 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 .loadConfiguration(File(dataFolder, "theme.yml"))
         )
         packFile = File(dataFolder, "voidrp-ui.zip")
+        // Baked into the shader, so it is decided when the pack is built.
+        ru.voidrp.ui.pack.Shaders.fitCanvas = config.getBoolean("display.keep-proportions", false)
         packHash = PackBuilder(
             shaderMode = config.getString("pack.shader-mode", "patched")!!,
             withOverlay = config.getBoolean("pack.legacy-overlay", true),

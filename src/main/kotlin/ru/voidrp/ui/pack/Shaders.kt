@@ -113,11 +113,15 @@ object Shaders {
             float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
 
-            // The canvas is fitted inside the window rather than stretched across it: on a
-            // screen that is not sixteen by nine, stretching would make every circle an
-            // ellipse and every square a brick. Whichever side runs out first sets the
-            // scale, and what is left over is margin. On sixteen by nine the two are equal
-            // and this is exactly the mapping it always was.
+            // Two ways to put the canvas on a window that is not the shape of it.
+            //
+            // Filling stretches it corner to corner: the page always covers the screen, at
+            // the price of circles that go oval by however far the window is from sixteen
+            // by nine. Fitting keeps the proportions and leaves the difference as margin,
+            // where the world shows through. Filling is the default because a window is
+            // rarely far off the shape, and an interface that does not reach the edges
+            // looks like a mistake.
+        #ifdef VOIDRP_FIT
             float windowWidth = 2.0 / ProjMat[0][0];
             float windowHeight = -2.0 / ProjMat[1][1];
             float scale = min(windowWidth / ${CANVAS_WIDTH_EXACT}, windowHeight / ${CANVAS_HEIGHT}.0);
@@ -125,6 +129,10 @@ object Shaders {
             float screenY = windowHeight * 0.5 + (canvas.y - ${CANVAS_HEIGHT}.0 * 0.5) * scale;
             vec2 target = vec2(screenX / windowWidth * 2.0 - 1.0,
                                1.0 - screenY / windowHeight * 2.0);
+        #else
+            vec2 target = vec2(canvas.x / ${CANVAS_WIDTH_EXACT} * 2.0 - 1.0,
+                               1.0 - canvas.y / ${CANVAS_HEIGHT}.0 * 2.0);
+        #endif
             return vec4(target * original.w, original.z, original.w);
         }
     """.trimIndent()
@@ -162,7 +170,15 @@ object Shaders {
             return patched
         }
 
-    val TEXT_VSH_MODERN: String get() = MODERN_TEMPLATE
+    /** Whether the pack is built to keep the canvas's proportions on an odd-shaped window. */
+    var fitCanvas = false
+
+    private fun withMode(source: String): String =
+        if (fitCanvas) source.replaceFirst("#version 330", "#version 330\n#define VOIDRP_FIT 1")
+            .replaceFirst("#version 150", "#version 150\n#define VOIDRP_FIT 1")
+        else source
+
+    val TEXT_VSH_MODERN: String get() = withMode(MODERN_TEMPLATE)
 
     /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
     private val MODERN_TEMPLATE = """
@@ -221,7 +237,7 @@ object Shaders {
         }
     """.trimIndent().replace("//__VOIDRP_COMMON__", COMMON)
 
-    val TEXT_VSH_LEGACY: String get() = LEGACY_TEMPLATE
+    val TEXT_VSH_LEGACY: String get() = withMode(LEGACY_TEMPLATE)
 
     /** 1.21.6 … 26.1.2: the older `rendertype_text.vsh`, GLSL 150. */
     private val LEGACY_TEMPLATE = """
