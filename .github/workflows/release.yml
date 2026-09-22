@@ -1,0 +1,25 @@
+name: Релиз
+
+# Тег вида v0.1.0 собирает jar и прикладывает его к релизу — владельцу сервера
+# нужен готовый файл, а не инструкция «поставьте Gradle и соберите».
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew test shadowJar
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*-all.jar
+          generate_release_notes: true

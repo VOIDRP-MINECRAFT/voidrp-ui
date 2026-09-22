@@ -1,0 +1,35 @@
+name: Сборка и тесты
+
+# Инвариант проекта — сервер обязан предсказывать перо клиента до пикселя, и
+# проверяют это тесты, а не глаза игрока. Поэтому они гоняются на каждый пуш.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Paper 26.2 требует 25-й JDK для компиляции; Gradle скачает его сам
+      # (foojay-resolver в settings.gradle.kts), а здесь нужен любой современный.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Тесты
+        run: ./gradlew test
+
+      # Проверка ширин иконок пропускается: клиентский jar распространять нельзя.
+      - name: Сборка
+        run: ./gradlew shadowJar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voidrp-ui
+          path: build/libs/*-all.jar
