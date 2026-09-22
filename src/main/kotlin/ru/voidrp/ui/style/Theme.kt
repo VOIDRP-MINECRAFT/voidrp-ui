@@ -144,11 +144,39 @@ object Theme {
         rebuild()
     }
 
+    /**
+     * A surface a little above the one under it, the way a stylesheet mixes two colours.
+     *
+     * Every surface in the theme is [SURFACE] carried some of the way towards [LINE], the
+     * cool grey the hairlines are tinted with: a page, a card on it, a tile in the card.
+     */
+    private fun lift(amount: Double): Int {
+        fun channel(shift: Int): Int {
+            val from = (SURFACE shr shift) and 0xFF
+            val to = (LINE shr shift) and 0xFF
+            return Math.round(from + (to - from) * amount).toInt().coerceIn(0, 255)
+        }
+        return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
+    }
+
     private fun rebuild() {
-        scrim = Style(background = Paint(BG, 0.93))
+        // Every surface stands on the one below it, so the chain is built from the bottom:
+        // black hides the world, a tint over it makes the ground the theme's own colour,
+        // and each surface above is expressed against what the one below actually came out
+        // as. A colour named outright does not survive the trip through ten bits; a colour
+        // and an opacity chosen together land on it.
+        val ground = Palette.express(BG, 0x000000)
+        scrim = Style(background = Paint(0x000000, 0.93), overlay = ground)
+
+        val onGround = Palette.composite(ground, 0x000000)
+        val pageFill = Palette.express(SURFACE, onGround)
+        val onPage = Palette.composite(pageFill, onGround)
+        val cardFill = Palette.express(lift(0.06), onPage)
+        val onCard = Palette.composite(cardFill, onPage)
+        val tileFill = Palette.express(lift(0.12), onCard)
 
         page = Style(
-            background = Paint(0x0B1224, 0.93),
+            background = pageFill,
             border = Border(1, Paint(LINE, 0.25)),
             radius = R_XL,
             padding = Insets.all(SPACE_6),
@@ -159,7 +187,7 @@ object Theme {
         )
 
         card = Style(
-            background = Paint(LINE, 0.07),
+            background = cardFill,
             border = Border(1, Paint(LINE, 0.14)),
             radius = R_MD,
             padding = Insets.all(SPACE_4),
@@ -191,7 +219,7 @@ object Theme {
         )
 
         buttonGhost = Style(
-            background = Paint(LINE, 0.1),
+            background = tileFill,
             border = Border(1, Paint(LINE, 0.22)),
             radius = R_SM,
             padding = Insets.symmetric(SPACE_2, SPACE_4),

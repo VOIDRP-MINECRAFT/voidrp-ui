@@ -126,7 +126,7 @@ class ShopPage : Page() {
         return Panel(
             width = Size.Fixed(Shaders.CANVAS_WIDTH),
             height = Size.Fixed(Shaders.CANVAS_HEIGHT),
-            style = Style(background = Paint(0x05060D, 0.93)),
+            style = Theme.scrim,
             justify = Justify.CENTER,
             align = Align.CENTER,
             children = listOf(page),
