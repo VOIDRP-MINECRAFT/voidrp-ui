@@ -27,5 +27,5 @@ command:
   players-only: "<red>Команда только для игроков.</red>"
   no-permission: "<red>Недостаточно прав.</red>"
   usage: "<gray>/vui open · /vui screen · /vui pack · /vui help</gray>"
-  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|cursor|shape|text|sweep|clear</gray>"
+  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|cursor|shape|text|shot|sweep|clear</gray>"
   unknown: "<red>Неизвестная команда.</red> <gray>/vui help</gray>"

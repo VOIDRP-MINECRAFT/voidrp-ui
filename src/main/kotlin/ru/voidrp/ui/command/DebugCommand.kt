@@ -159,6 +159,29 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
             // Walks a panel across the canvas so placement can be judged in motion.
             "sweep" -> player(sender)?.let { plugin.startSweep(it) }
 
+            // Design without logging in twice: whatever the player is looking at, drawn to
+            // a PNG next to the plugin. The same renderer the tests and the docs use.
+            "shot" -> player(sender)?.let { player ->
+                val page = plugin.pages.current(player)
+                if (page == null) {
+                    sender.sendMessage("§cСначала откройте страницу.")
+                    return@let
+                }
+                val shapes = args.drop(1).mapNotNull { ru.voidrp.ui.layout.Viewport.parse(it) }
+                    .ifEmpty { listOf(plugin.pages.viewportOf(player)) }
+                val folder = java.io.File(plugin.dataFolder, "preview").apply { mkdirs() }
+                val name = page.javaClass.simpleName.removeSuffix("Page").lowercase()
+                shapes.forEach { screen ->
+                    val file = java.io.File(
+                        folder,
+                        if (shapes.size == 1) "$name.png" else "$name-${screen.width}.png",
+                    )
+                    runCatching { ru.voidrp.ui.preview.Preview.render(page, file, screen) }
+                        .onSuccess { sender.sendMessage("§aСнимок: §f${file.path}") }
+                        .onFailure { sender.sendMessage("§cНе вышло: ${it.message}") }
+                }
+            }
+
             "clear" -> player(sender)?.let { player ->
                 plugin.stopSweep(player)
                 plugin.pages.close(player)
@@ -170,7 +193,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "cursor", "shape", "text", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "cursor", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()
