@@ -349,6 +349,7 @@ class PenAccountingTest {
                     .view()
             },
             "лист состояний" to { screen -> StatesSheet().also { it.viewportHint = screen }.view() },
+            "лист состояний 2" to { screen -> StatesSheet(part = 2).also { it.viewportHint = screen }.view() },
         )
         val outside = mutableListOf<String>()
         Viewport.PRESETS.forEach { (shape, screen) ->

@@ -111,6 +111,7 @@ object Preview {
         render(ru.voidrp.ui.page.ScreenPage(choose = {}), File(out, "screen.png"), Viewport.parse("5:4")!!)
 
         render(StatesSheet().view(), File(out, "states.png"))
+        render(StatesSheet(part = 2).view(), File(out, "states-2.png"))
         render(StatesSheet(hover = "hover:button").view(), File(out, "states-hover.png"))
         println("Снимки: ${out.absolutePath}")
     }

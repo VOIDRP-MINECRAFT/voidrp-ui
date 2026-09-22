@@ -2,6 +2,8 @@ package ru.voidrp.ui.widget
 
 import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Direction
+import ru.voidrp.ui.layout.Icon
+import ru.voidrp.ui.layout.TextAlign
 import ru.voidrp.ui.layout.Justify
 import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.layout.Overlay
@@ -354,6 +356,272 @@ fun progress(
                     height = Size.Fill,
                 )
             ),
+        ),
+    ),
+)
+
+/**
+ * A card with a heading: an icon, a title in small caps, and whatever you put in it.
+ *
+ * Every page ends up writing this by hand — a panel, a row with an icon and a label, a gap,
+ * the contents — and every page writes it slightly differently. This is the one the pages
+ * that ship with the plugin use.
+ */
+fun card(
+    title: String,
+    children: List<View>,
+    icon: String? = null,
+    style: Style = Theme.card,
+    width: Size = Size.Fill,
+    height: Size = Size.Auto,
+    gap: Int = Theme.SPACE_3,
+    trailing: View? = null,
+): View = Panel(
+    style = style,
+    width = width,
+    height = height,
+    gap = gap,
+    children = listOf(
+        Panel(
+            direction = Direction.ROW,
+            width = Size.Fill,
+            gap = Theme.SPACE_2,
+            align = Align.CENTER,
+            children = buildList {
+                icon?.let { add(Icon(it, Theme.TEXT_LEAD, Theme.INK_SOFT)) }
+                add(eyebrow(title, Theme.INK))
+                if (trailing != null) {
+                    add(Panel(width = Size.Fill))
+                    add(trailing)
+                }
+            },
+        ),
+    ) + children,
+)
+
+/**
+ * A row of tabs. The chosen one is filled; the rest are quiet.
+ *
+ * Each reports `"<id>:<key>"`, so a page switches on the suffix and keeps the key it is on
+ * in a field of its own.
+ */
+fun Page.tabs(
+    id: String,
+    tabs: List<Pair<String, String>>,
+    selected: String,
+    height: Int = 36,
+): View = Panel(
+    direction = Direction.ROW,
+    gap = Theme.SPACE_1,
+    align = Align.CENTER,
+    children = tabs.map { (key, caption) ->
+        button(
+            caption,
+            "$id:$key",
+            if (key == selected) Theme.buttonPrimary else Theme.buttonGhost,
+            height = height,
+        )
+    },
+)
+
+/**
+ * A number with a word under it — what a dashboard is made of.
+ *
+ * The label goes above the number and in small caps, because the eye reads the number and
+ * only then asks what it is.
+ */
+fun statTile(
+    label: String,
+    value: String,
+    icon: String? = null,
+    style: Style = Theme.card,
+    width: Size = Size.Fill,
+    accent: Int = Theme.INK,
+): View = Panel(
+    style = style,
+    width = width,
+    // Six, not four: a line of text is taller than the size it is set at, and at four the
+    // label sat on the icon above it.
+    gap = 6,
+    align = Align.CENTER,
+    justify = Justify.CENTER,
+    children = buildList {
+        icon?.let { add(Icon(it, Theme.TEXT_LEAD, Theme.INK_SOFT)) }
+        add(eyebrow(label))
+        add(Text(value, Theme.TEXT_H3, accent, TextFonts.Weight.BOLD, wrap = false))
+    },
+)
+
+/** A square button with nothing but an icon in it — a rail, a toolbar, a close button. */
+fun Page.iconButton(
+    icon: String,
+    id: String,
+    size: Int = 42,
+    style: Style = Theme.buttonGhost,
+    selected: Boolean = false,
+    iconSize: Int = 20,
+): View = Panel(
+    style = when {
+        selected -> Theme.buttonPrimary
+        hovered == id -> style.hover()
+        else -> style
+    },
+    width = Size.Fixed(size),
+    height = Size.Fixed(size),
+    justify = Justify.CENTER,
+    align = Align.CENTER,
+    id = id,
+    children = listOf(Icon(icon, iconSize, if (selected) 0xFFFFFF else Theme.INK_DIM)),
+)
+
+/** A switch: the same state a tick box holds, where the page wants it to read as on or off. */
+fun Page.toggle(
+    id: String,
+    on: Boolean,
+    label: String? = null,
+): View = Panel(
+    direction = Direction.ROW,
+    gap = Theme.SPACE_2,
+    align = Align.CENTER,
+    id = id,
+    children = buildList {
+        add(
+            Panel(
+                style = Style(
+                    background = Paint(if (on) Theme.VIOLET else Theme.LINE, if (on) 0.9 else 0.16),
+                    radius = 11,
+                ),
+                width = Size.Fixed(40),
+                height = Size.Fixed(22),
+                direction = Direction.ROW,
+                align = Align.CENTER,
+                justify = if (on) Justify.END else Justify.START,
+                children = listOf(
+                    Panel(
+                        style = Style(background = Paint(0xFFFFFF, if (on) 1.0 else 0.65), radius = 9),
+                        width = Size.Fixed(18),
+                        height = Size.Fixed(18),
+                    ),
+                ),
+            ),
+        )
+        label?.let { add(Text(it, Theme.TEXT_BODY, if (on) Theme.INK else Theme.INK_SOFT, wrap = false)) }
+    },
+)
+
+/** A hairline across a panel, for where a gap is not enough of a break. */
+fun divider(width: Size = Size.Fill, paint: Paint = Paint(Theme.LINE, 0.12)): View = Panel(
+    style = Style(background = paint),
+    width = width,
+    height = Size.Fixed(1),
+)
+
+/** What a page says when there is nothing to show — an invitation, not an apology. */
+fun emptyState(
+    title: String,
+    hint: String? = null,
+    icon: String = "inbox",
+): View = Panel(
+    width = Size.Fill,
+    gap = Theme.SPACE_3,
+    align = Align.CENTER,
+    justify = Justify.CENTER,
+    style = Style(padding = Insets.all(Theme.SPACE_6)),
+    children = buildList {
+        add(Icon(icon, Theme.TEXT_H2, Theme.INK_DIM))
+        add(Text(title, Theme.TEXT_LEAD, Theme.INK_SOFT, TextFonts.Weight.SEMIBOLD, align = TextAlign.CENTER))
+        hint?.let { add(Text(it, Theme.TEXT_CAPTION, Theme.INK_DIM, align = TextAlign.CENTER)) }
+    },
+)
+
+/** How a notice is meant to be read. */
+enum class Tone { INFO, GOOD, WARN, BAD }
+
+/**
+ * A line of explanation with a colour to it: what went wrong, what is about to happen,
+ * what just did.
+ */
+fun notice(text: String, tone: Tone = Tone.INFO, width: Size = Size.Fill): View {
+    val colour = when (tone) {
+        Tone.INFO -> Theme.VIOLET_SOFT
+        Tone.GOOD -> Theme.GREEN
+        Tone.WARN -> Theme.GOLD
+        Tone.BAD -> Theme.RED
+    }
+    return Panel(
+        style = Style(
+            background = Paint(colour, 0.1),
+            border = Border(1, Paint(colour, 0.35)),
+            radius = Theme.R_MD,
+            padding = Insets.symmetric(Theme.SPACE_2, Theme.SPACE_3),
+        ),
+        width = width,
+        direction = Direction.ROW,
+        gap = Theme.SPACE_2,
+        align = Align.CENTER,
+        children = listOf(
+            Icon(
+                when (tone) {
+                    Tone.GOOD -> "check"
+                    Tone.BAD -> "alert"
+                    Tone.WARN -> "alert"
+                    Tone.INFO -> "sparkles"
+                },
+                Theme.TEXT_LEAD,
+                colour,
+            ),
+            Text(text, Theme.TEXT_BODY, Theme.INK_SOFT),
+        ),
+    )
+}
+
+/**
+ * A question with two answers, standing over the page.
+ *
+ * Reports `"<id>:yes"` and `"<id>:no"`. Put it in an [Overlay] at the root of the page, so
+ * that it covers what it is asking about.
+ */
+fun Page.dialog(
+    id: String,
+    title: String,
+    text: String? = null,
+    yes: String = "Да",
+    no: String = "Отмена",
+    tone: Tone = Tone.INFO,
+    width: Int = 420,
+): View = Panel(
+    width = Size.Fixed(viewport.width),
+    height = Size.Fixed(viewport.height),
+    style = Style(background = Paint(0x000000, 0.6)),
+    justify = Justify.CENTER,
+    align = Align.CENTER,
+    children = listOf(
+        Panel(
+            style = Theme.menu.copy(padding = Insets.all(Theme.SPACE_5)),
+            width = Size.Fixed(width),
+            gap = Theme.SPACE_3,
+            align = Align.CENTER,
+            children = buildList {
+                add(Text(title, Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.BOLD, align = TextAlign.CENTER))
+                text?.let { add(Text(it, Theme.TEXT_BODY, Theme.INK_SOFT, align = TextAlign.CENTER)) }
+                add(
+                    Panel(
+                        direction = Direction.ROW,
+                        gap = Theme.SPACE_2,
+                        justify = Justify.CENTER,
+                        width = Size.Fill,
+                        children = listOf(
+                            button(
+                                yes,
+                                "$id:yes",
+                                if (tone == Tone.BAD) Theme.buttonPrimary.copy(background = Paint(Theme.RED, 0.9)) else Theme.buttonPrimary,
+                                Size.Fixed(150),
+                            ),
+                            button(no, "$id:no", Theme.buttonGhost, Size.Fixed(150)),
+                        ),
+                    ),
+                )
+            },
         ),
     ),
 )
