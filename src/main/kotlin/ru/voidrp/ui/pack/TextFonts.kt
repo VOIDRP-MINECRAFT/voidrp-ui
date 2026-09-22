@@ -143,9 +143,11 @@ object TextFonts {
             add("\" \": ${sheet.spaceAdvance}")
             Glyphs.spacers().forEach { (char, advance) -> add("\"${Fonts.escapeJson(char)}\": $advance") }
         }
-        return """{"providers": [{"type": "space", "advances": {${advances.joinToString(", ")}}},
+        return Fonts.compact(
+            """{"providers": [{"type": "space", "advances": {${advances.joinToString(", ")}}},
             {"type": "bitmap", "file": "voidrp:${sheet.textureName}", "height": ${sheet.cellHeight},
              "ascent": 0, "chars": [$chars]}]}"""
+        )
     }
 
     /** Draws one weight at one size into a grid of cells and measures every letter. */

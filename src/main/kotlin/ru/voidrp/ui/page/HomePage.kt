@@ -93,7 +93,8 @@ class HomePage : Page() {
     )
 
     /** A sky behind the page. Each star is one unit of nothing much, and they add up. */
-    private fun starNodes(): List<View> = stars.mapIndexed { index, (x, y) ->
+    private fun starNodes(): List<View> = (stars + stars.map { (x, y) -> (x + 0.037) % 1.0 to (y + 0.41) % 1.0 })
+        .mapIndexed { index, (x, y) ->
         val size = if (index % 5 == 0) 2 else 1
         Raw(
             Rect(

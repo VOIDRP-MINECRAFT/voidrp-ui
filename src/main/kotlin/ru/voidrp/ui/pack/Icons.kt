@@ -94,7 +94,9 @@ object Icons {
             """{"type": "bitmap", "file": "minecraft:$name.png", "ascent": 0,
                 "height": $size, "chars": ["${Fonts.escapeJson(String(Character.toChars(BASE + i)))}"]}"""
         }
-        return """{"providers": [{"type": "space", "advances": { $advances }},
+        return Fonts.compact(
+            """{"providers": [{"type": "space", "advances": { $advances }},
             ${providers.joinToString(", ")}]}"""
+        )
     }
 }

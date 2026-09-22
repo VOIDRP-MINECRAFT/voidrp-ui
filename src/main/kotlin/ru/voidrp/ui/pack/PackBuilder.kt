@@ -204,7 +204,7 @@ class PackBuilder(
             "\"${char.escaped()}\": $advance"
         }
         providers += """{"type": "space", "advances": { $advances }}"""
-        return """{ "providers": [ ${providers.joinToString(",\n")} ] }"""
+        return Fonts.compact("""{ "providers": [ ${providers.joinToString(", ")} ] }""")
     }
 
     /**

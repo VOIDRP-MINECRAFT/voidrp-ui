@@ -89,7 +89,9 @@ object UiIcons {
             """{"type": "bitmap", "file": "voidrp:${textureName(name, size)}", "ascent": 0,
                 "height": ${nearestSize(size)}, "chars": ["${Fonts.escapeJson(String(Character.toChars(BASE + i)))}"]}"""
         }
-        return """{"providers": [{"type": "space", "advances": { $advances }},
+        return Fonts.compact(
+            """{"providers": [{"type": "space", "advances": { $advances }},
             ${providers.joinToString(", ")}]}"""
+        )
     }
 }

@@ -11,6 +11,15 @@ package ru.voidrp.ui.pack
 object Fonts {
 
     /**
+     * Squeezes the whitespace out of a font file.
+     *
+     * These files declare a glyph per line for thousands of items, and the indentation
+     * that makes the generator readable is a megabyte the player has to download.
+     */
+    fun compact(json: String): String = json.replace(Regex("\\s*\\n\\s*"), " ")
+
+
+    /**
      * JSON escaping that survives characters outside the basic plane.
      *
      * Writing every code point as \uXXXX broke them: a five-digit escape like \u10330 is
