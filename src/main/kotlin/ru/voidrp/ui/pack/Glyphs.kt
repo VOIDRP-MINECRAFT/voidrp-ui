@@ -43,7 +43,7 @@ object Glyphs {
      * Corner radii, in canvas pixels. A rounded box is four of these plus plain
      * rectangles, so only these sizes exist — like a design system's radius scale.
      */
-    val RADII = listOf(4, 6, 8, 12, 16, 20, 24)
+    val RADII = listOf(3, 4, 5, 6, 7, 8, 11, 12, 15, 16, 19, 20, 23, 24)
 
     /** The pointer, drawn from a texture of its own so it costs one glyph, not thirty. */
     const val CURSOR_SIZE = Pointer.SIZE
@@ -51,6 +51,7 @@ object Glyphs {
     private const val CURSOR_CODE = 0xE900
     private const val RECT_BASE = 0xE000
     private const val CORNER_BASE = 0xE400
+    private const val RING_BASE = 0xE600
     private const val SPACER_BASE = 0xE800
 
     /** The font that draws shapes at [level]/8 opacity. */
@@ -93,6 +94,20 @@ object Glyphs {
 
     fun cornerTextureName(radius: Int, corner: Corner): String =
         "corner_${radius}_${corner.name.lowercase()}"
+
+    /**
+     * The outline of a corner rather than the whole of it.
+     *
+     * A border drawn with filled quarter discs looked wrong: the card's own fill goes over
+     * them, so the corners blended twice and came out brighter than the straight sides —
+     * four pale brackets around every panel. An arc one unit thick leaves nothing under
+     * the fill to blend with.
+     */
+    fun ringCorner(radius: Int, corner: Corner): String =
+        cp(RING_BASE + RADII.indexOf(radius) * Corner.entries.size + corner.ordinal)
+
+    fun ringTextureName(radius: Int, corner: Corner): String =
+        "ring_${radius}_${corner.name.lowercase()}"
 
     /**
      * A bitmap glyph advances the pen by its width plus one pixel of letter spacing. The

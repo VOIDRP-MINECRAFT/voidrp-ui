@@ -179,6 +179,10 @@ class PackBuilder(
                     {"type": "bitmap", "file": "$dir/${Glyphs.cornerTextureName(radius, corner)}.png",
                      "ascent": 0, "height": $radius, "chars": ["${Glyphs.corner(radius, corner).escaped()}"]}
                 """.trimIndent()
+                providers += """
+                    {"type": "bitmap", "file": "$dir/${Glyphs.ringTextureName(radius, corner)}.png",
+                     "ascent": 0, "height": $radius, "chars": ["${Glyphs.ringCorner(radius, corner).escaped()}"]}
+                """.trimIndent()
             }
         }
         providers += """
@@ -217,7 +221,8 @@ class PackBuilder(
             out[name] = image.toPng()
         }
         for (radius in Glyphs.RADII) for (corner in Glyphs.Corner.entries) {
-            out[Glyphs.cornerTextureName(radius, corner)] = cornerTexture(radius, corner, alpha)
+            out[Glyphs.cornerTextureName(radius, corner)] = cornerTexture(radius, corner, alpha, ring = false)
+            out[Glyphs.ringTextureName(radius, corner)] = cornerTexture(radius, corner, alpha, ring = true)
         }
         out["cursor"] = Pointer.png(alpha)
         return out
@@ -227,7 +232,12 @@ class PackBuilder(
      * A quarter disc filling the inside of one corner. Coverage is measured by sampling
      * each pixel 4×4, so the curve has soft edges instead of a staircase.
      */
-    private fun cornerTexture(radius: Int, corner: Glyphs.Corner, alpha: Double): ByteArray {
+    private fun cornerTexture(
+        radius: Int,
+        corner: Glyphs.Corner,
+        alpha: Double,
+        ring: Boolean,
+    ): ByteArray {
         // The centre of the circle is the inner corner of the piece — the one that touches
         // the rest of the panel.
         val cx = if (corner == Glyphs.Corner.TOP_LEFT || corner == Glyphs.Corner.BOTTOM_LEFT) radius.toDouble() else 0.0
@@ -236,12 +246,16 @@ class PackBuilder(
         val steps = 4
         for (x in 0 until radius) for (y in 0 until radius) {
             var inside = 0
+            val innerRadius = radius - 1.0
             for (sx in 0 until steps) for (sy in 0 until steps) {
                 val px = x + (sx + 0.5) / steps
                 val py = y + (sy + 0.5) / steps
                 val dx = px - cx
                 val dy = py - cy
-                if (dx * dx + dy * dy <= radius.toDouble() * radius) inside++
+                val distance = dx * dx + dy * dy
+                val within = distance <= radius.toDouble() * radius
+                // A ring is the outermost unit of the disc and nothing else.
+                if (if (ring) within && distance > innerRadius * innerRadius else within) inside++
             }
             val coverage = inside.toDouble() / (steps * steps)
             val a = Math.round(coverage * alpha * 255).toInt()

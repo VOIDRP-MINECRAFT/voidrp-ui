@@ -4,8 +4,10 @@ import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Direction
 import ru.voidrp.ui.layout.Grid
 import ru.voidrp.ui.layout.Icon
+import ru.voidrp.ui.layout.Image
 import ru.voidrp.ui.layout.Justify
 import ru.voidrp.ui.layout.Panel
+import ru.voidrp.ui.layout.Raw
 import ru.voidrp.ui.layout.RichText
 import ru.voidrp.ui.layout.Size
 import ru.voidrp.ui.layout.Span
@@ -13,123 +15,146 @@ import ru.voidrp.ui.layout.Text
 import ru.voidrp.ui.layout.View
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.pack.TextFonts
+import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.style.Border
 import ru.voidrp.ui.style.Insets
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
-import ru.voidrp.ui.widget.button
 import ru.voidrp.ui.widget.chip
 import ru.voidrp.ui.widget.eyebrow
 
 /**
  * The in-game home screen, rebuilt on a vanilla client.
  *
- * It is the same screen the modded servers open with F6 — the one drawn by a browser
- * embedded in the game — set here in glyphs instead: the icon rail, the profile card, the
- * welcome panel, the four numbers, the stat grid, the shortcuts and the leaderboard.
- * Nothing is installed on the client; the data here is made up, because the point of this
- * page is the design.
+ * It is the screen the modded servers open with F6 — drawn there by a browser embedded in
+ * the game — set here in glyphs instead, element for element: the starfield, the icon
+ * rail, the top bar with its balances, the profile card, the welcome panel, the four
+ * numbers, the stat tiles, the shortcuts and the achievements.
+ *
+ * The data is made up. The point of the page is the design.
  */
 class HomePage : Page() {
 
     private val rail = listOf(
-        "home" to "Главная",
-        "tech" to "Технологии",
-        "treasury" to "Казна",
-        "users" to "Государство",
-        "quest" to "Квесты",
-        "trophy" to "Рейтинги",
-        "battlepass" to "Пропуск",
-        "bell" to "Уведомления",
-        "market" to "Рынок",
-        "globe" to "Карта",
-        "user" to "Профиль",
-        "settings" to "Настройки",
+        "home", "tech", "treasury", "users", "quest", "trophy",
+        "battlepass", "bell", "market", "globe", "user", "settings",
     )
 
     private val tiles = listOf(
-        "market" to "Рынок",
-        "quest" to "Квесты",
-        "battlepass" to "Пропуск",
-        "treasury" to "Казна",
         "tech" to "Технологии",
-        "trophy" to "Рейтинги",
+        "treasury" to "Казна",
+        "quest" to "Квесты",
+        "alliance" to "Альянс",
+        "market" to "Рынок",
+        "battlepass" to "Пропуск",
     )
 
     private val stats = listOf(
-        Triple("target", "K/D", "2.41"),
-        Triple("flame", "Серия", "14"),
-        Triple("skull", "Мобов", "3 820"),
+        Triple("target", "K/D", "3.86"),
+        Triple("flame", "Лучший стрик", "14"),
+        Triple("skull", "Мобов убито", "3 820"),
         Triple("quest", "Квестов", "57"),
-        Triple("pickaxe", "Сломано", "128 407"),
-        Triple("package", "Поставлено", "96 233"),
+        Triple("pickaxe", "Блоков добыто", "128 407"),
+        Triple("package", "Блоков установлено", "96 233"),
     )
-
-    private val nations = listOf(
-        Triple(1, "VLD" to "Валдария", "412 900"),
-        Triple(2, "NRD" to "Нордхейм", "355 120"),
-        Triple(3, "ARC" to "Аркадия", "298 640"),
-    )
-
-    /** Minutes played each day, as a share of the best day. */
-    private val minutes = listOf(0.35, 0.52, 0.28, 0.74, 0.61, 0.88, 1.0, 0.44, 0.39, 0.67, 0.82, 0.55, 0.71, 0.48)
 
     private val achievements = listOf(
-        "trophy" to true, "star" to true, "crown" to true, "flame" to true, "zap" to true, "gift" to true,
-        "target" to false, "pickaxe" to false, "swords" to false, "shield" to false, "map" to false, "lock" to false,
+        "Первый алмаз" to true,
+        "Сто убийств" to true,
+        "Основатель" to true,
+        "Ночь в аду" to true,
+        "Сотня квестов" to false,
+        "Мастер торговли" to false,
+    )
+
+    /** Where the stars sit, as fractions of the canvas, so they scatter the same each time. */
+    private val stars = listOf(
+        0.04 to 0.08, 0.11 to 0.31, 0.07 to 0.62, 0.15 to 0.85, 0.21 to 0.17,
+        0.26 to 0.55, 0.33 to 0.09, 0.38 to 0.74, 0.44 to 0.28, 0.49 to 0.91,
+        0.55 to 0.13, 0.61 to 0.47, 0.66 to 0.80, 0.72 to 0.22, 0.77 to 0.63,
+        0.83 to 0.36, 0.88 to 0.71, 0.93 to 0.12, 0.96 to 0.52, 0.99 to 0.88,
+        0.18 to 0.44, 0.29 to 0.68, 0.41 to 0.05, 0.52 to 0.34, 0.69 to 0.95,
+        0.86 to 0.26, 0.13 to 0.96, 0.58 to 0.71, 0.75 to 0.48, 0.35 to 0.39,
     )
 
     private var selected = "home"
 
-    override fun view(): View {
-        val window = Panel(
-            style = Theme.page.copy(padding = Insets.NONE, radius = Theme.R_XL),
-            width = Size.Fixed(1420),
-            height = Size.Fixed(860),
-            direction = Direction.ROW,
-            children = listOf(iconRail(), content()),
-        )
+    override fun view(): View = Panel(
+        width = Size.Fixed(Shaders.CANVAS_WIDTH),
+        height = Size.Fixed(Shaders.CANVAS_HEIGHT),
+        // Not a window floating over the world: the screen belongs to the interface, the
+        // way it does when a browser is drawing it.
+        style = Style(background = Paint(0x0A0716, 0.97)),
+        direction = Direction.ROW,
+        // The stars are placed on the canvas directly and take no room in the row, so the
+        // rail and the page lay out as if they were not there.
+        children = starNodes() + listOf(iconRail(), content()),
+    )
 
-        return Panel(
-            width = Size.Fixed(Shaders.CANVAS_WIDTH),
-            height = Size.Fixed(Shaders.CANVAS_HEIGHT),
-            style = Theme.scrim,
-            justify = Justify.CENTER,
-            align = Align.CENTER,
-            children = listOf(window),
+    /** A sky behind the page. Each star is one unit of nothing much, and they add up. */
+    private fun starNodes(): List<View> = stars.mapIndexed { index, (x, y) ->
+        val size = if (index % 5 == 0) 2 else 1
+        Raw(
+            Rect(
+                (x * Shaders.CANVAS_WIDTH).toInt(),
+                (y * Shaders.CANVAS_HEIGHT).toInt(),
+                size,
+                size,
+                Paint(if (index % 3 == 0) Theme.VIOLET_SOFT else Theme.INK, if (index % 2 == 0) 0.5 else 0.28),
+            )
         )
     }
 
-    /** The narrow column of icons down the left, as the WebGUI has it. */
+    /** The rail: icons only, no panel around them, the current one filled violet. */
     private fun iconRail() = Panel(
-        style = Style(
-            background = Paint(0x05060D, 0.55),
-            border = Border(1, Paint(Theme.LINE, 0.1)),
-            radius = Theme.R_XL,
-            padding = Insets.symmetric(Theme.SPACE_3, Theme.SPACE_2),
-        ),
-        width = Size.Fixed(64),
+        width = Size.Fixed(68),
         height = Size.Fill,
+        style = Style(padding = Insets.symmetric(Theme.SPACE_4, Theme.SPACE_3)),
         gap = 6,
         align = Align.CENTER,
-        children = rail.map { (name, _) ->
-            val id = "rail:$name"
-            val active = selected == name
-            Panel(
-                style = when {
-                    active -> Style(background = Paint(Theme.VIOLET, 0.22), radius = 10)
-                    hovered == id -> Style(background = Paint(Theme.LINE, 0.1), radius = 10)
-                    else -> Style(radius = 10)
-                },
-                width = Size.Fixed(40),
-                height = Size.Fixed(40),
-                justify = Justify.CENTER,
-                align = Align.CENTER,
-                id = id,
-                children = listOf(
-                    Icon(name, 20, if (active) Theme.INK else Theme.INK_DIM)
-                ),
+        children = buildList {
+            add(
+                Panel(
+                    style = Style(background = Paint(Theme.VIOLET, 0.9), radius = 10),
+                    width = Size.Fixed(34),
+                    height = Size.Fixed(34),
+                    justify = Justify.CENTER,
+                    align = Align.CENTER,
+                    children = listOf(Icon("voidcoin", 16, 0x0B0A1F)),
+                )
+            )
+            add(Panel(height = Size.Fixed(Theme.SPACE_3)))
+            rail.forEach { name ->
+                val id = "rail:$name"
+                val active = selected == name
+                add(
+                    Panel(
+                        style = when {
+                            active -> Style(background = Paint(Theme.VIOLET, 0.9), radius = 12)
+                            hovered == id -> Style(background = Paint(Theme.LINE, 0.1), radius = 12)
+                            else -> Style(radius = 12)
+                        },
+                        width = Size.Fixed(42),
+                        height = Size.Fixed(42),
+                        justify = Justify.CENTER,
+                        align = Align.CENTER,
+                        id = id,
+                        children = listOf(Icon(name, 20, if (active) 0x140F2E else Theme.INK_DIM)),
+                    )
+                )
+            }
+            add(Panel(height = Size.Fill))
+            add(
+                Panel(
+                    style = Style(radius = 12),
+                    width = Size.Fixed(42),
+                    height = Size.Fixed(42),
+                    justify = Justify.CENTER,
+                    align = Align.CENTER,
+                    id = "logout",
+                    children = listOf(Icon("logout", 20, Theme.INK_DIM)),
+                )
             )
         },
     )
@@ -137,13 +162,14 @@ class HomePage : Page() {
     private fun content() = Panel(
         width = Size.Fill,
         height = Size.Fill,
-        style = Style(padding = Insets.all(Theme.SPACE_5)),
+        style = Style(padding = Insets(0, Theme.SPACE_6, Theme.SPACE_5, 0)),
         gap = Theme.SPACE_4,
         children = listOf(
             topBar(),
             Panel(
                 direction = Direction.ROW,
                 width = Size.Fill,
+                height = Size.Fill,
                 gap = Theme.SPACE_4,
                 align = Align.START,
                 children = listOf(profile(), rightColumn()),
@@ -154,6 +180,7 @@ class HomePage : Page() {
     private fun topBar() = Panel(
         direction = Direction.ROW,
         width = Size.Fill,
+        height = Size.Fixed(58),
         align = Align.CENTER,
         gap = Theme.SPACE_3,
         children = listOf(
@@ -162,13 +189,41 @@ class HomePage : Page() {
                     Span("VOID", Theme.INK, TextFonts.Weight.BOLD),
                     Span("RP", Theme.VIOLET_SOFT, TextFonts.Weight.BOLD),
                 ),
-                size = Theme.TEXT_H3,
+                size = Theme.TEXT_LEAD,
             ),
-            Text("/", Theme.TEXT_H3, Theme.INK_DIM, wrap = false),
+            Text("/", Theme.TEXT_LEAD, Theme.INK_DIM, wrap = false),
             eyebrow("Главная"),
             Panel(width = Size.Fill),
+            balanceChip("voidcoin", "120", Theme.VIOLET_SOFT),
+            balanceChip("coins", "184 200", Theme.GOLD),
             Panel(
-                style = if (hovered == "close") Theme.cardAccent else Theme.card.copy(padding = Insets.all(8)),
+                style = Style(
+                    background = Paint(Theme.LINE, 0.06),
+                    border = Border(1, Paint(Theme.LINE, 0.16)),
+                    radius = Theme.R_MD,
+                    padding = Insets.symmetric(6, 10),
+                ),
+                direction = Direction.ROW,
+                gap = Theme.SPACE_2,
+                align = Align.CENTER,
+                children = listOf(
+                    Panel(
+                        style = Style(background = Paint(Theme.VIOLET, 0.25), radius = 6),
+                        width = Size.Fixed(24),
+                        height = Size.Fixed(24),
+                        justify = Justify.CENTER,
+                        align = Align.CENTER,
+                        children = listOf(Icon("user", 12, Theme.VIOLET_SOFT)),
+                    ),
+                    eyebrow("lvl 37"),
+                ),
+            ),
+            Panel(
+                style = if (hovered == "close") {
+                    Style(background = Paint(Theme.RED, 0.2), border = Border(1, Paint(Theme.RED, 0.4)), radius = Theme.R_MD)
+                } else {
+                    Style(background = Paint(Theme.LINE, 0.06), border = Border(1, Paint(Theme.LINE, 0.16)), radius = Theme.R_MD)
+                },
                 width = Size.Fixed(36),
                 height = Size.Fixed(36),
                 justify = Justify.CENTER,
@@ -179,49 +234,66 @@ class HomePage : Page() {
         ),
     )
 
-    /** The player card: a portrait, a name, the nation they belong to, their pass. */
+    private fun balanceChip(icon: String, value: String, colour: Int) = Panel(
+        style = Style(
+            background = Paint(colour, 0.12),
+            border = Border(1, Paint(colour, 0.3)),
+            radius = Theme.R_MD,
+            padding = Insets.symmetric(7, 12),
+        ),
+        direction = Direction.ROW,
+        gap = 6,
+        align = Align.CENTER,
+        children = listOf(
+            Icon(icon, 14, colour),
+            Text(value, Theme.TEXT_BODY, colour, TextFonts.Weight.BOLD, wrap = false),
+        ),
+    )
+
+    /** The player card: the portrait stage, the name, the nation, the pass. */
     private fun profile() = Panel(
-        style = Theme.card.copy(radius = Theme.R_LG),
-        width = Size.Fixed(300),
-        height = Size.Fill,
+        style = Style(
+            background = Paint(Theme.LINE, 0.05),
+            border = Border(1, Paint(Theme.LINE, 0.12)),
+            radius = Theme.R_XL,
+            padding = Insets.all(Theme.SPACE_4),
+        ),
+        width = Size.Fixed(318),
         gap = Theme.SPACE_3,
         align = Align.CENTER,
         children = listOf(
             Panel(
                 style = Style(
-                    background = Paint(Theme.VIOLET, 0.1),
-                    border = Border(1, Paint(Theme.VIOLET, 0.3)),
+                    background = Paint(0x141033, 0.9),
+                    border = Border(1, Paint(Theme.LINE, 0.1)),
                     radius = Theme.R_LG,
                 ),
                 width = Size.Fill,
-                height = Size.Fixed(180),
+                height = Size.Fixed(300),
                 justify = Justify.CENTER,
                 align = Align.CENTER,
-                children = listOf(Icon("user", 64, Theme.VIOLET_SOFT)),
+                children = listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
             ),
-            Text("mironoouv", Theme.TEXT_H3, Theme.VIOLET_SOFT, TextFonts.Weight.BOLD, wrap = false),
-            Panel(
-                direction = Direction.ROW,
-                gap = Theme.SPACE_2,
-                align = Align.CENTER,
-                children = listOf(
-                    chip("VLD", Theme.chipAccent),
-                    Text("Валдария", Theme.TEXT_BODY, Theme.INK_SOFT, wrap = false),
-                ),
-            ),
+            Text("mironoouv", Theme.TEXT_H2, Theme.VIOLET_SOFT, TextFonts.Weight.BOLD, wrap = false),
+            chip("VLD", Theme.chipAccent),
             Panel(
                 direction = Direction.ROW,
                 gap = 6,
                 align = Align.CENTER,
                 children = listOf(
                     Icon("shield", 12, Theme.INK_DIM),
-                    Text("Лидер · Основатель", Theme.TEXT_CAPTION, Theme.INK_DIM, wrap = false),
+                    Text("Глава · Валдария", Theme.TEXT_BODY, Theme.INK_SOFT, wrap = false),
                 ),
             ),
-            Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
             Panel(
+                style = Style(
+                    background = Paint(Theme.LINE, 0.05),
+                    border = Border(1, Paint(Theme.LINE, 0.1)),
+                    radius = Theme.R_MD,
+                    padding = Insets.all(Theme.SPACE_3),
+                ),
                 width = Size.Fill,
-                gap = 6,
+                gap = Theme.SPACE_2,
                 children = listOf(
                     Panel(
                         direction = Direction.ROW,
@@ -232,7 +304,21 @@ class HomePage : Page() {
                             Icon("battlepass", 14, Theme.INK_SOFT),
                             Text("Уровень 37", Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
                             Panel(width = Size.Fill),
-                            chip("Premium", Theme.chip.copy(textColour = Theme.GOLD)),
+                            Panel(
+                                style = Style(
+                                    background = Paint(Theme.GOLD, 0.16),
+                                    border = Border(1, Paint(Theme.GOLD, 0.35)),
+                                    radius = 7,
+                                    padding = Insets.symmetric(3, 8),
+                                ),
+                                direction = Direction.ROW,
+                                gap = 4,
+                                align = Align.CENTER,
+                                children = listOf(
+                                    Icon("crown", 12, Theme.GOLD),
+                                    Text("Premium", Theme.TEXT_CAPTION, Theme.GOLD, TextFonts.Weight.SEMIBOLD, wrap = false),
+                                ),
+                            ),
                         ),
                     ),
                     Panel(
@@ -243,69 +329,14 @@ class HomePage : Page() {
                         children = listOf(
                             Panel(
                                 style = Style(background = Paint(Theme.GOLD, 0.95), radius = 4),
-                                width = Size.Percent(0.64),
+                                width = Size.Percent(0.08),
                                 height = Size.Fill,
                             )
                         ),
                     ),
                 ),
             ),
-            Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
-            Panel(
-                width = Size.Fill,
-                gap = Theme.SPACE_2,
-                children = listOf(
-                    Panel(
-                        direction = Direction.ROW,
-                        width = Size.Fill,
-                        align = Align.CENTER,
-                        children = listOf(
-                            eyebrow("Достижения"),
-                            Panel(width = Size.Fill),
-                            Text("12 / 40", Theme.TEXT_CAPTION, Theme.INK_SOFT, TextFonts.Weight.SEMIBOLD, wrap = false),
-                        ),
-                    ),
-                    Grid(
-                        columns = 6,
-                        gap = 6,
-                        rowGap = 6,
-                        width = Size.Fill,
-                        children = achievements.map { (icon, unlocked) ->
-                            Panel(
-                                style = Style(
-                                    background = Paint(if (unlocked) Theme.VIOLET else Theme.LINE, if (unlocked) 0.16 else 0.05),
-                                    border = Border(1, Paint(if (unlocked) Theme.VIOLET else Theme.LINE, if (unlocked) 0.4 else 0.1)),
-                                    radius = 8,
-                                ),
-                                width = Size.Fill,
-                                height = Size.Fixed(36),
-                                justify = Justify.CENTER,
-                                align = Align.CENTER,
-                                children = listOf(
-                                    Icon(icon, 16, if (unlocked) Theme.VIOLET_SOFT else Theme.INK_DIM)
-                                ),
-                            )
-                        },
-                    ),
-                ),
-            ),
-            Panel(height = Size.Fill),
-            Panel(
-                direction = Direction.ROW,
-                width = Size.Fill,
-                align = Align.CENTER,
-                gap = Theme.SPACE_2,
-                children = listOf(
-                    Panel(
-                        style = Style(background = Paint(Theme.GREEN, 0.9), radius = 4),
-                        width = Size.Fixed(6),
-                        height = Size.Fixed(6),
-                    ),
-                    Text("48 ms", Theme.TEXT_CAPTION, Theme.INK_SOFT, wrap = false),
-                    Panel(width = Size.Fill),
-                    Text("с 12 мар 2026", Theme.TEXT_CAPTION, Theme.INK_DIM, wrap = false),
-                ),
-            ),
+            Text("с 12 мар. 2026 г.", Theme.TEXT_CAPTION, Theme.INK_DIM, wrap = false),
         ),
     )
 
@@ -322,95 +353,82 @@ class HomePage : Page() {
                 align = Align.START,
                 children = listOf(statsPanel(), tilesPanel()),
             ),
-            topNations(),
-            activity(),
+            achievementsPanel(),
         ),
     )
 
-    /**
-     * Fourteen days of play, as bars.
-     *
-     * A chart is the one thing this medium draws as easily as a browser does: a bar is a
-     * rectangle, and rectangles are what everything here is made of.
-     */
-    private fun activity() = Panel(
-        style = Theme.card.copy(radius = Theme.R_LG),
-        width = Size.Fill,
-        // A definite height, because bars are a share of something: "fill what is left"
-        // inside a column that is itself as tall as its contents leaves nothing to share.
-        height = Size.Fixed(168),
-        gap = Theme.SPACE_3,
-        children = listOf(
-            Panel(
-                direction = Direction.ROW,
-                width = Size.Fill,
-                align = Align.CENTER,
-                gap = Theme.SPACE_2,
-                children = listOf(
-                    Icon("activity", 16, Theme.INK_SOFT),
-                    Text("Активность", Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
-                    Panel(width = Size.Fill),
-                    eyebrow("14 дней"),
-                ),
-            ),
-            Panel(
-                direction = Direction.ROW,
-                width = Size.Fill,
-                height = Size.Fixed(96),
-                gap = 6,
-                align = Align.END,
-                children = minutes.mapIndexed { index, value ->
-                    val id = "day:$index"
-                    Panel(
-                        width = Size.Fill,
-                        height = Size.Percent(value),
-                        style = Style(
-                            background = Paint(
-                                if (hovered == id) Theme.VIOLET_SOFT else Theme.VIOLET,
-                                if (hovered == id) 0.95 else 0.6,
-                            ),
-                            radius = 4,
-                        ),
-                        id = id,
-                    )
-                },
-            ),
-        ),
-    )
-
-    /** The welcome panel: the one place on the page allowed to be loud. */
+    /** The one loud thing on the page, with a few blocks thrown behind the words. */
     private fun welcome() = Panel(
         style = Style(
-            background = Paint(0x221840, 0.88),
+            background = Paint(0x2A1B5E, 0.92),
             border = Border(1, Paint(Theme.VIOLET, 0.26)),
             radius = Theme.R_XL,
-            padding = Insets.all(Theme.SPACE_5),
         ),
         width = Size.Fill,
-        height = Size.Fixed(212),
-        gap = Theme.SPACE_2,
+        height = Size.Fixed(196),
+        direction = Direction.ROW,
+        align = Align.CENTER,
         children = listOf(
-            eyebrow("VoidRP · сезон 3", Theme.VIOLET_SOFT),
-            RichText(
-                spans = listOf(
-                    Span("Добро пожаловать в ", Theme.INK),
-                    Span("VOID", Theme.INK, TextFonts.Weight.BOLD),
-                    Span("RP", Theme.VIOLET_SOFT, TextFonts.Weight.BOLD),
-                ),
-                size = Theme.TEXT_H2,
-                weight = TextFonts.Weight.BOLD,
-            ),
-            Text(
-                "Государства, экономика и рейтинги — всё здесь, не выходя из игры.",
-                Theme.TEXT_BODY,
-                Theme.INK_SOFT,
-            ),
-            Panel(height = Size.Fill),
             Panel(
-                direction = Direction.ROW,
+                style = Style(padding = Insets.all(Theme.SPACE_5)),
+                width = Size.Fill,
                 gap = Theme.SPACE_2,
+                children = listOf(
+                    eyebrow("VoidRP · Главная", Theme.VIOLET_SOFT),
+                    RichText(
+                        spans = listOf(
+                            Span("Добро пожаловать в ", Theme.INK),
+                            Span("VOID", Theme.INK, TextFonts.Weight.BOLD),
+                            Span("RP", Theme.VIOLET_SOFT, TextFonts.Weight.BOLD),
+                        ),
+                        size = Theme.TEXT_H2,
+                        weight = TextFonts.Weight.BOLD,
+                    ),
+                    Text(
+                        "Развивайся, сражайся и стань легендой своей империи.",
+                        Theme.TEXT_BODY,
+                        Theme.INK_SOFT,
+                    ),
+                    Panel(height = Size.Fixed(Theme.SPACE_2)),
+                    Panel(
+                        style = Style(
+                            background = Paint(Theme.VIOLET, 0.92),
+                            radius = Theme.R_SM,
+                            padding = Insets.symmetric(10, 18),
+                        ),
+                        direction = Direction.ROW,
+                        gap = Theme.SPACE_2,
+                        align = Align.CENTER,
+                        id = "play",
+                        children = listOf(
+                            Icon("play", 16, 0x140F2E),
+                            Text("Начать игру", Theme.TEXT_BODY, 0x140F2E, TextFonts.Weight.SEMIBOLD, wrap = false),
+                        ),
+                    ),
+                ),
+            ),
+            // The artwork the WebGUI scatters behind the welcome: a few blocks, no more.
+            Panel(
+                style = Style(padding = Insets.symmetric(0, Theme.SPACE_6)),
+                direction = Direction.ROW,
+                gap = Theme.SPACE_3,
                 align = Align.CENTER,
-                children = listOf(button("Играть", "play", Theme.buttonPrimary, Size.Fixed(160))),
+                // Items rather than blocks: a block texture drawn flat is a grey square,
+                // while an item is a picture of itself.
+                children = listOf("diamond", "nether_star", "netherite_ingot").map { item ->
+                    Panel(
+                        style = Style(
+                            background = Paint(Theme.VIOLET, 0.16),
+                            border = Border(1, Paint(Theme.VIOLET, 0.3)),
+                            radius = Theme.R_MD,
+                        ),
+                        width = Size.Fixed(56),
+                        height = Size.Fixed(56),
+                        justify = Justify.CENTER,
+                        align = Align.CENTER,
+                        children = listOf(Image(item, 32)),
+                    )
+                },
             ),
         ),
     )
@@ -420,24 +438,24 @@ class HomePage : Page() {
         gap = Theme.SPACE_3,
         width = Size.Fill,
         children = listOf(
-            kpi("wallet", "Баланс", "184 200 ₽", Theme.GOLD),
-            kpi("swords", "Убийств", "1 204", Theme.INK),
+            kpi("wallet", "Баланс", "184 200", Theme.GOLD),
+            kpi("swords", "PVP убийств", "1 204", Theme.INK),
             kpi("skull", "Смертей", "312", Theme.INK),
-            kpi("clock", "В игре", "268 ч", Theme.INK),
+            kpi("clock", "Наиграно", "11д 4ч", Theme.INK),
         ),
     )
 
     private fun kpi(icon: String, caption: String, value: String, colour: Int) = Panel(
-        style = Theme.card.copy(radius = Theme.R_LG, padding = Insets.symmetric(15, 16)),
+        style = panel(padding = Insets.symmetric(14, 16)),
         width = Size.Fill,
-        gap = 3,
+        gap = 4,
         children = listOf(
             Panel(
                 direction = Direction.ROW,
                 gap = Theme.SPACE_2,
                 align = Align.CENTER,
                 children = listOf(
-                    Icon(icon, 16, if (colour == Theme.GOLD) Theme.GOLD else Theme.INK_DIM),
+                    Icon(icon, 14, if (colour == Theme.GOLD) Theme.GOLD else Theme.INK_DIM),
                     eyebrow(caption, if (colour == Theme.GOLD) Theme.GOLD else Theme.INK_DIM),
                 ),
             ),
@@ -445,29 +463,34 @@ class HomePage : Page() {
         ),
     )
 
+    /** Statistics as tiles — an icon, a label under it, the number below that. */
     private fun statsPanel() = Panel(
-        style = Theme.card.copy(radius = Theme.R_LG),
+        style = panel(),
         width = Size.Fill,
         gap = Theme.SPACE_3,
         children = listOf(
             panelHead("activity", "Статистика"),
             Grid(
-                columns = 2,
+                columns = 3,
                 gap = Theme.SPACE_2,
                 rowGap = Theme.SPACE_2,
                 width = Size.Fill,
                 children = stats.map { (icon, label, value) ->
                     Panel(
-                        style = Style(background = Paint(Theme.LINE, 0.05), radius = 10, padding = Insets.symmetric(8, 10)),
+                        style = Style(
+                            background = Paint(Theme.LINE, 0.04),
+                            border = Border(1, Paint(Theme.LINE, 0.1)),
+                            radius = Theme.R_MD,
+                            padding = Insets.symmetric(12, 8),
+                        ),
                         width = Size.Fill,
-                        direction = Direction.ROW,
-                        gap = Theme.SPACE_2,
+                        gap = 6,
+                        justify = Justify.CENTER,
                         align = Align.CENTER,
                         children = listOf(
                             Icon(icon, 16, Theme.VIOLET_SOFT),
-                            Text(label, Theme.TEXT_CAPTION, Theme.INK_SOFT, wrap = false),
-                            Panel(width = Size.Fill),
-                            Text(value, Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
+                            eyebrow(label),
+                            Text(value, Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                         ),
                     )
                 },
@@ -476,8 +499,8 @@ class HomePage : Page() {
     )
 
     private fun tilesPanel() = Panel(
-        style = Theme.card.copy(radius = Theme.R_LG),
-        width = Size.Fixed(330),
+        style = panel(),
+        width = Size.Fixed(420),
         gap = Theme.SPACE_3,
         children = listOf(
             panelHead("grid", "Быстрый доступ"),
@@ -490,12 +513,20 @@ class HomePage : Page() {
                     val id = "tile:$icon"
                     Panel(
                         style = if (hovered == id) {
-                            Style(background = Paint(Theme.VIOLET, 0.12), border = Border(1, Paint(Theme.VIOLET, 0.4)), radius = 13)
+                            Style(
+                                background = Paint(Theme.VIOLET, 0.12),
+                                border = Border(1, Paint(Theme.VIOLET, 0.4)),
+                                radius = Theme.R_MD,
+                            )
                         } else {
-                            Style(background = Paint(Theme.LINE, 0.04), border = Border(1, Paint(Theme.LINE, 0.12)), radius = 13)
+                            Style(
+                                background = Paint(Theme.LINE, 0.04),
+                                border = Border(1, Paint(Theme.LINE, 0.1)),
+                                radius = Theme.R_MD,
+                            )
                         },
                         width = Size.Fill,
-                        height = Size.Fixed(72),
+                        height = Size.Fixed(78),
                         gap = 7,
                         justify = Justify.CENTER,
                         align = Align.CENTER,
@@ -510,8 +541,8 @@ class HomePage : Page() {
         ),
     )
 
-    private fun topNations() = Panel(
-        style = Theme.card.copy(radius = Theme.R_LG),
+    private fun achievementsPanel() = Panel(
+        style = panel(),
         width = Size.Fill,
         gap = Theme.SPACE_3,
         children = listOf(
@@ -522,63 +553,43 @@ class HomePage : Page() {
                 gap = Theme.SPACE_2,
                 children = listOf(
                     Icon("trophy", 16, Theme.INK_SOFT),
-                    Text("Топ государств", Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
+                    eyebrow("Достижения", Theme.INK),
                     Panel(width = Size.Fill),
-                    Panel(
-                        direction = Direction.ROW,
-                        gap = 4,
-                        align = Align.CENTER,
-                        id = "all-nations",
-                        children = listOf(
-                            eyebrow("Все", if (hovered == "all-nations") Theme.INK else Theme.INK_DIM),
-                            Icon("chevronRight", 12, Theme.INK_DIM),
-                        ),
-                    ),
+                    Text("12/40", Theme.TEXT_CAPTION, Theme.GOLD, TextFonts.Weight.BOLD, wrap = false),
                 ),
             ),
-            Panel(
+            Grid(
+                columns = 2,
+                gap = Theme.SPACE_2,
+                rowGap = Theme.SPACE_2,
                 width = Size.Fill,
-                gap = 6,
-                children = nations.map { (rank, nation, value) ->
-                    val (tag, name) = nation
-                    val id = "nation:$tag"
+                children = achievements.map { (name, unlocked) ->
                     Panel(
                         style = Style(
-                            background = Paint(Theme.LINE, if (hovered == id) 0.09 else 0.03),
-                            border = Border(1, Paint(Theme.LINE, if (hovered == id) 0.22 else 0.12)),
+                            background = Paint(Theme.LINE, 0.04),
+                            border = Border(1, Paint(if (unlocked) Theme.GOLD else Theme.LINE, if (unlocked) 0.2 else 0.1)),
                             radius = Theme.R_MD,
-                            padding = Insets.symmetric(9, 12),
+                            padding = Insets.symmetric(10, 12),
                         ),
                         width = Size.Fill,
                         direction = Direction.ROW,
-                        gap = 11,
+                        gap = Theme.SPACE_3,
                         align = Align.CENTER,
-                        id = id,
                         children = listOf(
                             Panel(
                                 style = Style(
-                                    background = Paint(rankColour(rank), if (rank <= 3) 0.9 else 0.2),
-                                    radius = 7,
+                                    background = Paint(if (unlocked) Theme.GOLD else Theme.LINE, if (unlocked) 0.16 else 0.06),
+                                    radius = 8,
                                 ),
-                                width = Size.Fixed(24),
-                                height = Size.Fixed(24),
+                                width = Size.Fixed(28),
+                                height = Size.Fixed(28),
                                 justify = Justify.CENTER,
                                 align = Align.CENTER,
-                                children = listOf(
-                                    Text(
-                                        rank.toString(),
-                                        Theme.TEXT_CAPTION,
-                                        if (rank <= 3) 0x1A1200 else Theme.INK_DIM,
-                                        TextFonts.Weight.BOLD,
-                                        wrap = false,
-                                    )
-                                ),
+                                children = listOf(Icon("trophy", 14, if (unlocked) Theme.GOLD else Theme.INK_DIM)),
                             ),
-                            chip(tag, Theme.chipAccent),
-                            Text(name, Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
+                            Text(name, Theme.TEXT_BODY, if (unlocked) Theme.INK else Theme.INK_DIM, wrap = false),
                             Panel(width = Size.Fill),
-                            Icon("coins", 14, Theme.GOLD),
-                            Text(value, Theme.TEXT_BODY, Theme.GOLD, TextFonts.Weight.BOLD, wrap = false),
+                            eyebrow(if (unlocked) "получено" else "закрыто", if (unlocked) Theme.GREEN else Theme.INK_DIM),
                         ),
                     )
                 },
@@ -592,17 +603,24 @@ class HomePage : Page() {
         gap = Theme.SPACE_2,
         align = Align.CENTER,
         children = listOf(
-            Icon(icon, 16, Theme.INK_SOFT),
-            Text(title, Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
+            Panel(
+                style = Style(background = Paint(Theme.VIOLET, 0.14), radius = 8),
+                width = Size.Fixed(28),
+                height = Size.Fixed(28),
+                justify = Justify.CENTER,
+                align = Align.CENTER,
+                children = listOf(Icon(icon, 14, Theme.VIOLET_SOFT)),
+            ),
+            eyebrow(title, Theme.INK),
         ),
     )
 
-    private fun rankColour(rank: Int) = when (rank) {
-        1 -> 0xFCD34D
-        2 -> 0xE5E7EB
-        3 -> 0xD9A066
-        else -> Theme.LINE
-    }
+    private fun panel(padding: Insets = Insets.all(Theme.SPACE_4)) = Style(
+        background = Paint(Theme.LINE, 0.05),
+        border = Border(1, Paint(Theme.LINE, 0.12)),
+        radius = Theme.R_XL,
+        padding = padding,
+    )
 
     override fun onClick(id: String, button: Button) {
         when {

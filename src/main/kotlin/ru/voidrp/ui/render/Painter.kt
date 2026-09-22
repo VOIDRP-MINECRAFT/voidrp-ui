@@ -240,10 +240,13 @@ object Painter {
         out += Rect(x, y + r, thickness, height - 2 * r, paint)
         out += Rect(x + width - thickness, y + r, thickness, height - 2 * r, paint)
         if (r > 0) {
-            out += CornerPiece(x, y, r, Glyphs.Corner.TOP_LEFT, paint)
-            out += CornerPiece(x + width - r, y, r, Glyphs.Corner.TOP_RIGHT, paint)
-            out += CornerPiece(x, y + height - r, r, Glyphs.Corner.BOTTOM_LEFT, paint)
-            out += CornerPiece(x + width - r, y + height - r, r, Glyphs.Corner.BOTTOM_RIGHT, paint)
+            // An outline, not a filled quarter: the fill goes over these, and a filled one
+            // would blend twice and light the corner up brighter than the sides.
+            val ring = thickness == 1
+            out += CornerPiece(x, y, r, Glyphs.Corner.TOP_LEFT, paint, ring)
+            out += CornerPiece(x + width - r, y, r, Glyphs.Corner.TOP_RIGHT, paint, ring)
+            out += CornerPiece(x, y + height - r, r, Glyphs.Corner.BOTTOM_LEFT, paint, ring)
+            out += CornerPiece(x + width - r, y + height - r, r, Glyphs.Corner.BOTTOM_RIGHT, paint, ring)
         }
     }
 

@@ -34,6 +34,8 @@ data class CornerPiece(
     val radius: Int,
     val corner: Glyphs.Corner,
     val paint: Paint,
+    /** An outline rather than a filled quarter — what a border's corner is. */
+    val ring: Boolean = false,
 ) : Node
 
 /**
@@ -168,7 +170,12 @@ object GlyphEncoder {
         val level = Glyphs.alphaLevel(piece.paint.alpha)
         if (piece.radius !in Glyphs.RADII || level == 0) return penIn
         val colour = TextColor.color(pack(piece.y, quantise(piece.paint.rgb)))
-        val glyph = Glyphs.moveBy(piece.x - penIn) + Glyphs.corner(piece.radius, piece.corner)
+        val shape = if (piece.ring) {
+            Glyphs.ringCorner(piece.radius, piece.corner)
+        } else {
+            Glyphs.corner(piece.radius, piece.corner)
+        }
+        val glyph = Glyphs.moveBy(piece.x - penIn) + shape
         line.append(shapes(glyph, level).color(colour))
         return piece.x + Glyphs.cornerAdvance(piece.radius)
     }

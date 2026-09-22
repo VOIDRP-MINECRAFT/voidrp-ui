@@ -93,12 +93,15 @@ object Preview {
                 val cx = if (node.corner == Glyphs.Corner.TOP_LEFT || node.corner == Glyphs.Corner.BOTTOM_LEFT) r.toDouble() else 0.0
                 val cy = if (node.corner == Glyphs.Corner.TOP_LEFT || node.corner == Glyphs.Corner.TOP_RIGHT) r.toDouble() else 0.0
                 val colour = colourOf(node.paint)
+                val inner = r - 1.0
                 for (y in 0 until r) for (x in 0 until r) {
                     var inside = 0
                     for (sx in 0 until 4) for (sy in 0 until 4) {
                         val dx = x + (sx + 0.5) / 4 - cx
                         val dy = y + (sy + 0.5) / 4 - cy
-                        if (dx * dx + dy * dy <= r.toDouble() * r) inside++
+                        val distance = dx * dx + dy * dy
+                        val within = distance <= r.toDouble() * r
+                        if (if (node.ring) within && distance > inner * inner else within) inside++
                     }
                     if (inside == 0) continue
                     val coverage = inside / 16.0
