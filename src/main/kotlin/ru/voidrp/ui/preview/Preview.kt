@@ -46,6 +46,12 @@ import ru.voidrp.ui.style.Paint
  */
 object Preview {
 
+    init {
+        // A server has no display, and AWT that thinks it might have one can refuse to
+        // start. Nothing here needs a window — the picture is drawn straight into memory.
+        runCatching { System.setProperty("java.awt.headless", "true") }
+    }
+
     /**
      * Draws a page for one screen shape.
      *
