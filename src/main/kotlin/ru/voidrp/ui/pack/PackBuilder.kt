@@ -54,14 +54,28 @@ class PackBuilder(
         /** 1.21.6 — the oldest version we support. */
         const val FORMAT_OLDEST = 63
 
-        /** 26.1.2 — the last version with the old shader layout. */
-        const val FORMAT_LEGACY_MAX = 84
+        /**
+         * 87 — everything up to the release that moved the shaders.
+         *
+         * 26.1.2 itself is 84; the three formats above it belong to the snapshots in
+         * between, which still read the old file names. Claiming them means a player on a
+         * snapshot is not told their pack is for another version.
+         */
+        const val FORMAT_LEGACY_MAX = 87
 
         /** 26.2 — the first version with the new shader layout. */
         const val FORMAT_MODERN_MIN = 88
 
         /** Far enough ahead that a new release does not silently drop the pack. */
         const val FORMAT_NEWEST = 200
+
+        /**
+         * The first protocol number that reads the new shader file names.
+         *
+         * 776 is 26.2, where `rendertype_text.vsh` became `text.vsh`. A client at or above
+         * it gets the modern pack; anything below gets the legacy one.
+         */
+        const val MODERN_PROTOCOL = 776
 
         private const val OVERLAY_DIR = "legacy_shaders"
     }

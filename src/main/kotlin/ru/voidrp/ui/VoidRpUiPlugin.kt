@@ -42,7 +42,30 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
+
+    /**
+     * The same pack built for clients older than 26.2.
+     *
+     * Mojang renamed the text shader between 26.1.2 and 26.2, and a pack names its shader
+     * files outright, so one pack cannot serve both. Rather than pick a side, the plugin
+     * builds both and hands each player the one their client can read.
+     */
+    private var legacyFile: File? = null
+    private var legacyHash: String = ""
     private var packServer: PackServer? = null
+
+    /** Which client each player is on, when PacketEvents is there to say. */
+    private val clients = ru.voidrp.ui.input.ClientProtocol()
+
+    /**
+     * Players already sent the other pack after the first one would not load.
+     *
+     * Without PacketEvents the client's version is unknown, so the pack is chosen by
+     * trying the modern one and watching: a client that cannot read it says so, and is
+     * handed the legacy one. This remembers who has had that second chance, so a pack that
+     * is broken for some other reason is not sent round and round.
+     */
+    private val retried = mutableSetOf<UUID>()
 
     /** The address each player typed to get here; the one to hand them the pack from. */
     private val hostnames = mutableMapOf<UUID, String>()
@@ -97,11 +120,32 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         ).build(packFile)
         logger.info("Ресурспак собран: ${packFile.name}, ${packFile.length() / 1024} КБ, sha1 $packHash")
 
+        if (config.getBoolean("pack.legacy", true)) {
+            val older = File(dataFolder, "voidrp-ui-legacy.zip")
+            legacyHash = PackBuilder(
+                shaderMode = config.getString("pack.shader-mode", "patched")!!,
+                legacy = true,
+            ).build(older)
+            legacyFile = older
+            logger.info(
+                "Пак для клиентов до 26.2 собран: ${older.name}, ${older.length() / 1024} КБ, sha1 $legacyHash"
+            )
+            if (!config.getString("pack.url").isNullOrBlank() &&
+                config.getString("pack.legacy-url").isNullOrBlank()
+            ) {
+                logger.warning(
+                    "Пак раздаётся по pack.url, а адреса для сборки под клиенты до 26.2 нет: " +
+                        "выложите ${older.name} рядом и укажите pack.legacy-url, иначе такие игроки " +
+                        "останутся без интерфейса."
+                )
+            }
+        }
+
         // Serving the pack ourselves is what makes this plugin drop-in: no zip to host,
         // nothing to keep in step with the build.
         if (config.getString("pack.url").isNullOrBlank() && config.getBoolean("pack.serve.enabled", true)) {
             val port = config.getInt("pack.serve.port", 8123)
-            packServer = PackServer(packFile, port, logger).takeIf { it.start() }
+            packServer = PackServer(packFile, port, logger, legacyFile).takeIf { it.start() }
         }
 
         // Whoever is already online is holding the previous build; hand them this one.
@@ -160,6 +204,20 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         if (event.id != PACK_ID) return
         packStatus[event.player.uniqueId] = event.status
         logger.info("Ресурспак у ${event.player.name}: ${event.status}")
+
+        // A client that downloaded the pack and then could not load it is usually one that
+        // reads the old shader names — which is exactly what the other pack is for. Only
+        // worth trying when nobody told us the version; with PacketEvents the choice was
+        // already made on facts.
+        val failed = event.status == PlayerResourcePackStatusEvent.Status.FAILED_RELOAD ||
+            event.status == PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD
+        if (!failed) return
+        val player = event.player
+        if (!canSendLegacy(player)) return
+        if (sentHash[player.uniqueId] == legacyHash) return
+        if (!retried.add(player.uniqueId)) return
+        logger.info("Пак не встал у ${player.name} — отправляю сборку для клиентов до 26.2.")
+        sendPack(player, older = true)
     }
 
     /**
@@ -170,7 +228,8 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      */
     fun packReady(player: Player): Boolean {
         if (!config.getBoolean("pack.require-accepted", true)) return true
-        if (sentHash[player.uniqueId] != packHash) return false
+        val current = sentHash[player.uniqueId]
+        if (current != packHash && current != legacyHash) return false
         return packStatus[player.uniqueId] == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
     }
 
@@ -179,6 +238,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         hostnames.remove(event.player.uniqueId)
         packStatus.remove(event.player.uniqueId)
         sentHash.remove(event.player.uniqueId)
+        retried.remove(event.player.uniqueId)
         stopSweep(event.player)
         renderer.clear(event.player)
     }
@@ -227,19 +287,38 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         )
     }
 
-    fun sendPack(player: Player) {
-        val url = packUrl(player)
+    fun sendPack(player: Player) = sendPack(player, older = wantsLegacy(player))
+
+    /**
+     * Whether this player's client reads the old shader file names.
+     *
+     * Known outright when PacketEvents is installed. Without it the honest answer is that
+     * we do not know, and the modern pack is tried first — the great majority of players
+     * are on a current client, and the few who are not are caught by [onPackStatus].
+     */
+    private fun wantsLegacy(player: Player): Boolean {
+        if (!canSendLegacy(player)) return false
+        val protocol = clients.of(player) ?: return false
+        return protocol < PackBuilder.MODERN_PROTOCOL
+    }
+
+    /** Whether there is an older pack, and somewhere for this player to fetch it from. */
+    private fun canSendLegacy(player: Player): Boolean = packUrl(player, older = true).isNotBlank()
+
+    private fun sendPack(player: Player, older: Boolean) {
+        val url = packUrl(player, older)
         if (url.isBlank()) {
             logger.warning("Пак негде взять: укажите pack.url или включите pack.serve.enabled.")
             player.sendMessage(messages.get("pack.unavailable"))
             return
         }
-        sentHash[player.uniqueId] = packHash
+        val hash = if (older) legacyHash else packHash
+        sentHash[player.uniqueId] = hash
         packStatus.remove(player.uniqueId)
         val info = ResourcePackInfo.resourcePackInfo()
             .id(PACK_ID)
             .uri(java.net.URI.create(url))
-            .hash(packHash)
+            .hash(hash)
             .build()
         player.sendResourcePacks(
             ResourcePackRequest.resourcePackRequest()
@@ -259,17 +338,21 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      * nothing to configure. A server behind a proxy, or one that would rather host the zip
      * elsewhere, sets pack.url and none of this applies.
      */
-    private fun packUrl(player: Player): String {
-        config.getString("pack.url")?.takeIf { it.isNotBlank() }?.let { return it }
+    private fun packUrl(player: Player, older: Boolean = false): String {
+        val configured = if (older) "pack.legacy-url" else "pack.url"
+        config.getString(configured)?.takeIf { it.isNotBlank() }?.let { return it }
+        // A server hosting the zip itself but saying nothing about older clients gets the
+        // one address it gave, which is the right answer when everyone is on one version.
+        if (!older) config.getString("pack.url")?.takeIf { it.isNotBlank() }?.let { return it }
         val serving = packServer ?: return ""
-        val configured = config.getString("pack.serve.host").orEmpty()
+        val named = config.getString("pack.serve.host").orEmpty()
         val host = when {
-            configured.isNotBlank() -> configured
+            named.isNotBlank() -> named
             else -> hostnames[player.uniqueId]?.substringBefore(':')?.takeIf { it.isNotBlank() }
                 ?: player.address?.address?.hostAddress
                 ?: "127.0.0.1"
         }
-        return serving.urlFor(host)
+        return if (older) serving.legacyUrlFor(host) else serving.urlFor(host)
     }
 
     /** Moves a panel across the canvas so placement can be judged while it is in motion. */

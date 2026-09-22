@@ -155,6 +155,46 @@ class PenAccountingTest {
     }
 
     @Test
+    fun `the pack for older clients carries the shader they read`() {
+        // Mojang moved the text shader in 26.2, and a pack names its files outright, so
+        // one archive cannot serve both. This is the other archive: same glyphs, same
+        // fonts, the shader under the name a 1.21.6–26.1.2 client looks for. The two
+        // ranges have to meet without a gap, or some client is offered neither pack.
+        val file = java.io.File.createTempFile("voidrp-ui-legacy", ".zip").apply { deleteOnExit() }
+        PackBuilder(legacy = true).build(file)
+        val paths = mutableListOf<String>()
+        var meta = ""
+        java.util.zip.ZipFile(file).use { zip ->
+            zip.entries().asSequence().forEach { entry ->
+                paths += entry.name
+                if (entry.name == "pack.mcmeta") meta = zip.getInputStream(entry).readBytes().decodeToString()
+            }
+        }
+        assertTrue(
+            "assets/minecraft/shaders/core/rendertype_text.vsh" in paths,
+            "нет шейдера под старым именем — страница не нарисуется",
+        )
+        assertTrue(
+            "assets/minecraft/shaders/core/text.vsh" !in paths,
+            "старому клиенту уехал шейдер, который он не читает",
+        )
+        assertTrue(
+            paths.count { it.startsWith("assets/voidrp/font/") } > 20,
+            "в старом паке нет шрифтов — это уже не тот же пак",
+        )
+        assertTrue(
+            "\"min_inclusive\": ${PackBuilder.FORMAT_OLDEST}" in meta &&
+                "\"max_inclusive\": ${PackBuilder.FORMAT_LEGACY_MAX}" in meta,
+            "старый пак обещает не те версии:\n$meta",
+        )
+        assertEquals(
+            PackBuilder.FORMAT_MODERN_MIN,
+            PackBuilder.FORMAT_LEGACY_MAX + 1,
+            "между паками остался зазор: клиенту такой версии не подойдёт ни один",
+        )
+    }
+
+    @Test
     fun `every path in the pack is a legal resource name`() {
         // Minecraft resource paths are lower case, and a font naming a file that cannot
         // exist is discarded whole — every glyph in it. A page of icons then draws as a
