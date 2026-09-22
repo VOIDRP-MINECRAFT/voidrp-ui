@@ -223,7 +223,9 @@ object Theme {
             highlight = Paint(0xFFFFFF, 0.18),
             radius = R_SM,
             padding = Insets.symmetric(SPACE_2, SPACE_4),
-            textColour = 0x0B0A1F,
+            // Plain white on the accent. Dark ink on a violet button reads as switched
+            // off, and the theme's ink is a blue-white that shows against a bright violet.
+            textColour = 0xFFFFFF,
             textSize = TEXT_BODY,
             textWeight = TextFonts.Weight.SEMIBOLD,
         )

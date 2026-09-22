@@ -156,7 +156,7 @@ class HomePage : Page() {
                     height = Size.Fixed(34),
                     justify = Justify.CENTER,
                     align = Align.CENTER,
-                    children = listOf(Icon("voidcoin", 16, 0x0B0A1F)),
+                    children = listOf(Icon("voidcoin", 16, 0xFFFFFF)),
                 )
             )
             add(Panel(height = Size.Fixed(Theme.SPACE_3)))
@@ -175,7 +175,9 @@ class HomePage : Page() {
                         justify = Justify.CENTER,
                         align = Align.CENTER,
                         id = id,
-                        children = listOf(Icon(name, 20, if (active) 0x140F2E else Theme.INK_DIM)),
+                        // White on the violet, the way the site marks the page you are on —
+                        // a dark glyph on an accent reads as disabled.
+                        children = listOf(Icon(name, 20, if (active) 0xFFFFFF else Theme.INK_DIM)),
                     )
                 )
             }
@@ -474,17 +476,29 @@ class HomePage : Page() {
                     Panel(height = Size.Fixed(Theme.SPACE_2)),
                     Panel(
                         style = Style(
-                            background = Paint(Theme.VIOLET, 0.92),
+                            // The site's own button: a saturated violet running to a lighter
+                            // one across its width. The wash knows the panel it sits on, so
+                            // it steps smoothly over a hundred and fifty units.
+                            background = Gradient(
+                                Paint(0x8B5CF6),
+                                Paint(0xB47CF8),
+                                direction = GradientDirection.HORIZONTAL,
+                                over = 0x2A2350,
+                            ),
                             radius = Theme.R_SM,
                             padding = Insets.symmetric(10, 18),
+                            glow = Paint(Theme.VIOLET, 0.3),
                         ),
                         direction = Direction.ROW,
                         gap = Theme.SPACE_2,
                         align = Align.CENTER,
                         id = "play",
                         children = listOf(
-                            Icon("play", 16, 0x140F2E),
-                            Text("Начать игру", Theme.TEXT_BODY, 0x140F2E, TextFonts.Weight.SEMIBOLD, wrap = false),
+                            // Plain white rather than the theme's ink, which is a blue-white:
+                            // on an accent this bright, the letters are thin enough that the
+                            // difference shows.
+                            Icon("play", 16, 0xFFFFFF),
+                            Text("Начать игру", Theme.TEXT_BODY, 0xFFFFFF, TextFonts.Weight.SEMIBOLD, wrap = false),
                         ),
                     ),
                 ),

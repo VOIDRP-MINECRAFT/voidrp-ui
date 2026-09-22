@@ -199,6 +199,7 @@ object TextFonts {
                 g.color = Color.WHITE
                 g.drawString(char.toString(), LEFT_PAD.toFloat(), ascent.toFloat())
                 g.dispose()
+                embolden(cell)
 
                 sheet.drawImage(cell, column * cellWidth, row * cellHeight, null)
                 line.append(char)
@@ -224,6 +225,32 @@ object TextFonts {
     }
 
     /** The client measures a glyph by its rightmost lit column, and so do we. */
+    /**
+     * Thickens the edges of a letter a little.
+     *
+     * A browser gamma-corrects the coverage it hands the blender, so its text looks
+     * slightly heavier than the same typeface drawn with plain linear antialiasing — which
+     * is what we get here. Left alone, white letters on a bright accent came out looking
+     * lavender rather than white: the strokes are a pixel and a half wide and half of that
+     * is partial coverage, blended with the violet underneath.
+     *
+     * Raising the coverage to a power below one fattens exactly those partial pixels and
+     * leaves the solid middle alone. Widths are measured from the picture afterwards, so
+     * the pen still lands where it should.
+     */
+    private fun embolden(cell: BufferedImage) {
+        for (y in 0 until cell.height) for (x in 0 until cell.width) {
+            val argb = cell.getRGB(x, y)
+            val alpha = argb ushr 24
+            if (alpha == 0 || alpha == 255) continue
+            val raised = Math.round(Math.pow(alpha / 255.0, COVERAGE_GAMMA) * 255).toInt().coerceIn(0, 255)
+            cell.setRGB(x, y, (raised shl 24) or (argb and 0xFFFFFF))
+        }
+    }
+
+    /** How much the partial pixels of a letter are fattened; one leaves them alone. */
+    private const val COVERAGE_GAMMA = 0.72
+
     private fun inkWidth(cell: BufferedImage): Int {
         for (column in cell.width - 1 downTo 0) {
             for (row in 0 until cell.height) {
