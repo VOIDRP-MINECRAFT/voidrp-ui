@@ -115,7 +115,17 @@ class PageManager(
             return false
         }
         close(player)
-        val session = PageSession(plugin, player, page, renderer, sounds, { sensitivity }, { cursorBarOffset }, { redrawOnHover }, aim)
+        val session = PageSession(
+                plugin,
+                player,
+                page,
+                renderer,
+                sounds,
+                { sensitivity },
+                { cursorBarOffset },
+                { redrawOnHover },
+                aim,
+            ) { over -> sessions.remove(over.player.uniqueId, over) }
         sessions[player.uniqueId] = session
         session.open()
         return true
@@ -126,9 +136,9 @@ class PageManager(
         aim.forget(player.uniqueId)
     }
 
-    override fun isOpen(player: Player): Boolean = sessions.containsKey(player.uniqueId)
+    override fun isOpen(player: Player): Boolean = session(player) != null
 
-    override fun current(player: Player): Page? = sessions[player.uniqueId]?.page
+    override fun current(player: Player): Page? = session(player)?.page
 
     override fun sendPack(player: Player) = packSender(player)
 
@@ -144,7 +154,8 @@ class PageManager(
         }
     }
 
-    private fun session(player: Player): PageSession? = sessions[player.uniqueId]
+    // A closed session answers to nothing, whichever list it is still on.
+    private fun session(player: Player): PageSession? = sessions[player.uniqueId]?.takeIf { !it.isClosed }
 
     /** Set by /vui clicks: prints how fast swings arrive, to tune what counts as a press. */
     var traceClicks = false

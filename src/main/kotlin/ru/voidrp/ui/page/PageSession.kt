@@ -53,6 +53,16 @@ class PageSession(
     private val redrawOnHover: () -> Boolean,
     /** The look as the wire gave it, when there is a wire to take it from. */
     private val aim: ru.voidrp.ui.input.PacketAim,
+    /**
+     * Told when this session is over.
+     *
+     * A page closing itself — a button that opens the world again — used to leave the
+     * session sitting in the manager's list, closed but still answering to the player. Every
+     * swing and every click on a block went on being cancelled, so the player could not mine
+     * anything until they crouched, which is the one path that took the session off the
+     * list.
+     */
+    private val forget: (PageSession) -> Unit = {},
 ) {
 
     /** The last reading of the player's aim, in canvas units. */
@@ -359,22 +369,23 @@ class PageSession(
     private fun halo(lift: Int): Component? {
         val region = under ?: return null
         val paint = Paint(Theme.VIOLET, 0.55)
-        val top = region.y - lift
+        // The pointer's bar draws its line lower than the page's, so everything on it is
+        // lifted by that much — and for something near the top of the screen that lands
+        // above the canvas, where a y cannot go. Each piece of the outline was then clamped
+        // on its own and the shape came apart; the close button in the corner showed it
+        // plainly. So the highlight is cut at the top edge instead, which costs it a few
+        // units of its own outline and nothing else.
+        val wanted = region.y - lift
+        val top = wanted.coerceAtLeast(0)
+        val height = region.height - (top - wanted)
+        if (height <= 0) return null
         val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
         // A wash inside the outline, so that what the pointer is on reads at a glance now
         // that the page itself no longer changes underneath it.
-        Painter.fill(
-            region.x,
-            top,
-            region.width,
-            region.height,
-            region.radius,
-            Paint(Theme.VIOLET, 0.16),
-            nodes,
-        )
+        Painter.fill(region.x, top, region.width, height, region.radius, Paint(Theme.VIOLET, 0.16), nodes)
         // Along the panel's own corners. A square drawn around a rounded card is the first
         // thing anyone notices, and the cursor lands on rounded cards all day.
-        Painter.outline(region.x, top, region.width, region.height, region.radius, 1, paint, nodes)
+        Painter.outline(region.x, top, region.width, height, region.radius, 1, paint, nodes)
         return GlyphEncoder.encode(nodes)
     }
 
@@ -398,9 +409,13 @@ class PageSession(
         return GlyphEncoder.encode(placement.nodes).also { tooltipEncoded = it }
     }
 
+    /** Whether this session is over; a closed one answers to nothing. */
+    val isClosed: Boolean get() = closed
+
     fun close() {
         if (closed) return
         closed = true
+        forget(this)
         sounds.close(player)
         renderer.clear(player)
         page.onClose()

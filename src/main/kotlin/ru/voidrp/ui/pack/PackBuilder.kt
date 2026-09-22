@@ -39,6 +39,15 @@ class PackBuilder(
      * which is worth doing and is not this.
      */
     private val withOverlay: Boolean = false,
+    /**
+     * Build the pack older clients need instead of the current one.
+     *
+     * Before 26.2 the text shader was called `rendertype_text`, and the two cannot travel
+     * together: a 26.2 client reads the older one out of an overlay it should be skipping
+     * and refuses the whole pack. So they are two packs, and a player is handed the one
+     * their client can read.
+     */
+    private val legacy: Boolean = false,
 ) {
 
     companion object {
@@ -67,7 +76,12 @@ class PackBuilder(
             // Shaders can be left out to tell apart "the pack is rejected" from "the
             // shader does not compile" — a client refuses the whole pack either way.
             when (shaderMode) {
-                "patched" -> {
+                "patched" -> if (legacy) {
+                    // No fragment shader for these: we have only the 26.2 one to patch, so
+                    // the client keeps its own and with it the tenth-of-opacity cut-off —
+                    // which is why the alphabet starts at an eighth for everyone.
+                    zip.put("assets/minecraft/shaders/core/rendertype_text.vsh", Shaders.TEXT_VSH_LEGACY)
+                } else {
                     zip.put("assets/minecraft/shaders/core/text.vsh", Shaders.TEXT_VSH_MODERN)
                     zip.put("assets/minecraft/shaders/core/text.fsh", Shaders.TEXT_FSH_MODERN)
                     if (withOverlay) {
@@ -162,8 +176,10 @@ class PackBuilder(
     private fun packMeta(): String = """
         {
           "pack": {
-            "pack_format": $FORMAT_MODERN_MIN,
-            "supported_formats": { "min_inclusive": ${if (withOverlay) FORMAT_OLDEST else FORMAT_MODERN_MIN}, "max_inclusive": $FORMAT_NEWEST },
+            "pack_format": ${if (legacy) FORMAT_OLDEST else FORMAT_MODERN_MIN},
+            "supported_formats": { "min_inclusive": ${
+        if (legacy) FORMAT_OLDEST else if (withOverlay) FORMAT_OLDEST else FORMAT_MODERN_MIN
+    }, "max_inclusive": ${if (legacy) FORMAT_LEGACY_MAX else FORMAT_NEWEST} },
             "description": "VoidRP UI — интерфейсы сервера. void-rp.ru"
           }${if (shaderMode == "patched" && withOverlay) "," else ""}
           ${if (shaderMode == "patched" && withOverlay) """"overlays": {

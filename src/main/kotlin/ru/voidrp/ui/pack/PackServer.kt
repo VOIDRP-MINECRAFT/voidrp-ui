@@ -19,10 +19,13 @@ class PackServer(
     private val file: File,
     private val port: Int,
     private val log: Logger,
+    /** The pack older clients get, when there is one. */
+    private val legacyFile: File? = null,
 ) {
 
     companion object {
         const val PATH = "/voidrp-ui.zip"
+        const val LEGACY_PATH = "/voidrp-ui-legacy.zip"
     }
 
     private var server: HttpServer? = null
@@ -30,12 +33,14 @@ class PackServer(
     fun start(): Boolean {
         return try {
             val http = HttpServer.create(InetSocketAddress(port), 0)
-            http.createContext(PATH) { exchange ->
-                val bytes = file.readBytes()
+            fun serve(path: String, source: File) = http.createContext(path) { exchange ->
+                val bytes = source.readBytes()
                 exchange.responseHeaders.add("Content-Type", "application/zip")
                 exchange.sendResponseHeaders(200, bytes.size.toLong())
                 exchange.responseBody.use { it.write(bytes) }
             }
+            serve(PATH, file)
+            legacyFile?.let { serve(LEGACY_PATH, it) }
             http.executor = null
             http.start()
             server = http
@@ -64,4 +69,6 @@ class PackServer(
      * anything to configure.
      */
     fun urlFor(host: String): String = "http://$host:$port$PATH"
+
+    fun legacyUrlFor(host: String): String = "http://$host:$port$LEGACY_PATH"
 }
