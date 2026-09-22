@@ -131,21 +131,58 @@ object Glyphs {
     /** Side pieces come in powers of two so any length can be covered by a few of them. */
     val GLOW_STEPS = listOf(1, 2, 4, 8, 16, 32, 64, 128)
 
+    /**
+     * A halo has to follow the rounding of what casts it.
+     *
+     * A corner tile whose falloff radiates from the square corner leaves a hard dark wedge
+     * between the panel's arc and the edge of the halo — the light stops along a rectangle
+     * while the panel is round. So the corner piece knows the radius: its falloff is
+     * measured from the arc, and the tile reaches inside the bounding box far enough to
+     * cover the notch the rounding leaves.
+     *
+     * One tile per radius would be honest and expensive — the alphabet is baked once per
+     * opacity step — so halo corners snap to a coarser scale than the shapes do. The worst
+     * a snap costs is two units of a soft edge; the wedge it replaces was a quarter of the
+     * radius.
+     */
+    val GLOW_RADII = listOf(0, 4, 8, 12, 16, 20, 24)
+
+    /** The nearest radius a halo corner is baked at. */
+    fun nearestGlowRadius(radius: Int): Int =
+        GLOW_RADII.minByOrNull { Math.abs(it - radius) } ?: 0
+
+    /**
+     * Haloes are baked at every second opacity step.
+     *
+     * A corner tile exists once per radius per corner per step, and the alphabet is baked
+     * once per step, so the halo is the most expensive thing in the pack by weight. Half
+     * the steps costs a quarter of the pack and nothing that can be seen: the difference
+     * between a shadow at 37% and at 40% is not visible through a falloff that is itself
+     * a fade.
+     */
+    fun haloLevel(alpha: Double): Int =
+        (Math.round(alpha * ALPHA_LEVELS / 2).toInt() * 2).coerceIn(0, ALPHA_LEVELS)
+
+    /** Whether the alphabet at this opacity step carries halo tiles at all. */
+    fun bakesHalo(level: Int): Boolean = level % 2 == 0
+
     enum class GlowPart { CORNER, HORIZONTAL, VERTICAL }
 
     /**
      * A piece of a halo. Corners are indexed by [Corner]; sides by how long the piece is,
      * which is why they can be laid end to end along an edge of any length.
      */
-    fun glow(part: GlowPart, corner: Corner = Corner.TOP_LEFT, step: Int = 1): String {
+    fun glow(part: GlowPart, corner: Corner = Corner.TOP_LEFT, step: Int = 1, radius: Int = 0): String {
+        val sides = GLOW_RADII.size * Corner.entries.size
         val index = when (part) {
-            GlowPart.CORNER -> corner.ordinal
+            GlowPart.CORNER -> GLOW_RADII.indexOf(radius) * Corner.entries.size + corner.ordinal
             // A side fades away from the box, so the top edge and the bottom edge are
             // mirror images and need a glyph each — one texture for both would point the
             // light the wrong way down one side and, worse, be a different width than the
             // encoder predicted.
-            GlowPart.HORIZONTAL -> 4 + GLOW_STEPS.indexOf(step) * 2 + if (near(corner)) 0 else 1
-            GlowPart.VERTICAL -> 4 + GLOW_STEPS.size * 2 + GLOW_STEPS.indexOf(step) * 2 + if (near(corner)) 0 else 1
+            GlowPart.HORIZONTAL -> sides + GLOW_STEPS.indexOf(step) * 2 + if (near(corner)) 0 else 1
+            GlowPart.VERTICAL ->
+                sides + GLOW_STEPS.size * 2 + GLOW_STEPS.indexOf(step) * 2 + if (near(corner)) 0 else 1
         }
         return cp(GLOW_BASE + index)
     }
@@ -153,20 +190,30 @@ object Glyphs {
     /** Whether a side piece fades towards its start (top, left) or its end (bottom, right). */
     private fun near(corner: Corner): Boolean = corner == Corner.TOP_LEFT
 
-    fun glowTextureName(part: GlowPart, corner: Corner = Corner.TOP_LEFT, step: Int = 1): String = when (part) {
-        GlowPart.CORNER -> "glow_corner_${corner.name.lowercase()}"
+    fun glowTextureName(
+        part: GlowPart,
+        corner: Corner = Corner.TOP_LEFT,
+        step: Int = 1,
+        radius: Int = 0,
+    ): String = when (part) {
+        GlowPart.CORNER -> "glow_corner_${radius}_${corner.name.lowercase()}"
         GlowPart.HORIZONTAL -> "glow_h_${step}_${if (near(corner)) "near" else "far"}"
         GlowPart.VERTICAL -> "glow_v_${step}_${if (near(corner)) "near" else "far"}"
     }
 
+    /** One piece of a halo: which tile, and for a corner, which rounding it follows. */
+    data class GlowGlyph(val part: GlowPart, val corner: Corner, val step: Int, val radius: Int)
+
     /** Every halo piece, for the pack to bake and declare. */
-    fun glowPieces(): List<Triple<GlowPart, Corner, Int>> = buildList {
-        Corner.entries.forEach { add(Triple(GlowPart.CORNER, it, 1)) }
+    fun glowPieces(): List<GlowGlyph> = buildList {
+        GLOW_RADII.forEach { radius ->
+            Corner.entries.forEach { add(GlowGlyph(GlowPart.CORNER, it, 1, radius)) }
+        }
         GLOW_STEPS.forEach { step ->
-            add(Triple(GlowPart.HORIZONTAL, Corner.TOP_LEFT, step))
-            add(Triple(GlowPart.HORIZONTAL, Corner.BOTTOM_LEFT, step))
-            add(Triple(GlowPart.VERTICAL, Corner.TOP_LEFT, step))
-            add(Triple(GlowPart.VERTICAL, Corner.TOP_RIGHT, step))
+            add(GlowGlyph(GlowPart.HORIZONTAL, Corner.TOP_LEFT, step, 0))
+            add(GlowGlyph(GlowPart.HORIZONTAL, Corner.BOTTOM_LEFT, step, 0))
+            add(GlowGlyph(GlowPart.VERTICAL, Corner.TOP_LEFT, step, 0))
+            add(GlowGlyph(GlowPart.VERTICAL, Corner.TOP_RIGHT, step, 0))
         }
     }
 

@@ -81,6 +81,13 @@ tasks.register<JavaExec>("preview") {
     environment("VOIDRP_CLIENT_JAR", System.getenv("VOIDRP_CLIENT_JAR") ?: "")
 }
 
+tasks.register<JavaExec>("packWeight") {
+    group = "voidrp"
+    description = "Собирает пак и печатает его вес"
+    mainClass.set("ru.voidrp.ui.PackWeight")
+    classpath = sourceSets["test"].runtimeClasspath
+}
+
 tasks.test {
     useJUnitPlatform()
     testLogging { events("passed", "failed") }

@@ -113,9 +113,9 @@ object Preview {
 
             // A halo tile is the very picture the pack ships, tinted by the glyph's colour.
             is ru.voidrp.ui.render.GlowPiece -> {
-                val level = Glyphs.alphaLevel(node.paint.alpha)
+                val level = Glyphs.haloLevel(node.paint.alpha)
                 if (level > 0) {
-                    val tile = ru.voidrp.ui.pack.Glow.image(node.part, node.corner, node.step, level)
+                    val tile = ru.voidrp.ui.pack.Glow.image(node.part, node.corner, node.step, level, node.radius)
                     val colour = quantise(node.paint.rgb)
                     for (y in 0 until tile.height) for (x in 0 until tile.width) {
                         val alpha = (tile.getRGB(x, y) ushr 24) / 255.0

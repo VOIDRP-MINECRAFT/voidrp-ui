@@ -19,6 +19,8 @@ import ru.voidrp.ui.render.Label
 import ru.voidrp.ui.render.Node
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.style.Paint
+import ru.voidrp.ui.style.Shadow
+import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 
 /**
@@ -196,17 +198,43 @@ class PenAccountingTest {
     @Test
     fun `one halo tile at a time balances`() {
         val wrong = mutableListOf<String>()
-        listOf(3, 6, 11, 16).forEach { level ->
+        listOf(4, 6, 12, 16).forEach { level ->
             val alpha = level.toDouble() / ru.voidrp.ui.pack.Glyphs.ALPHA_LEVELS
-            ru.voidrp.ui.pack.Glyphs.glowPieces().forEach { (part, corner, step) ->
+            ru.voidrp.ui.pack.Glyphs.glowPieces().forEach { (part, corner, step, radius) ->
                 val line = GlyphEncoder.encode(
-                    listOf(ru.voidrp.ui.render.GlowPiece(200, 100, part, corner, step, Paint(0x000000, alpha)))
+                    listOf(
+                        ru.voidrp.ui.render.GlowPiece(200, 100, part, corner, step, Paint(0x000000, alpha), radius)
+                    )
                 )
                 val width = client.width(line)
-                if (width != 0) wrong += "$part/$corner/$step на ступени $level: строка шириной $width"
+                if (width != 0) wrong += "$part/$corner/$step/r$radius на ступени $level: строка шириной $width"
             }
         }
         assertTrue(wrong.isEmpty(), wrong.take(5).joinToString("\n"))
+    }
+
+    @Test
+    fun `a halo follows the rounding it is cast by`() {
+        // The wedge: a corner tile that radiated from the square corner left the notch of
+        // the rounding unlit, and the light stopped along a rectangle. Every radius the
+        // alphabet rounds to has to balance, and the halo has to reach past the arc.
+        val wrong = mutableListOf<String>()
+        ru.voidrp.ui.pack.Glyphs.RADII.forEach { radius ->
+            val page = Panel(
+                style = Style(
+                    background = Paint(0x1B1140),
+                    radius = radius,
+                    glow = Paint(0x8B7BFF, 0.5),
+                    shadow = Shadow(offsetY = 6, paint = Paint(0x000000, 0.4)),
+                ),
+                width = Size.Fixed(320),
+                height = Size.Fixed(180),
+            )
+            val nodes = Layout.centred(page, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes
+            val width = client.width(GlyphEncoder.encode(nodes))
+            if (width != 0) wrong += "радиус $radius: строка шириной $width"
+        }
+        assertTrue(wrong.isEmpty(), "ореол вокруг скругления:\n" + wrong.joinToString("\n"))
     }
 
     @Test
@@ -215,14 +243,16 @@ class PenAccountingTest {
         // so how far the pen moves past one depends on the opacity it is drawn at. The
         // encoder and the pack have to agree about that for every tile at every step.
         val wrong = mutableListOf<String>()
-        (1..ru.voidrp.ui.pack.Glyphs.ALPHA_LEVELS).forEach { level ->
-            ru.voidrp.ui.pack.Glyphs.glowPieces().forEach { (part, corner, step) ->
-                val ours = ru.voidrp.ui.pack.Glow.advance(part, corner, step, level)
+        (2..ru.voidrp.ui.pack.Glyphs.ALPHA_LEVELS step 2).forEach { level ->
+            ru.voidrp.ui.pack.Glyphs.glowPieces().forEach { (part, corner, step, radius) ->
+                val ours = ru.voidrp.ui.pack.Glow.advance(part, corner, step, level, radius)
                 val theirs = client.advanceOf(
                     ru.voidrp.ui.pack.Glyphs.fontName(level),
-                    ru.voidrp.ui.pack.Glyphs.glow(part, corner, step),
+                    ru.voidrp.ui.pack.Glyphs.glow(part, corner, step, radius),
                 )
-                if (ours != theirs) wrong += "$part/$corner/$step на ступени $level: у нас $ours, у клиента $theirs"
+                if (ours != theirs) {
+                    wrong += "$part/$corner/$step/r$radius на ступени $level: у нас $ours, у клиента $theirs"
+                }
             }
         }
         assertTrue(wrong.isEmpty(), "шаг ореола разошёлся:\n" + wrong.take(6).joinToString("\n"))

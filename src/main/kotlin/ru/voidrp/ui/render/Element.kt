@@ -69,6 +69,8 @@ data class GlowPiece(
     val corner: Glyphs.Corner,
     val step: Int,
     val paint: Paint,
+    /** The rounding this tile follows; sides ignore it. */
+    val radius: Int = 0,
 ) : Node
 
 /**
@@ -212,12 +214,13 @@ object GlyphEncoder {
     }
 
     private fun appendGlow(line: TextComponent.Builder, piece: GlowPiece, penIn: Int): Int {
-        val level = Glyphs.alphaLevel(piece.paint.alpha)
+        val level = Glyphs.haloLevel(piece.paint.alpha)
         if (level == 0) return penIn
         val colour = TextColor.color(pack(piece.y, quantise(piece.paint.rgb)))
-        val glyph = Glyphs.moveBy(piece.x - penIn) + Glyphs.glow(piece.part, piece.corner, piece.step)
+        val glyph = Glyphs.moveBy(piece.x - penIn) +
+            Glyphs.glow(piece.part, piece.corner, piece.step, piece.radius)
         line.append(shapes(glyph, level).color(colour))
-        return piece.x + ru.voidrp.ui.pack.Glow.advance(piece.part, piece.corner, piece.step, level)
+        return piece.x + ru.voidrp.ui.pack.Glow.advance(piece.part, piece.corner, piece.step, level, piece.radius)
     }
 
     /**

@@ -189,15 +189,17 @@ class PackBuilder(
             {"type": "bitmap", "file": "$dir/cursor.png",
              "ascent": 0, "height": ${Glyphs.CURSOR_SIZE}, "chars": ["${Glyphs.cursor().escaped()}"]}
         """.trimIndent()
-        Glyphs.glowPieces().forEach { (part, corner, step) ->
-            val name = Glyphs.glowTextureName(part, corner, step)
+        val haloPieces = if (Glyphs.bakesHalo(level)) Glyphs.glowPieces() else emptyList()
+        haloPieces.forEach { (part, corner, step, radius) ->
+            val name = Glyphs.glowTextureName(part, corner, step, radius)
             val height = when (part) {
                 Glyphs.GlowPart.VERTICAL -> step
+                Glyphs.GlowPart.CORNER -> Glyphs.GLOW_SPREAD + radius
                 else -> Glyphs.GLOW_SPREAD
             }
             providers += """
                 {"type": "bitmap", "file": "$dir/$name.png",
-                 "ascent": 0, "height": $height, "chars": ["${Glyphs.glow(part, corner, step).escaped()}"]}
+                 "ascent": 0, "height": $height, "chars": ["${Glyphs.glow(part, corner, step, radius).escaped()}"]}
             """.trimIndent()
         }
         val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
@@ -236,8 +238,11 @@ class PackBuilder(
             out[Glyphs.ringTextureName(radius, corner)] = Corners.png(radius, corner, ring = true, level = level)
         }
         out["cursor"] = Pointer.png(alpha)
-        Glyphs.glowPieces().forEach { (part, corner, step) ->
-            out[Glyphs.glowTextureName(part, corner, step)] = Glow.png(part, corner, step, level)
+        if (Glyphs.bakesHalo(level)) {
+            Glyphs.glowPieces().forEach { (part, corner, step, radius) ->
+                out[Glyphs.glowTextureName(part, corner, step, radius)] =
+                    Glow.png(part, corner, step, level, radius)
+            }
         }
         return out
     }
