@@ -94,7 +94,28 @@ class PageSession(
      */
     fun tick() {
         if (closed) return
-        val location = player.location
+        readAim()
+
+        val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
+        if (under != hovered) {
+            hovered = under
+            render()
+        }
+    }
+
+    /**
+     * Where the aim says the pointer should be, read fresh.
+     *
+     * The client sends its look twenty times a second, and the server tick is another
+     * twenty — two clocks that do not line up, so a look read only on the tick can be a
+     * whole tick stale before it is ever drawn. Reading it again on each frame costs a few
+     * field reads and takes fifty milliseconds of lag off the pointer.
+     */
+    private fun readAim() {
+        // Frames run off the server thread, so this is a plain read of the player's own
+        // numbers and never anything more. If the server ever objects, the pointer keeps
+        // the position it had rather than the frame loop dying with it.
+        val location = runCatching { player.location }.getOrNull() ?: return
         val turnedX = wrapDegrees(location.yaw - anchorYaw)
         val turnedY = location.pitch - anchorPitch
         val speed = sensitivity()
@@ -103,12 +124,6 @@ class PageSession(
             .coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
         targetY = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed)
             .coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
-
-        val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
-        if (under != hovered) {
-            hovered = under
-            render()
-        }
     }
 
     /**
@@ -124,8 +139,14 @@ class PageSession(
         if (closed) return
         val before = cursorX to cursorY
         val wasOver = under
-        drawnX += (targetX - drawnX) * EASING
-        drawnY += (targetY - drawnY) * EASING
+        readAim()
+        // Smoothing is there to hide that the aim arrives in steps, and every bit of it is
+        // lag. So it is spent where it is needed and nowhere else: a small movement is
+        // eased, a large one — a flick across the page — is followed outright.
+        val gap = Math.hypot(targetX - drawnX, targetY - drawnY)
+        val factor = (EASING + gap / SNAP_WITHIN).coerceAtMost(1.0)
+        drawnX += (targetX - drawnX) * factor
+        drawnY += (targetY - drawnY) * factor
         if (Math.abs(targetX - drawnX) < 0.5) drawnX = targetX
         if (Math.abs(targetY - drawnY) < 0.5) drawnY = targetY
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
@@ -299,7 +320,16 @@ class PageSession(
          * How much of the way to the target the pointer moves each frame. Enough to feel
          * immediate, gentle enough to hide that the aim itself arrives in steps.
          */
-        const val EASING = 0.35
+        const val EASING = 0.5
+
+        /**
+         * A gap this wide is closed in one frame.
+         *
+         * Below it the pointer eases, which is what keeps a slow, careful movement from
+         * looking like it steps twenty times a second; above it there is nothing to hide —
+         * the hand is moving fast and what it wants is to be followed.
+         */
+        const val SNAP_WITHIN = 90.0
 
         /**
          * Swings closer together than this are one press being held.
