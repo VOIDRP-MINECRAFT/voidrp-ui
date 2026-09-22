@@ -55,12 +55,17 @@ publishing {
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
+    // PacketEvents, which the plugin uses if the server happens to have it — see
+    // ru.voidrp.ui.input.PacketAim for what it buys.
+    maven("https://repo.codemc.io/repository/maven-releases/")
 }
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.124-stable")
     // Paper ships Gson at runtime; we only need it to read our own width table.
     compileOnly("com.google.code.gson:gson:2.11.0")
+    // Optional: read the player's look the moment it arrives instead of on the next tick.
+    compileOnly("com.github.retrooper:packetevents-spigot:2.13.0")
     implementation(kotlin("stdlib"))
 
     // The tests read the pack we build and add up a line the way the client would.

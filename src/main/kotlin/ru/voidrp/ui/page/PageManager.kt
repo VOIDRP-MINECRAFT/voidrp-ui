@@ -40,6 +40,19 @@ class PageManager(
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
 
     /**
+     * Where the player is looking, straight off the wire when the server has PacketEvents.
+     *
+     * Without it the look is whatever `player.location` knows, which is only refreshed
+     * when the server reads its inbound queue — once a tick, so up to fifty milliseconds
+     * after the client said so. The pointer is driven by that look, and fifty milliseconds
+     * is about half of all the lag it has.
+     */
+    private val aim = ru.voidrp.ui.input.PacketAim()
+
+    /** Whether the look is coming from the wire. Logged once at startup. */
+    val readsPackets: Boolean = runCatching { aim.install() }.getOrDefault(false)
+
+    /**
      * Frames are drawn off the server thread, because the server thread only runs twenty
      * times a second and a pointer that moves twenty times a second looks like it is
      * stuttering. Nothing here touches the world: the page is already encoded, and a frame
@@ -102,7 +115,7 @@ class PageManager(
             return false
         }
         close(player)
-        val session = PageSession(plugin, player, page, renderer, sounds, { sensitivity }, { cursorBarOffset }, { redrawOnHover })
+        val session = PageSession(plugin, player, page, renderer, sounds, { sensitivity }, { cursorBarOffset }, { redrawOnHover }, aim)
         sessions[player.uniqueId] = session
         session.open()
         return true
@@ -110,6 +123,7 @@ class PageManager(
 
     override fun close(player: Player) {
         sessions.remove(player.uniqueId)?.close()
+        aim.forget(player.uniqueId)
     }
 
     override fun isOpen(player: Player): Boolean = sessions.containsKey(player.uniqueId)

@@ -51,6 +51,8 @@ class PageSession(
      * with what is hovered.
      */
     private val redrawOnHover: () -> Boolean,
+    /** The look as the wire gave it, when there is a wire to take it from. */
+    private val aim: ru.voidrp.ui.input.PacketAim,
 ) {
 
     /** The last reading of the player's aim, in canvas units. */
@@ -149,9 +151,21 @@ class PageSession(
         // Frames run off the server thread, so this is a plain read of the player's own
         // numbers and never anything more. If the server ever objects, the pointer keeps
         // the position it had rather than the frame loop dying with it.
-        val location = runCatching { player.location }.getOrNull() ?: return false
-        val turnedX = wrapDegrees(location.yaw - anchorYaw)
-        val turnedY = location.pitch - anchorPitch
+        // Straight off the wire if the server can give it to us, and otherwise whatever
+        // the last tick left on the player.
+        val wire = aim.look(player.uniqueId)
+        val yaw: Float
+        val pitch: Float
+        if (wire != null) {
+            yaw = wire[0]
+            pitch = wire[1]
+        } else {
+            val location = runCatching { player.location }.getOrNull() ?: return false
+            yaw = location.yaw
+            pitch = location.pitch
+        }
+        val turnedX = wrapDegrees(yaw - anchorYaw)
+        val turnedY = pitch - anchorPitch
         val speed = sensitivity()
 
         val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed)

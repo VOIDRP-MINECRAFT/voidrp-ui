@@ -103,6 +103,13 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         server.servicesManager.register(VoidRpUi::class.java, pages, this, ServicePriority.Normal)
         // The cursor follows the player's aim, so it is read every tick.
         server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
+        logger.info(
+            if (pages.readsPackets) {
+                "Поворот игрока читается прямо из пакетов — курсор без лишней задержки."
+            } else {
+                "PacketEvents не найден: поворот читается раз в тик, курсор отстаёт до 50 мс."
+            },
+        )
         pages.start()
         getCommand("vui")?.let {
             val handler = UiCommand(this)
