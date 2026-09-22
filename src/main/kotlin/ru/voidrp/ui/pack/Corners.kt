@@ -21,6 +21,37 @@ object Corners {
     fun image(radius: Int, corner: Glyphs.Corner, ring: Boolean, level: Int): BufferedImage =
         cache.getOrPut("$radius/$corner/$ring/$level") { draw(radius, corner, ring, level) }
 
+    /**
+     * All eight corners of one radius on one sheet: the filled four, then the rings.
+     *
+     * A bitmap font can hold a grid of glyphs in a single picture — that is how the letters
+     * are shipped — and doing the same here turns seventeen hundred files into two hundred.
+     * A third of this pack's weight was the zip's own table of contents, one entry per
+     * corner of every radius at every opacity.
+     *
+     * Each cell is drawn on its own and then placed, so nothing bleeds into its neighbour:
+     * the client measures a cell's ink to know how far to move the pen, and a stray pixel
+     * from next door would make every page with a rounded panel drift sideways.
+     */
+    fun sheet(radius: Int, level: Int): ByteArray {
+        val columns = Glyphs.Corner.entries.size
+        val image = BufferedImage(radius * columns, radius * 2, BufferedImage.TYPE_INT_ARGB)
+        // Copied pixel for pixel rather than drawn: drawing composites, and a cell has to
+        // come out of the sheet exactly as it went in — the client reads its ink to place
+        // the pen.
+        listOf(false, true).forEachIndexed { row, ring ->
+            Glyphs.Corner.entries.forEachIndexed { column, corner ->
+                val tile = image(radius, corner, ring, level)
+                for (y in 0 until tile.height) for (x in 0 until tile.width) {
+                    image.setRGB(column * radius + x, row * radius + y, tile.getRGB(x, y))
+                }
+            }
+        }
+        val out = ByteArrayOutputStream()
+        ImageIO.write(image, "PNG", out)
+        return out.toByteArray()
+    }
+
     fun png(radius: Int, corner: Glyphs.Corner, ring: Boolean, level: Int): ByteArray {
         val out = ByteArrayOutputStream()
         ImageIO.write(image(radius, corner, ring, level), "PNG", out)

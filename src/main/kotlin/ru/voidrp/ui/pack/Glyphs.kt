@@ -118,6 +118,9 @@ object Glyphs {
     fun corner(radius: Int, corner: Corner): String =
         cp(CORNER_BASE + RADII.indexOf(radius) * Corner.entries.size + corner.ordinal)
 
+    /** One picture per radius, holding every corner of it — see [Corners.sheet]. */
+    fun cornerSheetName(radius: Int): String = "corners_$radius"
+
     fun cornerTextureName(radius: Int, corner: Corner): String =
         "corner_${radius}_${corner.name.lowercase()}"
 
@@ -216,6 +219,13 @@ object Glyphs {
 
     /** Whether a side piece fades towards its start (top, left) or its end (bottom, right). */
     private fun near(corner: Corner): Boolean = corner == Corner.TOP_LEFT
+
+    /** One picture per edge, holding every length of side tile for it. */
+    fun glowSideSheetName(part: GlowPart, corner: Corner): String =
+        "glow_${if (part == GlowPart.HORIZONTAL) "h" else "v"}_${if (near(corner)) "near" else "far"}"
+
+    /** One picture per radius, holding the four corner tiles of a halo. */
+    fun glowCornerSheetName(radius: Int): String = "glow_corners_$radius"
 
     fun glowTextureName(
         part: GlowPart,

@@ -55,6 +55,52 @@ object UiIcons {
 
     fun textureName(name: String, size: Int): String = "ui/${key(name)}_${nearestSize(size)}.png"
 
+    /** How many icons stand side by side on a sheet. Keeps it about as square as it gets. */
+    private const val COLUMNS = 8
+
+    private const val BLANK = '\u0000'
+
+    fun sheetName(size: Int): String = "ui/set_${nearestSize(size)}.png"
+
+    /**
+     * Every icon of one size in one picture.
+     *
+     * Fifty files a size, seven sizes — three hundred and fifty entries in the zip, whose
+     * own table of contents was a third of the pack. As a grid it is seven files. Cells are
+     * copied pixel for pixel, because the client reads a cell's ink to place the pen and
+     * drawing would composite.
+     */
+    fun sheet(size: Int): ByteArray? {
+        val drawn = nearestSize(size)
+        if (NAMES.isEmpty()) return null
+        val rows = (NAMES.size + COLUMNS - 1) / COLUMNS
+        val image = java.awt.image.BufferedImage(
+            drawn * COLUMNS,
+            drawn * rows,
+            java.awt.image.BufferedImage.TYPE_INT_ARGB,
+        )
+        NAMES.forEachIndexed { index, name ->
+            val bytes = png(name, drawn) ?: return@forEachIndexed
+            val tile = ImageIO.read(ByteArrayInputStream(bytes)) ?: return@forEachIndexed
+            val atX = (index % COLUMNS) * drawn
+            val atY = (index / COLUMNS) * drawn
+            for (y in 0 until minOf(tile.height, drawn)) for (x in 0 until minOf(tile.width, drawn)) {
+                image.setRGB(atX + x, atY + y, tile.getRGB(x, y))
+            }
+        }
+        val out = java.io.ByteArrayOutputStream()
+        ImageIO.write(image, "PNG", out)
+        return out.toByteArray()
+    }
+
+    /** The grid's rows of code points, padded so every row is the same length. */
+    fun sheetRows(): List<String> = NAMES.indices.chunked(COLUMNS).map { row ->
+        buildString {
+            row.forEach { append(String(Character.toChars(BASE + it))) }
+            while (length < COLUMNS) append(BLANK)
+        }
+    }
+
     /**
      * How far the pen moves past an icon: the width of its ink plus one, measured from the
      * picture we ship — the same rule the client applies, and the reason a page with icons
@@ -80,18 +126,16 @@ object UiIcons {
         }
     }
 
-    /** One font per size, each naming every icon at that size. */
+    /** One font per size, each naming the sheet of that size. */
     fun fontJson(size: Int): String {
         val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
             "\"${Fonts.escapeJson(char)}\": $advance"
         }
-        val providers = NAMES.mapIndexed { i, name ->
-            """{"type": "bitmap", "file": "voidrp:${textureName(name, size)}", "ascent": 0,
-                "height": ${nearestSize(size)}, "chars": ["${Fonts.escapeJson(String(Character.toChars(BASE + i)))}"]}"""
-        }
+        val chars = sheetRows().joinToString(", ") { "\"${Fonts.escapeJson(it)}\"" }
         return Fonts.compact(
             """{"providers": [{"type": "space", "advances": { $advances }},
-            ${providers.joinToString(", ")}]}"""
+            {"type": "bitmap", "file": "voidrp:${sheetName(size)}", "ascent": 0,
+             "height": ${nearestSize(size)}, "chars": [$chars]}]}"""
         )
     }
 }

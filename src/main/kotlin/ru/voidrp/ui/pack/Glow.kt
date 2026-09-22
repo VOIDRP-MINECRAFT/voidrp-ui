@@ -32,6 +32,61 @@ object Glow {
         radius: Int = 0,
     ): BufferedImage = cache.getOrPut("$part/$corner/$step/$level/$radius") { draw(part, corner, step, level, radius) }
 
+    /**
+     * The four corner tiles of one radius on one sheet, side by side.
+     *
+     * Same reason as the rounded corners: a grid in one picture instead of four files, and
+     * the zip's table of contents stops being a third of the pack. Each tile is drawn into
+     * its own cell, because the client measures a cell's ink to place the pen.
+     */
+    fun cornerSheet(radius: Int, level: Int): ByteArray {
+        val reach = Glyphs.GLOW_SPREAD + radius
+        val image = BufferedImage(reach * Glyphs.Corner.entries.size, reach, BufferedImage.TYPE_INT_ARGB)
+        Glyphs.Corner.entries.forEachIndexed { column, corner ->
+            val tile = image(Glyphs.GlowPart.CORNER, corner, 1, level, radius)
+            for (y in 0 until tile.height) for (x in 0 until tile.width) {
+                image.setRGB(column * reach + x, y, tile.getRGB(x, y))
+            }
+        }
+        val out = ByteArrayOutputStream()
+        ImageIO.write(image, "PNG", out)
+        return out.toByteArray()
+    }
+
+    /**
+     * The eight side tiles of one edge on one sheet.
+     *
+     * Kept square on purpose. A font atlas will not take a long thin strip — a 1024 by 16
+     * ribbon is exactly the shape that once made a glyph vanish and a page slide sideways —
+     * so the tiles are stacked rather than laid end to end: the horizontal ones as eight
+     * rows of 128 by 16, the vertical ones as eight columns of 16 by 128. Either way the
+     * picture is 128 square.
+     *
+     * A tile shorter than its cell sits at the cell's start; the rest is nothing, which is
+     * what the client draws and what our own measurement of its ink already says.
+     */
+    fun sideSheet(part: Glyphs.GlowPart, corner: Glyphs.Corner, level: Int): ByteArray {
+        val span = Glyphs.GLOW_STEPS.max()
+        val across = Glyphs.GLOW_SPREAD
+        val horizontal = part == Glyphs.GlowPart.HORIZONTAL
+        val image = if (horizontal) {
+            BufferedImage(span, across * Glyphs.GLOW_STEPS.size, BufferedImage.TYPE_INT_ARGB)
+        } else {
+            BufferedImage(across * Glyphs.GLOW_STEPS.size, span, BufferedImage.TYPE_INT_ARGB)
+        }
+        Glyphs.GLOW_STEPS.forEachIndexed { index, step ->
+            val tile = image(part, corner, step, level)
+            val atX = if (horizontal) 0 else index * across
+            val atY = if (horizontal) index * across else 0
+            for (y in 0 until tile.height) for (x in 0 until tile.width) {
+                image.setRGB(atX + x, atY + y, tile.getRGB(x, y))
+            }
+        }
+        val out = ByteArrayOutputStream()
+        ImageIO.write(image, "PNG", out)
+        return out.toByteArray()
+    }
+
     fun png(part: Glyphs.GlowPart, corner: Glyphs.Corner, step: Int, level: Int, radius: Int = 0): ByteArray {
         val out = ByteArrayOutputStream()
         ImageIO.write(image(part, corner, step, level, radius), "PNG", out)

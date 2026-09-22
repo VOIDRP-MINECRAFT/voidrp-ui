@@ -99,8 +99,11 @@ class PackBuilder(
             zip.put("assets/minecraft/textures/gui/sprites/boss_bar/white_background.png", transparent(182, 5))
             zip.put("assets/minecraft/textures/gui/sprites/boss_bar/white_progress.png", transparent(182, 5))
 
-            // One shape font per opacity step, and one text font per size.
-            for (level in 1..Glyphs.ALPHA_LEVELS) {
+            // One shape font per opacity step, and one text font per size. The faintest
+            // step is skipped: the client throws away anything under a tenth of opacity, so
+            // nothing is ever drawn at a sixteenth and baking it is a sixteenth of the
+            // alphabet nobody will ever see.
+            for (level in Glyphs.MIN_ALPHA_LEVEL..Glyphs.ALPHA_LEVELS) {
                 zip.put("assets/voidrp/font/${Glyphs.fontName(level)}.json", fontDefinition(level))
                 shapeTextures(level).forEach { (name, png) ->
                     zip.put("assets/voidrp/textures/gui/a$level/$name.png", png)
@@ -130,10 +133,8 @@ class PackBuilder(
 
             UiIcons.SIZES.forEach { size ->
                 zip.put("assets/voidrp/font/${UiIcons.fontName(size)}.json", UiIcons.fontJson(size))
-                UiIcons.NAMES.forEach { name ->
-                    UiIcons.png(name, size)?.let { png ->
-                        zip.put("assets/voidrp/textures/${UiIcons.textureName(name, size)}", png)
-                    }
+                UiIcons.sheet(size)?.let { sheet ->
+                    zip.put("assets/voidrp/textures/${UiIcons.sheetName(size)}", sheet)
                 }
             }
             // Item pictures: names only, because the client already has the textures.
@@ -205,34 +206,53 @@ class PackBuilder(
                 """.trimIndent()
             }
         }
+        // One picture per radius: the filled corners on the first row, the rings on the
+        // second. A grid in one file instead of eight files — see Corners.sheet.
         for (radius in Glyphs.RADII) {
-            for (corner in Glyphs.Corner.entries) {
-                providers += """
-                    {"type": "bitmap", "file": "$dir/${Glyphs.cornerTextureName(radius, corner)}.png",
-                     "ascent": 0, "height": $radius, "chars": ["${Glyphs.corner(radius, corner).escaped()}"]}
-                """.trimIndent()
-                providers += """
-                    {"type": "bitmap", "file": "$dir/${Glyphs.ringTextureName(radius, corner)}.png",
-                     "ascent": 0, "height": $radius, "chars": ["${Glyphs.ringCorner(radius, corner).escaped()}"]}
-                """.trimIndent()
-            }
+            providers += """
+                {"type": "bitmap", "file": "$dir/${Glyphs.cornerSheetName(radius)}.png",
+                 "ascent": 0, "height": $radius, "chars": [
+                   "${Glyphs.Corner.entries.joinToString("") { Glyphs.corner(radius, it) }.escaped()}",
+                   "${Glyphs.Corner.entries.joinToString("") { Glyphs.ringCorner(radius, it) }.escaped()}"
+                 ]}
+            """.trimIndent()
         }
         providers += """
             {"type": "bitmap", "file": "$dir/cursor.png",
              "ascent": 0, "height": ${Glyphs.CURSOR_SIZE}, "chars": ["${Glyphs.cursor().escaped()}"]}
         """.trimIndent()
-        val haloPieces = if (Glyphs.bakesHalo(level)) Glyphs.glowPieces() else emptyList()
-        haloPieces.forEach { (part, corner, step, radius) ->
-            val name = Glyphs.glowTextureName(part, corner, step, radius)
-            val height = when (part) {
-                Glyphs.GlowPart.VERTICAL -> step
-                Glyphs.GlowPart.CORNER -> Glyphs.GLOW_SPREAD + radius
-                else -> Glyphs.GLOW_SPREAD
+        if (Glyphs.bakesHalo(level)) {
+            // The four corner tiles of a radius share a picture, as the rounded corners do.
+            Glyphs.GLOW_RADII.forEach { radius ->
+                providers += """
+                    {"type": "bitmap", "file": "$dir/${Glyphs.glowCornerSheetName(radius)}.png",
+                     "ascent": 0, "height": ${Glyphs.GLOW_SPREAD + radius}, "chars": [
+                       "${Glyphs.Corner.entries.joinToString("") {
+                    Glyphs.glow(Glyphs.GlowPart.CORNER, it, 1, radius)
+                }.escaped()}"
+                     ]}
+                """.trimIndent()
             }
-            providers += """
-                {"type": "bitmap", "file": "$dir/$name.png",
-                 "ascent": 0, "height": $height, "chars": ["${Glyphs.glow(part, corner, step, radius).escaped()}"]}
-            """.trimIndent()
+            // And the sides: eight lengths to a picture, stacked so it stays square.
+            listOf(
+                Glyphs.GlowPart.HORIZONTAL to Glyphs.Corner.TOP_LEFT,
+                Glyphs.GlowPart.HORIZONTAL to Glyphs.Corner.BOTTOM_LEFT,
+                Glyphs.GlowPart.VERTICAL to Glyphs.Corner.TOP_LEFT,
+                Glyphs.GlowPart.VERTICAL to Glyphs.Corner.TOP_RIGHT,
+            ).forEach { (part, corner) ->
+                val horizontal = part == Glyphs.GlowPart.HORIZONTAL
+                val cells = Glyphs.GLOW_STEPS.map { Glyphs.glow(part, corner, it, 0) }
+                val rows = if (horizontal) {
+                    cells.joinToString(", ") { "\"${it.escaped()}\"" }
+                } else {
+                    "\"${cells.joinToString("").escaped()}\""
+                }
+                providers += """
+                    {"type": "bitmap", "file": "$dir/${Glyphs.glowSideSheetName(part, corner)}.png",
+                     "ascent": 0, "height": ${if (horizontal) Glyphs.GLOW_SPREAD else Glyphs.GLOW_STEPS.max()},
+                     "chars": [$rows]}
+                """.trimIndent()
+            }
         }
         val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
             "\"${char.escaped()}\": $advance"
@@ -265,15 +285,21 @@ class PackBuilder(
             for (x in 0 until tw) for (y in 0 until th) image.setRGB(x, y, argb)
             out[name] = image.toPng()
         }
-        for (radius in Glyphs.RADII) for (corner in Glyphs.Corner.entries) {
-            out[Glyphs.cornerTextureName(radius, corner)] = Corners.png(radius, corner, ring = false, level = level)
-            out[Glyphs.ringTextureName(radius, corner)] = Corners.png(radius, corner, ring = true, level = level)
+        Glyphs.RADII.forEach { radius ->
+            out[Glyphs.cornerSheetName(radius)] = Corners.sheet(radius, level)
         }
         out["cursor"] = Pointer.png(alpha)
         if (Glyphs.bakesHalo(level)) {
-            Glyphs.glowPieces().forEach { (part, corner, step, radius) ->
-                out[Glyphs.glowTextureName(part, corner, step, radius)] =
-                    Glow.png(part, corner, step, level, radius)
+            Glyphs.GLOW_RADII.forEach { radius ->
+                out[Glyphs.glowCornerSheetName(radius)] = Glow.cornerSheet(radius, level)
+            }
+            listOf(
+                Glyphs.GlowPart.HORIZONTAL to Glyphs.Corner.TOP_LEFT,
+                Glyphs.GlowPart.HORIZONTAL to Glyphs.Corner.BOTTOM_LEFT,
+                Glyphs.GlowPart.VERTICAL to Glyphs.Corner.TOP_LEFT,
+                Glyphs.GlowPart.VERTICAL to Glyphs.Corner.TOP_RIGHT,
+            ).forEach { (part, corner) ->
+                out[Glyphs.glowSideSheetName(part, corner)] = Glow.sideSheet(part, corner, level)
             }
         }
         return out
