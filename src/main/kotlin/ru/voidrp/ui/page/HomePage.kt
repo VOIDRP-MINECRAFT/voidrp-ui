@@ -350,7 +350,13 @@ class HomePage : Page() {
                         gap = 6,
                         children = listOf(
                             Icon("battlepass", 14, Theme.INK_SOFT),
-                            Text("Уровень 37", Theme.TEXT_BODY, Theme.INK, TextFonts.Weight.SEMIBOLD, wrap = false),
+                            Text(
+                                "Уровень 37",
+                                Theme.TEXT_BODY,
+                                Theme.VIOLET_SOFT,
+                                TextFonts.Weight.SEMIBOLD,
+                                wrap = false,
+                            ),
                             Panel(width = Size.Fill),
                             Panel(
                                 style = Style(
@@ -370,13 +376,15 @@ class HomePage : Page() {
                         ),
                     ),
                     Panel(
-                        style = Style(background = Paint(Theme.LINE, 0.12), radius = 4),
+                        // The site's track is all but black, so the filled part carries the
+                        // whole bar; a track this visible reads as a second bar.
+                        style = Style(background = Paint(0x000000, 0.45), radius = 3),
                         width = Size.Fill,
-                        height = Size.Fixed(8),
+                        height = Size.Fixed(6),
                         direction = Direction.ROW,
                         children = listOf(
                             Panel(
-                                style = Style(background = Paint(Theme.GOLD, 0.95), radius = 4),
+                                style = Style(background = Paint(Theme.GOLD, 0.95), radius = 3),
                                 width = Size.Percent(0.08),
                                 height = Size.Fill,
                             )
@@ -398,7 +406,9 @@ class HomePage : Page() {
                 direction = Direction.ROW,
                 width = Size.Fill,
                 gap = Theme.SPACE_4,
-                align = Align.START,
+                // Both cards end on the same line, as they do on the site — one stopping
+                // short of the other is the sort of thing you notice without knowing why.
+                align = Align.STRETCH,
                 children = listOf(statsPanel(), tilesPanel()),
             ),
             achievementsPanel(),
