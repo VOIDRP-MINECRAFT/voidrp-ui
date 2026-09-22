@@ -41,6 +41,10 @@ object Preview {
     @JvmStatic
     fun main(args: Array<String>) {
         val out = File(args.firstOrNull() ?: "build/preview").apply { mkdirs() }
+        // Point these at a live server's folders to draw its real logo and faces:
+        // VOIDRP_IMAGES=.../plugins/VoidRpUI/images ./gradlew preview
+        System.getenv("VOIDRP_IMAGES")?.let { ru.voidrp.ui.pack.ServerImages.load(File(it)) }
+        System.getenv("VOIDRP_HEADS")?.let { ru.voidrp.ui.pack.PlayerHeads.load(File(it)) }
         render(ru.voidrp.ui.page.HomePage().view(), File(out, "home.png"))
         render(ru.voidrp.ui.page.DemoPage().view(), File(out, "demo.png"))
         render(ru.voidrp.ui.page.ShopPage().view(), File(out, "shop.png"))
@@ -258,6 +262,21 @@ object Preview {
                 out.setRGB(x, y, (alpha shl 24) or (tint.rgb and 0xFFFFFF))
             }
             return out
+        }
+        // A server's own picture and a player's face go on in their own colours.
+        if (font.startsWith("ui_images_")) {
+            val name = ru.voidrp.ui.pack.ServerImages.names
+                .getOrNull(sprite.glyph.codePointAt(0) - 0xEC00) ?: return null
+            val bytes = ru.voidrp.ui.pack.ServerImages.png(name) ?: return null
+            return ImageIO.read(ByteArrayInputStream(bytes))
+        }
+        if (font.startsWith("ui_heads_")) {
+            val name = ru.voidrp.ui.pack.PlayerHeads.names
+                .getOrNull(sprite.glyph.codePointAt(0) - 0xED00) ?: return null
+            val bytes = ru.voidrp.ui.pack.PlayerHeads.textures()[
+                ru.voidrp.ui.pack.PlayerHeads.textureName(name),
+            ] ?: return null
+            return ImageIO.read(ByteArrayInputStream(bytes))
         }
         if (!font.startsWith("icons_")) return null
         val code = sprite.glyph.codePointAt(0) - 0xF000

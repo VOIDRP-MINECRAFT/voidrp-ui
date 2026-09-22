@@ -146,6 +146,14 @@ data class Image(val item: String, val size: Int = 32) : View
 data class Picture(val name: String, val height: Int = 64) : View
 
 /**
+ * A player's face, cut out of their skin.
+ *
+ * The skin has to be in `plugins/VoidRpUI/heads/` when the pack is built — see
+ * [ru.voidrp.ui.pack.PlayerHeads] for why that is a real limit and what it is good for.
+ */
+data class Head(val player: String, val size: Int = 32) : View
+
+/**
  * A column of things taller than the space it is given, shown through a window into it.
  *
  * Nothing can be clipped halfway on the way to the client — a glyph is drawn whole or not

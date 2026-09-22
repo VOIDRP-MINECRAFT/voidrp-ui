@@ -101,6 +101,9 @@ open class HomePage : Page() {
     private val CARD = 0x090B16
     private val KPI = 0x0D0F19
     private val TILE = 0x11131E
+    /** Whose page this is. The demo data is made up; the face, if there is one, is not. */
+    private val PLAYER = "mironoouv"
+
     private val WELL = 0x191A28
 
     /** What the middle of the well comes to, measured off the site. */
@@ -326,7 +329,15 @@ open class HomePage : Page() {
                 height = Size.Fixed(WELL_HEIGHT),
                 justify = Justify.CENTER,
                 align = Align.CENTER,
-                children = listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
+                // The player's own face when the server keeps their skin, and the plain
+                // figure when it does not — a page should not go blank over a picture.
+                children = listOf(
+                    if (ru.voidrp.ui.pack.PlayerHeads.has(PLAYER)) {
+                        ru.voidrp.ui.layout.Head(PLAYER, 128)
+                    } else {
+                        Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)
+                    },
+                ),
             ),
             Text(
                 "mironoouv",

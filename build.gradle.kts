@@ -84,6 +84,9 @@ tasks.register<JavaExec>("preview") {
     mainClass.set("ru.voidrp.ui.Preview")
     classpath = sourceSets["test"].runtimeClasspath
     environment("VOIDRP_CLIENT_JAR", System.getenv("VOIDRP_CLIENT_JAR") ?: "")
+    // A live server's own pictures and faces, if you want to draw the real thing.
+    System.getenv("VOIDRP_IMAGES")?.let { environment("VOIDRP_IMAGES", it) }
+    System.getenv("VOIDRP_HEADS")?.let { environment("VOIDRP_HEADS", it) }
 }
 
 tasks.register<JavaExec>("bench") {

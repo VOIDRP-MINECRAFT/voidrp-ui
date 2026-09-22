@@ -118,6 +118,16 @@ class PackBuilder(
                 }
             }
 
+            // Faces, if a server keeps any skins about.
+            PlayerHeads.textures().forEach { (name, png) ->
+                zip.put("assets/voidrp/textures/$name", png)
+            }
+            if (PlayerHeads.names.isNotEmpty()) {
+                PlayerHeads.SIZES.forEach { size ->
+                    zip.put("assets/voidrp/font/${PlayerHeads.fontName(size)}.json", PlayerHeads.fontJson(size))
+                }
+            }
+
             UiIcons.SIZES.forEach { size ->
                 zip.put("assets/voidrp/font/${UiIcons.fontName(size)}.json", UiIcons.fontJson(size))
                 UiIcons.NAMES.forEach { name ->

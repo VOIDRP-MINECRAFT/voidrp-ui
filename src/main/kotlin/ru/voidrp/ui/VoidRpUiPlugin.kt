@@ -82,6 +82,12 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             logger.info("Свои картинки: ${ru.voidrp.ui.pack.ServerImages.names.joinToString(", ")}")
         }
 
+        val skins = File(dataFolder, "heads").apply { mkdirs() }
+        ru.voidrp.ui.pack.PlayerHeads.load(skins)
+        if (ru.voidrp.ui.pack.PlayerHeads.names.isNotEmpty()) {
+            logger.info("Головы: ${ru.voidrp.ui.pack.PlayerHeads.names.joinToString(", ")}")
+        }
+
         packFile = File(dataFolder, "voidrp-ui.zip")
         // Baked into the shader, so it is decided when the pack is built.
         ru.voidrp.ui.pack.Shaders.fitCanvas = config.getBoolean("display.keep-proportions", false)

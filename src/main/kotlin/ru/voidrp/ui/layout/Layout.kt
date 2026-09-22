@@ -154,6 +154,8 @@ object Layout {
             Extent(ru.voidrp.ui.pack.ServerImages.width(view.name, height), height)
         }
 
+        is Head -> ru.voidrp.ui.pack.PlayerHeads.nearestSize(view.size).let { Extent(it, it) }
+
         is RichText -> {
             var width = 0
             var height = 0
@@ -418,6 +420,20 @@ object Layout {
                         }
                     }
                     out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight, view.tracking)
+                }
+            }
+
+            is Head -> {
+                val size = ru.voidrp.ui.pack.PlayerHeads.nearestSize(view.size)
+                ru.voidrp.ui.pack.PlayerHeads.glyph(view.player)?.let { glyph ->
+                    out += Sprite(
+                        x,
+                        y,
+                        glyph,
+                        ru.voidrp.ui.pack.PlayerHeads.advance(view.player, size),
+                        0xFFFFFF,
+                        ru.voidrp.ui.pack.PlayerHeads.fontName(size),
+                    )
                 }
             }
 
