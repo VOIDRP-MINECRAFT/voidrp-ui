@@ -126,8 +126,12 @@ class PageManager(
                 { redrawOnHover },
                 aim,
             ) { over -> sessions.remove(over.player.uniqueId, over) }
-        sessions[player.uniqueId] = session
+        // Opened before it is listed: the frame thread walks this list sixty times a second
+        // and draws the pointer, and bars stack in the order they first appear. Listed
+        // first, the pointer's bar could be created before the page's — and then the page
+        // is a line lower than it thinks, which shows as a gap along the top of the screen.
         session.open()
+        sessions[player.uniqueId] = session
         return true
     }
 

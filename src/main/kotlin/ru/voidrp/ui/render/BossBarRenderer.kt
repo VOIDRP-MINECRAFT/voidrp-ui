@@ -56,6 +56,10 @@ class BossBarRenderer(private val log: Logger? = null) {
      * kilobytes a second per player and felt exactly like a laggy mouse.
      */
     fun cursor(player: Player, title: net.kyori.adventure.text.Component) {
+        // The page's bar is made sure of first. Bars stack in the order they appear, and a
+        // page that finds itself second is drawn a line lower than every y it carries —
+        // which the player sees as a strip of the world along the top of the screen.
+        bar(pages, player)
         bar(cursors, player).name(title)
     }
 
