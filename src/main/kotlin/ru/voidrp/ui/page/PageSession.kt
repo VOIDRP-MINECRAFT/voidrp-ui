@@ -54,6 +54,12 @@ class PageSession(
     /** The look as the wire gave it, when there is a wire to take it from. */
     private val aim: ru.voidrp.ui.input.PacketAim,
     /**
+     * The shape of this player's screen, read fresh so that changing it takes effect at
+     * once — the page is laid out against this width the way a web page is laid out
+     * against the width of the browser window.
+     */
+    private val screen: () -> ru.voidrp.ui.layout.Viewport = { ru.voidrp.ui.layout.Viewport.DEFAULT },
+    /**
      * Told when this session is over.
      *
      * A page closing itself — a button that opens the world again — used to leave the
@@ -65,8 +71,11 @@ class PageSession(
     private val forget: (PageSession) -> Unit = {},
 ) {
 
+    /** The canvas this player's page is drawn on. */
+    val viewport: ru.voidrp.ui.layout.Viewport get() = screen()
+
     /** The last reading of the player's aim, in canvas units. */
-    private var targetX = (Shaders.CANVAS_WIDTH / 2).toDouble()
+    private var targetX = (screen().width / 2).toDouble()
     private var targetY = (Shaders.CANVAS_HEIGHT / 2).toDouble()
 
     /**
@@ -196,8 +205,8 @@ class PageSession(
         val turnedY = pitch - anchorPitch
         val speed = sensitivity()
 
-        val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed)
-            .coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
+        val x = (viewport.width / 2 + turnedX * speed)
+            .coerceIn(0.0, (viewport.width - 1).toDouble())
         val y = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed)
             .coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
         if (x == targetX && y == targetY) return false
@@ -249,7 +258,7 @@ class PageSession(
         // the gap between readings, not for deciding where the player is looking.
         estimateX = estimateX.coerceIn(targetX - RUN_AHEAD, targetX + RUN_AHEAD)
         estimateY = estimateY.coerceIn(targetY - RUN_AHEAD, targetY + RUN_AHEAD)
-        estimateX = estimateX.coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
+        estimateX = estimateX.coerceIn(0.0, (viewport.width - 1).toDouble())
         estimateY = estimateY.coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
 
         // A light smoothing over the top, which takes out the jitter in the estimate
@@ -359,14 +368,15 @@ class PageSession(
     /** Builds the page again from scratch and sends it. */
     fun render() {
         if (closed) return
-        val placement = Layout.centred(page.view(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
+        val canvas = viewport
+        val placement = Layout.centred(page.view(), canvas.width, canvas.height)
         regions = placement.regions
         // The page is encoded once and kept: the cursor moves every tick, the page does not.
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         tooltip = page.tooltip()
         tooltipEncoded = null
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
-        renderer.render(player, GlyphEncoder.encode(placement.nodes))
+        renderer.render(player, GlyphEncoder.encode(placement.nodes, canvas.width / 2))
         draw()
     }
 
@@ -376,7 +386,7 @@ class PageSession(
         val line = Component.text()
         halo(lift)?.let { line.append(it) }
         tooltipAt(cursorX, cursorY - lift)?.let { line.append(it) }
-        line.append(GlyphEncoder.encode(cursor(cursorX, cursorY - lift)))
+        line.append(GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
         renderer.cursor(player, line.build())
     }
 
@@ -397,7 +407,7 @@ class PageSession(
         // Along the panel's own corners. A square drawn around a rounded card is the first
         // thing anyone notices, and the cursor lands on rounded cards all day.
         Painter.outline(region.x, top, region.width, height, region.radius, 1, paint, nodes)
-        return GlyphEncoder.encode(nodes)
+        return GlyphEncoder.encode(nodes, viewport.width / 2)
     }
 
     /**
@@ -413,11 +423,12 @@ class PageSession(
         tooltipEncoded?.takeIf { !moved }?.let { return it }
         tooltipAt = x + y * 2
 
-        val size = Layout.measure(view, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
-        val left = (x + TOOLTIP_OFFSET).coerceAtMost(Shaders.CANVAS_WIDTH - size.width - 4)
-        val top = (y + TOOLTIP_OFFSET).coerceAtMost(Shaders.CANVAS_HEIGHT - size.height - 4)
+        val canvas = viewport
+        val size = Layout.measure(view, canvas.width, canvas.height)
+        val left = (x + TOOLTIP_OFFSET).coerceAtMost(canvas.width - size.width - 4)
+        val top = (y + TOOLTIP_OFFSET).coerceAtMost(canvas.height - size.height - 4)
         val placement = Layout.place(view, left.coerceAtLeast(4), top.coerceAtLeast(4), size.width, size.height)
-        return GlyphEncoder.encode(placement.nodes).also { tooltipEncoded = it }
+        return GlyphEncoder.encode(placement.nodes, canvas.width / 2).also { tooltipEncoded = it }
     }
 
     /** Whether this session is over; a closed one answers to nothing. */

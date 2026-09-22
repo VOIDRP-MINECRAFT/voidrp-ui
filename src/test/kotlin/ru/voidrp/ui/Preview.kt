@@ -9,6 +9,7 @@ import java.io.File
 import java.util.zip.ZipFile
 import javax.imageio.ImageIO
 import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.Viewport
 import ru.voidrp.ui.layout.View
 import ru.voidrp.ui.pack.Glyphs
 import ru.voidrp.ui.pack.Icons
@@ -118,13 +119,37 @@ object Preview {
             }.view(),
             File(out, "shop-hover.png"),
         )
+        // The same page on every screen anyone plays on. A layout that only ever gets
+        // looked at on one shape of monitor is a layout that breaks on the next one.
+        val shapes = listOf("5:4", "4:3", "16:10", "16:9", "21:9")
+        shapes.forEach { shape ->
+            val viewport = Viewport.parse(shape)!!
+            render(ru.voidrp.ui.page.HomePage(), File(out, "home-${shape.replace(':', 'x')}.png"), viewport)
+        }
+
+        // The one page a player sees before any other, if the server did not guess their
+        // screen right: the frame they line up with their own edges.
+        render(ru.voidrp.ui.page.ScreenPage {}, File(out, "screen.png"), Viewport.parse("5:4")!!)
+
         render(StatesSheet().view(), File(out, "states.png"))
         render(StatesSheet(hover = "hover:button").view(), File(out, "states-hover.png"))
         println("Снимки: ${out.absolutePath}")
     }
 
-    fun render(view: View, target: File) {
-        val placement = Layout.centred(view, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
+    /**
+     * Draws a page for one screen shape.
+     *
+     * The page is told what it is being drawn on first, the same way a session tells it,
+     * so whatever it decides by the width of the screen — how many columns, how wide the
+     * rail — is what ends up in the picture.
+     */
+    fun render(page: ru.voidrp.ui.page.Page, target: File, viewport: Viewport = Viewport.DEFAULT) {
+        page.viewportHint = viewport
+        render(page.view(), target, viewport)
+    }
+
+    fun render(view: View, target: File, viewport: Viewport = Viewport.DEFAULT) {
+        val placement = Layout.centred(view, viewport.width, viewport.height)
         // A list of what ended up where, beside the picture: measuring a layout by eye on a
         // screenshot is how a row sixty-four units tall gets mistaken for ninety.
         File(target.parentFile, target.nameWithoutExtension + ".txt").writeText(
@@ -140,14 +165,14 @@ object Preview {
             }
         )
         val nodes = Painter.flatten(placement.nodes)
-        val image = BufferedImage(Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, BufferedImage.TYPE_INT_RGB)
+        val image = BufferedImage(viewport.width, viewport.height, BufferedImage.TYPE_INT_RGB)
         val g = image.createGraphics()
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 
         // A dull world behind the page, so opacity can be judged rather than guessed at.
-        for (y in 0 until Shaders.CANVAS_HEIGHT) {
+        for (y in 0 until viewport.height) {
             g.color = Color(40 + y / 40, 46 + y / 48, 58 + y / 64)
-            g.drawLine(0, y, Shaders.CANVAS_WIDTH, y)
+            g.drawLine(0, y, viewport.width, y)
         }
 
         nodes.forEach { node -> draw(g, image, node) }

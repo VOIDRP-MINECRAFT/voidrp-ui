@@ -8,6 +8,8 @@ import ru.voidrp.ui.layout.Direction
 import ru.voidrp.ui.layout.Image
 import ru.voidrp.ui.layout.Justify
 import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.View
+import ru.voidrp.ui.layout.Viewport
 import ru.voidrp.ui.layout.Panel
 import ru.voidrp.ui.layout.Scroll
 import ru.voidrp.ui.layout.Size
@@ -300,7 +302,7 @@ class PenAccountingTest {
                 width = Size.Fixed(320),
                 height = Size.Fixed(180),
             )
-            val nodes = Layout.centred(page, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes
+            val nodes = Layout.centred(page, Viewport.DEFAULT.width, Viewport.HEIGHT).nodes
             val width = client.width(GlyphEncoder.encode(nodes))
             if (width != 0) wrong += "радиус $radius: строка шириной $width"
         }
@@ -329,38 +331,65 @@ class PenAccountingTest {
     }
 
     @Test
-    fun `nothing on a page hangs off the canvas`() {
-        // A panel that asks for more room than it has used to stick out over the edge of
-        // the screen, where nobody looks until a player mentions it. The layout shrinks
-        // rows to fit now, and this is what says so.
-        val pages = mapOf(
-            "главная" to ru.voidrp.ui.page.HomePage().view(),
-            "магазин" to ru.voidrp.ui.page.ShopPage().view(),
-            "демо" to ru.voidrp.ui.page.DemoPage().view(),
-            "демо с открытым списком" to ru.voidrp.ui.page.DemoPage()
-                .also { it.onClick("mode", ru.voidrp.ui.page.Button.LEFT) }
-                .view(),
-            "лист состояний" to StatesSheet().view(),
+    fun `nothing on a page hangs off any screen`() {
+        // The canvas is 1024 tall on every screen and as wide as the screen is: 1280 units
+        // on a 5:4 monitor, 2389 on an ultrawide. A page that only ever gets looked at on
+        // 16:9 breaks quietly on the rest — a card sticking out over the edge, a row that
+        // spends height the page has not got and lands on the one below it.
+        //
+        // So every page is laid out for every shape anyone plays on, and nothing may fall
+        // outside. This is the test a responsive layout is worth having.
+        val pages = mapOf<String, (Viewport) -> View>(
+            "главная" to { screen -> ru.voidrp.ui.page.HomePage().also { it.viewportHint = screen }.view() },
+            "магазин" to { screen -> ru.voidrp.ui.page.ShopPage().also { it.viewportHint = screen }.view() },
+            "демо" to { screen -> ru.voidrp.ui.page.DemoPage().also { it.viewportHint = screen }.view() },
+            "демо с открытым списком" to { screen ->
+                ru.voidrp.ui.page.DemoPage()
+                    .also { it.viewportHint = screen; it.onClick("mode", ru.voidrp.ui.page.Button.LEFT) }
+                    .view()
+            },
+            "лист состояний" to { screen -> StatesSheet().also { it.viewportHint = screen }.view() },
         )
         val outside = mutableListOf<String>()
-        pages.forEach { (name, view) ->
-            val nodes = Painter.flatten(
-                Layout.centred(view, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes,
-            )
-            nodes.forEach { node ->
-                val (width, height) = when (node) {
-                    is Rect -> node.width to node.height
-                    is ru.voidrp.ui.render.Box -> node.width to node.height
-                    else -> 0 to 0
-                }
-                val right = node.x + width
-                val bottom = node.y + height
-                if (node.x < 0 || node.y < 0 || right > Shaders.CANVAS_WIDTH || bottom > Shaders.CANVAS_HEIGHT) {
-                    outside += "$name: ${width}×$height @ ${node.x},${node.y}"
+        Viewport.PRESETS.forEach { (shape, screen) ->
+            pages.forEach { (name, build) ->
+                val nodes = Painter.flatten(Layout.centred(build(screen), screen.width, screen.height).nodes)
+                nodes.forEach { node ->
+                    val (width, height) = when (node) {
+                        is Rect -> node.width to node.height
+                        is ru.voidrp.ui.render.Box -> node.width to node.height
+                        else -> 0 to 0
+                    }
+                    if (node.x < 0 || node.y < 0 ||
+                        node.x + width > screen.width || node.y + height > screen.height
+                    ) {
+                        outside += "$shape · $name: ${width}×$height @ ${node.x},${node.y}"
+                    }
                 }
             }
         }
-        assertTrue(outside.isEmpty(), "за краем холста:\n" + outside.take(5).joinToString("\n"))
+        assertTrue(outside.isEmpty(), "за краем экрана:\n" + outside.take(8).joinToString("\n"))
+    }
+
+    @Test
+    fun `a page is centred on the line the client draws`() {
+        // x travels as the pen's distance from the middle of the screen, because that is
+        // where the boss bar's centring leaves it. Get the origin wrong and the whole page
+        // sits off to one side — so a page laid out for a screen must come back with its
+        // middle at nought.
+        val screen = Viewport.parse("5:4")!!
+        val nodes = Layout.centred(
+            ru.voidrp.ui.page.HomePage().also { it.viewportHint = screen }.view(),
+            screen.width,
+            screen.height,
+        ).nodes
+        val line = GlyphEncoder.encode(nodes, screen.width / 2)
+        assertEquals(0, client.width(line), "строка не нулевой ширины — страница уедет вбок")
+        assertEquals(
+            -screen.width / 2,
+            client.penBeforeFirstDrawn(line),
+            "страница начинается не от левого края экрана",
+        )
     }
 
     @Test
@@ -372,8 +401,8 @@ class PenAccountingTest {
                 "лист состояний" + (hover?.let { " с наведением" } ?: ""),
                 Layout.centred(
                     StatesSheet(hover).view(),
-                    Shaders.CANVAS_WIDTH,
-                    Shaders.CANVAS_HEIGHT,
+                    Viewport.DEFAULT.width,
+                    Viewport.HEIGHT,
                 ).nodes,
             )
         }
@@ -385,8 +414,8 @@ class PenAccountingTest {
             "главная",
             Layout.centred(
                 ru.voidrp.ui.page.HomePage().view(),
-                Shaders.CANVAS_WIDTH,
-                Shaders.CANVAS_HEIGHT,
+                Viewport.DEFAULT.width,
+                Viewport.HEIGHT,
             ).nodes,
         )
     }
@@ -397,8 +426,8 @@ class PenAccountingTest {
             "магазин",
             Layout.centred(
                 ru.voidrp.ui.page.ShopPage().view(),
-                Shaders.CANVAS_WIDTH,
-                Shaders.CANVAS_HEIGHT,
+                Viewport.DEFAULT.width,
+                Viewport.HEIGHT,
             ).nodes,
         )
     }
@@ -409,15 +438,15 @@ class PenAccountingTest {
             "демо",
             Layout.centred(
                 ru.voidrp.ui.page.DemoPage().view(),
-                Shaders.CANVAS_WIDTH,
-                Shaders.CANVAS_HEIGHT,
+                Viewport.DEFAULT.width,
+                Viewport.HEIGHT,
             ).nodes,
         )
     }
 
     @Test
     fun `a whole page balances`() {
-        assertBalanced("страница", Layout.centred(samplePage(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes)
+        assertBalanced("страница", Layout.centred(samplePage(), Viewport.DEFAULT.width, Viewport.HEIGHT).nodes)
     }
 
     @Test
@@ -444,8 +473,8 @@ class PenAccountingTest {
     }
 
     private fun samplePage() = Panel(
-        width = Size.Fixed(Shaders.CANVAS_WIDTH),
-        height = Size.Fixed(Shaders.CANVAS_HEIGHT),
+        width = Size.Fixed(Viewport.DEFAULT.width),
+        height = Size.Fixed(Viewport.HEIGHT),
         style = Theme.scrim,
         justify = Justify.CENTER,
         align = Align.CENTER,

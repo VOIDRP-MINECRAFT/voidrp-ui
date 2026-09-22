@@ -7,6 +7,7 @@ import org.bukkit.command.TabCompleter
 import org.bukkit.entity.Player
 import ru.voidrp.ui.VoidRpUiPlugin
 import ru.voidrp.ui.page.DemoPage
+import ru.voidrp.ui.layout.Viewport
 import ru.voidrp.ui.page.HomePage
 
 /**
@@ -46,11 +47,54 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
                 player.sendMessage(plugin.messages.get("pack.sent"))
             }
 
+            // The one thing the game never tells the server: what shape the window is.
+            // Asked for here rather than guessed, and remembered for good.
+            "screen", "экран" -> withPlayer(sender) { player -> screen(player, args.getOrNull(1)) }
+
             "help", null -> sender.sendMessage(plugin.messages.get("command.usage"))
 
             else -> sender.sendMessage(plugin.messages.get("command.unknown"))
         }
         return true
+    }
+
+    private fun screen(player: Player, choice: String?) {
+        val screens = plugin.screens
+        if (choice == null) {
+            // Shown rather than described: the page draws a frame at the width the server
+            // believes in, and the player picks until it sits on the edges of their screen.
+            val opened = plugin.pages.open(
+                player,
+                ru.voidrp.ui.page.ScreenPage { chosen ->
+                    if (chosen == null) screens.clear(player) else screens.set(player, chosen)
+                },
+            )
+            if (!opened) {
+                player.sendMessage(
+                    plugin.messages.get("screen.current", "screen" to Viewport.name(screens.of(player))),
+                )
+                player.sendMessage(
+                    plugin.messages.get("screen.list", "list" to Viewport.PRESETS.keys.joinToString(" · ")),
+                )
+            }
+            return
+        }
+        if (choice.equals("auto", ignoreCase = true) || choice.equals("сброс", ignoreCase = true)) {
+            screens.clear(player)
+            player.sendMessage(
+                plugin.messages.get("screen.auto", "screen" to Viewport.name(screens.of(player))),
+            )
+            plugin.pages.refresh(player)
+            return
+        }
+        val chosen = Viewport.parse(choice)
+        if (chosen == null) {
+            player.sendMessage(plugin.messages.get("screen.unknown"))
+            return
+        }
+        screens.set(player, chosen)
+        player.sendMessage(plugin.messages.get("screen.set", "screen" to Viewport.name(chosen)))
+        plugin.pages.refresh(player)
     }
 
     private inline fun withPlayer(sender: CommandSender, action: (Player) -> Unit) {
@@ -63,11 +107,14 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         label: String,
         args: Array<out String>,
     ): List<String> = when {
-        args.size <= 1 -> listOf("open", "demo", "close", "pack", "help").let {
+        args.size <= 1 -> listOf("open", "demo", "close", "screen", "pack", "help").let {
             if (sender.hasPermission("voidrp.ui.debug")) it + "debug" else it
         }.filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
 
         args[0].equals("debug", ignoreCase = true) -> debug.complete(args.drop(1))
+
+        args[0].equals("screen", ignoreCase = true) && args.size == 2 ->
+            (Viewport.PRESETS.keys + "auto").filter { it.startsWith(args[1], ignoreCase = true) }
 
         else -> emptyList()
     }

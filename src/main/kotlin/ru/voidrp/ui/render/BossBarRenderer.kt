@@ -31,7 +31,8 @@ class BossBarRenderer(private val log: Logger? = null) {
     private val pages = mutableMapOf<UUID, BossBar>()
     private val cursors = mutableMapOf<UUID, BossBar>()
 
-    fun render(player: Player, nodes: List<Node>) = render(player, GlyphEncoder.encode(nodes))
+    fun render(player: Player, nodes: List<Node>, centre: Int = 0) =
+        render(player, GlyphEncoder.encode(nodes, centre))
 
     /**
      * Sends the page.

@@ -97,8 +97,8 @@ open class DemoPage : Page() {
         )
 
         return Panel(
-            width = Size.Fixed(Shaders.CANVAS_WIDTH),
-            height = Size.Fixed(Shaders.CANVAS_HEIGHT),
+            width = Size.Fixed(viewport.width),
+            height = Size.Fixed(viewport.height),
             style = Theme.scrim,
             justify = Justify.CENTER,
             align = Align.CENTER,

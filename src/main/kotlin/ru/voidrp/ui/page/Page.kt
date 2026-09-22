@@ -25,6 +25,19 @@ abstract class Page {
     /** The player this page is open for. */
     val player: Player get() = session?.player ?: error("Страница ещё не открыта")
 
+    /**
+     * What the page is being drawn on: 1024 units tall, as wide as this player's screen.
+     *
+     * A page reads it the way a stylesheet reads a media query — lay the cards out in
+     * three columns on a wide screen and two on a narrow one, and let [ru.voidrp.ui.layout.Size.Fill]
+     * do the rest. Outside a session (a preview, a test) it is the default shape.
+     */
+    val viewport: ru.voidrp.ui.layout.Viewport
+        get() = session?.viewport ?: viewportHint ?: ru.voidrp.ui.layout.Viewport.DEFAULT
+
+    /** The screen to lay out for when there is no player — how a preview draws a page. */
+    var viewportHint: ru.voidrp.ui.layout.Viewport? = null
+
     /** The id of the panel under the cursor, if any. */
     open val hovered: String? get() = session?.hovered
 

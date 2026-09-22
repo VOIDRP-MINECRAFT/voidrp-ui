@@ -79,6 +79,13 @@ object Layout {
         )
     }
 
+    /** Inside the panel's own limits: `max-width` and `min-width`, both optional. */
+    private fun Panel.clampWidth(value: Int): Int =
+        value.coerceAtMost(maxWidth ?: Int.MAX_VALUE).coerceAtLeast(minWidth ?: 0)
+
+    private fun Panel.clampHeight(value: Int): Int =
+        value.coerceAtMost(maxHeight ?: Int.MAX_VALUE).coerceAtLeast(minHeight ?: 0)
+
     /**
      * What has already been measured during this layout.
      *
@@ -194,8 +201,8 @@ object Layout {
             val innerHeight = (availableHeight - frame.height).coerceAtLeast(0)
             val content = measureChildren(view, innerWidth, innerHeight)
             Extent(
-                resolve(view.width, content.width + frame.width, availableWidth),
-                resolve(view.height, content.height + frame.height, availableHeight),
+                view.clampWidth(resolve(view.width, content.width + frame.width, availableWidth)),
+                view.clampHeight(resolve(view.height, content.height + frame.height, availableHeight)),
             )
         }
     }
@@ -522,25 +529,33 @@ object Layout {
             }
 
             is Panel -> {
+                // A panel wider than it allows itself keeps to its limit and takes the
+                // middle of the room it was given, which is `margin: 0 auto` — the reason
+                // a page can fill a narrow window and still hold its content to a readable
+                // column on a wide one.
+                val boxWidth = view.clampWidth(width)
+                val boxHeight = view.clampHeight(height)
+                val boxX = x + (width - boxWidth) / 2
+                val boxY = y + (height - boxHeight) / 2
                 view.id?.let {
                     regions += Region(
                         it,
-                        x,
-                        y,
-                        width,
-                        height,
-                        Glyphs.nearestRadius(view.style.radius, minOf(width, height) / 2),
+                        boxX,
+                        boxY,
+                        boxWidth,
+                        boxHeight,
+                        Glyphs.nearestRadius(view.style.radius, minOf(boxWidth, boxHeight) / 2),
                     )
                 }
                 // The panel itself is painted first, then filled: a box with no children of
                 // its own, because everything inside is placed here as a sibling.
-                out += Box(x, y, width, height, view.style)
+                out += Box(boxX, boxY, boxWidth, boxHeight, view.style)
 
                 val border = view.style.border?.width ?: 0
-                val innerX = x + border + view.style.padding.left
-                val innerY = y + border + view.style.padding.top
-                val innerWidth = (width - frame(view).width).coerceAtLeast(0)
-                val innerHeight = (height - frame(view).height).coerceAtLeast(0)
+                val innerX = boxX + border + view.style.padding.left
+                val innerY = boxY + border + view.style.padding.top
+                val innerWidth = (boxWidth - frame(view).width).coerceAtLeast(0)
+                val innerHeight = (boxHeight - frame(view).height).coerceAtLeast(0)
                 arrangeChildren(view, innerX, innerY, innerWidth, innerHeight, out, regions)
             }
         }

@@ -35,9 +35,21 @@ class PageManager(
     private val packSender: (Player) -> Unit = {},
     /** Whether this player's client has the pack, and can therefore draw anything. */
     private val packReady: (Player) -> Boolean = { true },
+    /**
+     * The shape of a player's screen, which decides how wide their canvas is.
+     *
+     * A page is laid out against it, so this is what makes an interface adapt rather than
+     * be squashed onto whatever window it lands in.
+     */
+    private val screens: (Player) -> ru.voidrp.ui.layout.Viewport = { ru.voidrp.ui.layout.Viewport.DEFAULT },
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
+
+    /** Draws this player's page again, if one is open — after their screen changed, say. */
+    fun refresh(player: Player) {
+        session(player)?.render()
+    }
 
     /**
      * Where the player is looking, straight off the wire when the server has PacketEvents.
@@ -99,6 +111,9 @@ class PageManager(
 
     fun shutdown() {
         frames.shutdownNow()
+        // Before the sessions, because a listener left registered outlives this plugin's
+        // class loader and throws on every packet that arrives after it.
+        aim.uninstall()
         closeAll()
     }
 
@@ -125,6 +140,7 @@ class PageManager(
                 { cursorBarOffset },
                 { redrawOnHover },
                 aim,
+                { screens(player) },
             ) { over -> sessions.remove(over.player.uniqueId, over) }
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed

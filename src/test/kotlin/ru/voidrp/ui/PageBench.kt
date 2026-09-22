@@ -1,6 +1,7 @@
 package ru.voidrp.ui
 
 import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.Viewport
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.page.DemoPage
 import ru.voidrp.ui.page.HomePage
@@ -26,7 +27,7 @@ object PageBench {
         ).forEach { (name, page) ->
             repeat(50) { measure(page) }
             val runs = (1..200).map { measure(page) }
-            val nodes = Layout.centred(page.view(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes
+            val nodes = Layout.centred(page.view(), Viewport.DEFAULT.width, Viewport.HEIGHT).nodes
             val line = GlyphEncoder.encode(nodes)
             val length = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                 .serialize(line).length
@@ -93,7 +94,7 @@ object PageBench {
 
     private fun measure(page: Page): Long {
         val start = System.nanoTime()
-        val nodes = Layout.centred(page.view(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes
+        val nodes = Layout.centred(page.view(), Viewport.DEFAULT.width, Viewport.HEIGHT).nodes
         GlyphEncoder.encode(nodes)
         return System.nanoTime() - start
     }

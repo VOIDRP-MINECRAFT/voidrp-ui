@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.Viewport
 import ru.voidrp.ui.layout.Panel
 import ru.voidrp.ui.layout.Picture
 import ru.voidrp.ui.layout.Size
@@ -66,8 +67,8 @@ class ServerImageTest {
                 align = Align.CENTER,
                 children = listOf(Picture("banner", 48)),
             ),
-            Shaders.CANVAS_WIDTH,
-            Shaders.CANVAS_HEIGHT,
+            Viewport.DEFAULT.width,
+            Viewport.HEIGHT,
         ).nodes
         assertEquals(0, simulator.width(GlyphEncoder.encode(nodes)), "строка с картинкой не сошлась")
     }

@@ -38,7 +38,19 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     val messages = Messages(this)
     val sounds = Sounds(this)
     val renderer = BossBarRenderer(logger)
-    val pages = PageManager(this, renderer, messages, sounds, ::sendPack, ::packReady)
+
+    /**
+     * What shape each player's screen is — the one thing the game never tells the server.
+     *
+     * A page is laid out against this width, so it is what makes the interface fit the
+     * window instead of being squashed into it.
+     */
+    val screens = ru.voidrp.ui.layout.Screens(File(dataFolder, "screens.yml")) { serverScreen }
+
+    /** The screen shape assumed for a player who has not said what theirs is. */
+    private var serverScreen = ru.voidrp.ui.layout.Viewport.DEFAULT
+
+    val pages = PageManager(this, renderer, messages, sounds, ::sendPack, ::packReady, screens::of)
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""
@@ -111,9 +123,17 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             logger.info("Головы: ${ru.voidrp.ui.pack.PlayerHeads.names.joinToString(", ")}")
         }
 
+        // What to lay out for until a player says what their own screen looks like.
+        serverScreen = config.getString("display.screen")?.takeIf { it.isNotBlank() }
+            ?.let { ru.voidrp.ui.layout.Viewport.parse(it) }
+            ?: ru.voidrp.ui.layout.Viewport.DEFAULT
+        screens.load()
+        logger.info(
+            "Холст по умолчанию: ${ru.voidrp.ui.layout.Viewport.name(serverScreen)} " +
+                "(${serverScreen.width}×${serverScreen.height}). Игрок меняет своим /vui screen."
+        )
+
         packFile = File(dataFolder, "voidrp-ui.zip")
-        // Baked into the shader, so it is decided when the pack is built.
-        ru.voidrp.ui.pack.Shaders.fitCanvas = config.getBoolean("display.keep-proportions", false)
         packHash = PackBuilder(
             shaderMode = config.getString("pack.shader-mode", "patched")!!,
             withOverlay = config.getBoolean("pack.legacy-overlay", false),
@@ -209,9 +229,10 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         // reads the old shader names — which is exactly what the other pack is for. Only
         // worth trying when nobody told us the version; with PacketEvents the choice was
         // already made on facts.
-        val failed = event.status == PlayerResourcePackStatusEvent.Status.FAILED_RELOAD ||
-            event.status == PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD
-        if (!failed) return
+        // FAILED_RELOAD only: the pack arrived and the client could not read it, which is
+        // what an old client does with the new shader names. A failed download is a hash
+        // or a network problem, and sending a different archive would only paper over it.
+        if (event.status != PlayerResourcePackStatusEvent.Status.FAILED_RELOAD) return
         val player = event.player
         if (!canSendLegacy(player)) return
         if (sentHash[player.uniqueId] == legacyHash) return
@@ -364,7 +385,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 stopSweep(player)
                 return@Runnable
             }
-            val x = (tick * 16) % (Shaders.CANVAS_WIDTH - 64)
+            val x = (tick * 16) % (screens.of(player).width - 64)
             val y = Shaders.CANVAS_HEIGHT / 2 + (Math.sin(tick / 10.0) * 280).toInt()
             renderer.render(player, listOf(Rect(x, y, 64, 64, Paint(0xFFFFFF))))
             tick++

@@ -180,9 +180,17 @@ object GlyphEncoder {
 
     }
 
-    fun encode(nodes: List<Node>): Component {
+    /**
+     * Turns shapes into the one line of text that draws them.
+     *
+     * [centre] is the canvas x that sits in the middle of the screen — half the width the
+     * page was laid out for. The boss bar centres its title, so the pen starts there, and
+     * the shader needs no page width of its own: the same shader draws a page laid out for
+     * any screen.
+     */
+    fun encode(nodes: List<Node>, centre: Int = 0): Component {
         val line = Line()
-        var pen = 0
+        var pen = centre
 
         for (node in Painter.flatten(nodes)) {
             pen = when (node) {
@@ -194,10 +202,10 @@ object GlyphEncoder {
                 is Box -> pen // Painter has already expanded every box.
             }
         }
-        // Bring the pen back to zero so the whole line is zero wide: the boss bar centres
-        // its title, and a zero-width line starts exactly at the centre of the screen,
-        // which is what the shader measures x from.
-        line.add(Glyphs.moveBy(-pen), shapeFont(Glyphs.ALPHA_LEVELS), null)
+        // Bring the pen back to where it started so the whole line is zero wide: the boss
+        // bar centres its title, and a zero-width line starts exactly at the centre of the
+        // screen, which is what the shader measures x from.
+        line.add(Glyphs.moveBy(centre - pen), shapeFont(Glyphs.ALPHA_LEVELS), null)
         return line.build()
     }
 

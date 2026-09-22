@@ -38,8 +38,8 @@ class StatesSheet(private val hover: String? = null) : Page() {
 
     override fun view(): View = Panel(
         style = Theme.scrim,
-        width = Size.Fixed(ru.voidrp.ui.pack.Shaders.CANVAS_WIDTH),
-        height = Size.Fixed(ru.voidrp.ui.pack.Shaders.CANVAS_HEIGHT),
+        width = Size.Fixed(viewport.width),
+        height = Size.Fixed(viewport.height),
         justify = ru.voidrp.ui.layout.Justify.CENTER,
         align = Align.CENTER,
         children = listOf(

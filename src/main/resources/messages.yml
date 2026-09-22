@@ -15,9 +15,17 @@ page:
   opened: "<gray>Прицел — курсор, ЛКМ — нажать, Shift — назад.</gray>"
   closed: "<gray>Закрыто.</gray>"
 
+screen:
+  # /vui screen — игрок сообщает, какой формы у него экран.
+  current: "<gray>Ваш экран: <white><screen></white>. Сменить: <white>/vui screen 16:9</white> · список: <white>/vui screen</white></gray>"
+  list: "<gray>Форматы: <white><list></white>. Можно и разрешением: <white>/vui screen 1920x1080</white>.</gray>"
+  set: "<green>Экран: <white><screen></white>.</green> <gray>Страница перерисована под него.</gray>"
+  auto: "<green>Формат экрана сброшен на серверный (<white><screen></white>).</green>"
+  unknown: "<red>Не понял формат.</red> <gray>Примеры: <white>16:9</white>, <white>4:3</white>, <white>1920x1080</white>, <white>auto</white>.</gray>"
+
 command:
   players-only: "<red>Команда только для игроков.</red>"
   no-permission: "<red>Недостаточно прав.</red>"
-  usage: "<gray>/vui open · /vui pack · /vui help</gray>"
+  usage: "<gray>/vui open · /vui screen · /vui pack · /vui help</gray>"
   usage-debug: "<gray>/vui debug bench|stats|clicks|sens|cursor|shape|text|sweep|clear</gray>"
   unknown: "<red>Неизвестная команда.</red> <gray>/vui help</gray>"

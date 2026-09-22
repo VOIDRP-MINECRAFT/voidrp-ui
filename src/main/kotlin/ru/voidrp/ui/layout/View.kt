@@ -66,6 +66,19 @@ data class Panel(
      * about.
      */
     val id: String? = null,
+    /**
+     * Never wider than this, however much room it is given.
+     *
+     * The `max-width` of a web page, and it centres what is left over the way `margin: 0
+     * auto` does. It is what lets a page fill a 4:3 window and still read well on an
+     * ultrawide one, where a column stretched to the full width would be a line of text a
+     * metre long. Pair it with [Size.Fill]: fill the room, up to this much.
+     */
+    val maxWidth: Int? = null,
+    val maxHeight: Int? = null,
+    /** Never narrower than this, even where there is not the room — it will overflow. */
+    val minWidth: Int? = null,
+    val minHeight: Int? = null,
 ) : View
 
 /** One piece of a line with its own look: a price in gold inside a sentence in grey. */

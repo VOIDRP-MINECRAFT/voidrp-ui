@@ -47,7 +47,8 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                     building += System.nanoTime() - mark
 
                     mark = System.nanoTime()
-                    val placement = Layout.centred(view, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT)
+                    val canvas = ru.voidrp.ui.layout.Viewport.DEFAULT
+                    val placement = Layout.centred(view, canvas.width, canvas.height)
                     laying += System.nanoTime() - mark
 
                     mark = System.nanoTime()
@@ -71,7 +72,8 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
 
             // Every shape a page turns into, in the server log.
             "stats" -> {
-                val nodes = Layout.centred(DemoPage().view(), Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes
+                val canvas = ru.voidrp.ui.layout.Viewport.DEFAULT
+                val nodes = Layout.centred(DemoPage().view(), canvas.width, canvas.height).nodes
                 val shapes = Painter.flatten(nodes)
                 val length = PlainTextComponentSerializer.plainText()
                     .serialize(GlyphEncoder.encode(nodes)).length
@@ -106,7 +108,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
 
             "sens" -> {
                 args.getOrNull(1)?.toDoubleOrNull()?.let { plugin.pages.sensitivity = it.coerceIn(1.0, 200.0) }
-                val degrees = Shaders.CANVAS_WIDTH / plugin.pages.sensitivity
+                val degrees = ru.voidrp.ui.layout.Viewport.DEFAULT.width / plugin.pages.sensitivity
                 sender.sendMessage(
                     Component.text(
                         "Чувствительность ${plugin.pages.sensitivity} — экран ${degrees.toInt()}° по ширине.",
@@ -125,7 +127,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
 
             // One rectangle, to check placement, opacity and rounding by eye.
             "shape" -> player(sender)?.let { player ->
-                val x = args.getOrNull(1)?.toIntOrNull() ?: (Shaders.CANVAS_WIDTH - 64) / 2
+                val x = args.getOrNull(1)?.toIntOrNull() ?: (plugin.screens.of(player).width - 64) / 2
                 val y = args.getOrNull(2)?.toIntOrNull() ?: (Shaders.CANVAS_HEIGHT - 64) / 2
                 val w = args.getOrNull(3)?.toIntOrNull() ?: 64
                 val h = args.getOrNull(4)?.toIntOrNull() ?: 64
@@ -145,7 +147,12 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 val size = args.getOrNull(1)?.toIntOrNull() ?: Theme.TEXT_LEAD
                 val text = args.drop(2).joinToString(" ").ifBlank { "Съешь ещё этих мягких булок" }
                 val label = Label(0, Shaders.CANVAS_HEIGHT / 2, text, size)
-                plugin.renderer.render(player, listOf(label.copy(x = (Shaders.CANVAS_WIDTH - label.width) / 2)))
+                val across = plugin.screens.of(player).width
+                plugin.renderer.render(
+                    player,
+                    listOf(label.copy(x = (across - label.width) / 2)),
+                    across / 2,
+                )
                 sender.sendMessage(Component.text("Кегль $size, ширина ${label.width}.", NamedTextColor.AQUA))
             }
 

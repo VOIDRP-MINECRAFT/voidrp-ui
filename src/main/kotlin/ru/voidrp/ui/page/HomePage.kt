@@ -90,7 +90,14 @@ open class HomePage : Page() {
     private var selected = "home"
 
     /** How wide the page itself is, whatever the window is. The site holds to the same. */
-    private val BODY_WIDTH = 1278
+    /**
+     * The widest the page's own column gets.
+     *
+     * Below it the page fills whatever room there is; above it the extra becomes margin on
+     * both sides, because a card stretched across an ultrawide monitor reads as a poster,
+     * not a panel.
+     */
+    private val BODY_MAX get() = viewport.by(compact = 1278, regular = 1278, wide = 1560)
 
     // The surfaces, as the site's stylesheet has them: a near-black page, cards a shade
     // above it, tiles a shade above those. Naming such colours outright does not survive
@@ -120,15 +127,16 @@ open class HomePage : Page() {
     private val wellFill = Palette.express(WELL, CARD)
 
     override fun view(): View = Panel(
-        width = Size.Fixed(Shaders.CANVAS_WIDTH),
-        height = Size.Fixed(Shaders.CANVAS_HEIGHT),
+        // The page is the screen it is given, whatever shape that screen is.
+        width = Size.Fixed(viewport.width),
+        height = Size.Fixed(viewport.height),
         // Not a window floating over the world: the screen belongs to the interface, the
         // way it does when a browser is drawing it.
         style = Style(background = Paint(0x000000, 0.97)),
         direction = Direction.ROW,
         // The tint and the stars are placed on the canvas directly and take no room in the
         // row, so the rail and the page lay out as if they were not there.
-        children = listOf(Raw(Rect(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, pageTint))) +
+        children = listOf(Raw(Rect(0, 0, viewport.width, viewport.height, pageTint))) +
             starNodes() + listOf(iconRail(), content()),
     )
 
@@ -138,8 +146,8 @@ open class HomePage : Page() {
         val size = if (index % 5 == 0) 2 else 1
         Raw(
             Rect(
-                (x * Shaders.CANVAS_WIDTH).toInt(),
-                (y * Shaders.CANVAS_HEIGHT).toInt(),
+                (x * viewport.width).toInt(),
+                (y * viewport.height).toInt(),
                 size,
                 size,
                 Paint(if (index % 3 == 0) Theme.VIOLET_SOFT else Theme.INK, if (index % 2 == 0) 0.5 else 0.28),
@@ -215,7 +223,8 @@ open class HomePage : Page() {
             topBar(),
             Panel(
                 direction = Direction.ROW,
-                width = Size.Fixed(BODY_WIDTH),
+                width = Size.Fill,
+                maxWidth = BODY_MAX,
                 height = Size.Fill,
                 gap = Theme.SPACE_4,
                 align = Align.START,
@@ -571,6 +580,9 @@ open class HomePage : Page() {
     )
 
     private fun kpis() = Grid(
+        // Four across, on every screen. The canvas is always 1024 tall, so wrapping to two
+        // rows on a narrow screen does not save the page — it spends height the page does
+        // not have. Narrow means narrower tiles, not more rows.
         columns = 4,
         gap = Theme.SPACE_3,
         width = Size.Fill,

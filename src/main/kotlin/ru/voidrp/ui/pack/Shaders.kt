@@ -43,22 +43,18 @@ object Shaders {
     const val MARKER = 0xB
 
     /**
-     * The canvas every page is drawn on, stretched over the whole window.
+     * How tall the canvas is: the height of the player's window, always.
      *
-     * It is 1024 tall on purpose: the vertical position travels in 10 bits, and 1024 steps
-     * over 1024 units is exactly one unit per step. An earlier 1080-tall canvas put the
-     * steps 1.0557 units apart, so two pieces of the same panel could land a fraction of a
-     * pixel apart — invisible while everything was opaque, and a bright seam or a hairline
-     * gap as soon as anything became translucent.
+     * It is 1024 on purpose: the vertical position travels in 10 bits, and 1024 steps over
+     * 1024 units is exactly one unit per step. An earlier 1080-tall canvas put the steps
+     * 1.0557 units apart, so two pieces of the same panel could land a fraction of a pixel
+     * apart — invisible while everything was opaque, and a bright seam or a hairline gap
+     * as soon as anything became translucent.
      *
-     * The width follows from 16:9, so a unit is as wide as it is tall and a square is
-     * square. The shader uses the exact ratio; this rounded value is what pages count in.
+     * The width is not fixed: a unit is square, so how many of them fit across is the
+     * shape of the player's window. See `Viewport`.
      */
-    const val CANVAS_WIDTH = 1820
     const val CANVAS_HEIGHT = 1024
-
-    /** 16:9 against the canvas height, to the precision the shader needs. */
-    private const val CANVAS_WIDTH_EXACT = "1820.444"
 
     /** Vertical position bits: one step per canvas unit. */
     const val Y_BITS = 10
@@ -107,32 +103,30 @@ object Shaders {
         // Vertically, the boss bar's own text line sits LINE_TOP GUI units below the top
         // of the screen; subtracting it leaves just the glyph's own extent (0 at its top
         // edge, its height at the bottom), which is added to the y carried in the colour.
+        //
+        // The glyph's own extent arrives in GUI pixels and is read as canvas units, which
+        // is what makes a page the same size at every GUI scale: a 64-unit tile is a
+        // 64-pixel glyph, and 64 units is 1/16 of the window's height either way.
         vec4 voidrp_place(float canvasY, vec4 original) {
             vec2 ndc = original.xy / original.w;
             float penX = ndc.x / ProjMat[0][0];
             float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
 
-            // Two ways to put the canvas on a window that is not the shape of it.
+            // A unit is square, and stays square.
             //
-            // Filling stretches it corner to corner: the page always covers the screen, at
-            // the price of circles that go oval by however far the window is from sixteen
-            // by nine. Fitting keeps the proportions and leaves the difference as margin,
-            // where the world shows through. Filling is the default because a window is
-            // rarely far off the shape, and an interface that does not reach the edges
-            // looks like a mistake.
-        #ifdef VOIDRP_FIT
-            float windowWidth = 2.0 / ProjMat[0][0];
-            float windowHeight = -2.0 / ProjMat[1][1];
-            float scale = min(windowWidth / ${CANVAS_WIDTH_EXACT}, windowHeight / ${CANVAS_HEIGHT}.0);
-            float screenX = windowWidth * 0.5 + (canvas.x - ${CANVAS_WIDTH_EXACT} * 0.5) * scale;
-            float screenY = windowHeight * 0.5 + (canvas.y - ${CANVAS_HEIGHT}.0 * 0.5) * scale;
-            vec2 target = vec2(screenX / windowWidth * 2.0 - 1.0,
-                               1.0 - screenY / windowHeight * 2.0);
-        #else
-            vec2 target = vec2(canvas.x / ${CANVAS_WIDTH_EXACT} * 2.0 - 1.0,
-                               1.0 - canvas.y / ${CANVAS_HEIGHT}.0 * 2.0);
-        #endif
+            // 1024 units is the height of the window, whatever the window is; the same
+            // scale is used across, so how many units fit from edge to edge is simply the
+            // shape of the screen. Nothing is stretched to make a page reach the sides —
+            // instead the page is laid out knowing how wide the screen is, the way a web
+            // page is laid out to the width of the browser.
+            //
+            // x arrives measured from the middle of the page, which is exactly where the
+            // boss bar's centring leaves the pen, so no width has to be baked in here: the
+            // same shader draws a page laid out for any screen.
+            float aspect = (2.0 / ProjMat[0][0]) / (-2.0 / ProjMat[1][1]);
+            vec2 target = vec2(canvas.x * 2.0 / (${CANVAS_HEIGHT}.0 * aspect),
+                               1.0 - canvas.y * 2.0 / ${CANVAS_HEIGHT}.0);
             return vec4(target * original.w, original.z, original.w);
         }
     """.trimIndent()
@@ -170,15 +164,7 @@ object Shaders {
             return patched
         }
 
-    /** Whether the pack is built to keep the canvas's proportions on an odd-shaped window. */
-    var fitCanvas = false
-
-    private fun withMode(source: String): String =
-        if (fitCanvas) source.replaceFirst("#version 330", "#version 330\n#define VOIDRP_FIT 1")
-            .replaceFirst("#version 150", "#version 150\n#define VOIDRP_FIT 1")
-        else source
-
-    val TEXT_VSH_MODERN: String get() = withMode(MODERN_TEMPLATE)
+    val TEXT_VSH_MODERN: String get() = MODERN_TEMPLATE
 
     /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
     private val MODERN_TEMPLATE = """
@@ -237,7 +223,7 @@ object Shaders {
         }
     """.trimIndent().replace("//__VOIDRP_COMMON__", COMMON)
 
-    val TEXT_VSH_LEGACY: String get() = withMode(LEGACY_TEMPLATE)
+    val TEXT_VSH_LEGACY: String get() = LEGACY_TEMPLATE
 
     /** 1.21.6 … 26.1.2: the older `rendertype_text.vsh`, GLSL 150. */
     private val LEGACY_TEMPLATE = """

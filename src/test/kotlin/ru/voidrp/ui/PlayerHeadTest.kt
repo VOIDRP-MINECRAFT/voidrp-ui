@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import ru.voidrp.ui.layout.Head
 import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.Viewport
 import ru.voidrp.ui.layout.Panel
 import ru.voidrp.ui.layout.Size
 import ru.voidrp.ui.pack.PlayerHeads
@@ -54,8 +55,8 @@ class PlayerHeadTest {
         val client = ClientSimulator.build()
         val nodes = Layout.centred(
             Panel(width = Size.Fixed(300), children = listOf(Head("steve", 32))),
-            Shaders.CANVAS_WIDTH,
-            Shaders.CANVAS_HEIGHT,
+            Viewport.DEFAULT.width,
+            Viewport.HEIGHT,
         ).nodes
         assertEquals(0, client.width(GlyphEncoder.encode(nodes)), "строка с головой не сошлась")
     }
