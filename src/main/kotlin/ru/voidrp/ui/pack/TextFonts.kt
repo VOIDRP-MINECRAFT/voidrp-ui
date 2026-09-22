@@ -39,7 +39,7 @@ object TextFonts {
     }
 
     /** The type scale, in canvas units — which are the site's pixels, near enough. */
-    val SIZES = listOf(12, 14, 16, 20, 28, 40)
+    val SIZES = listOf(10, 12, 14, 16, 20, 28, 40)
 
     /** A column of air at the left of every cell, so a leaning letter keeps its tail. */
     private const val LEFT_PAD = 1

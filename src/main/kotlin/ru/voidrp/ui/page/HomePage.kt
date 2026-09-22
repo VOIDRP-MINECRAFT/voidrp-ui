@@ -82,6 +82,9 @@ class HomePage : Page() {
 
     private var selected = "home"
 
+    /** How wide the page itself is, whatever the window is. The site holds to the same. */
+    private val BODY_WIDTH = 1278
+
     override fun view(): View = Panel(
         width = Size.Fixed(Shaders.CANVAS_WIDTH),
         height = Size.Fixed(Shaders.CANVAS_HEIGHT),
@@ -167,11 +170,15 @@ class HomePage : Page() {
         height = Size.Fill,
         style = Style(padding = Insets(0, Theme.SPACE_6, Theme.SPACE_5, 0)),
         gap = Theme.SPACE_4,
+        // The bar runs the width of the window; the page under it sits in a column of its
+        // own, centred, the way the site holds its content to a readable width instead of
+        // letting it stretch to whatever the window happens to be.
+        align = Align.CENTER,
         children = listOf(
             topBar(),
             Panel(
                 direction = Direction.ROW,
-                width = Size.Fill,
+                width = Size.Fixed(BODY_WIDTH),
                 height = Size.Fill,
                 gap = Theme.SPACE_4,
                 align = Align.START,
@@ -504,7 +511,7 @@ class HomePage : Page() {
                             background = Paint(Theme.LINE, 0.04),
                             border = Border(1, Paint(Theme.LINE, 0.1)),
                             radius = Theme.R_MD,
-                            padding = Insets.symmetric(12, 8),
+                            padding = Insets.symmetric(12, 4),
                         ),
                         width = Size.Fill,
                         gap = 6,
@@ -512,7 +519,10 @@ class HomePage : Page() {
                         align = Align.CENTER,
                         children = listOf(
                             Icon(icon, 16, Theme.VIOLET_SOFT),
-                            eyebrow(label),
+                            // «Блоков установлено» is eighteen letters in a tile a hundred
+                            // and fifty wide, so it sets small and without the tracking the
+                            // other labels carry. The site does the same.
+                            eyebrow(label, size = Theme.TEXT_MICRO, tracking = 0),
                             Text(value, Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                         ),
                     )

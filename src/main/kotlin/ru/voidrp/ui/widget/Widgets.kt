@@ -254,8 +254,12 @@ private fun Style.hover(): Style {
  * It exists as a helper rather than a style because the letters themselves change — an
  * eyebrow is set in capitals, and doing that at the call site is one more thing to forget.
  */
-fun eyebrow(text: String, colour: Int = Theme.INK_DIM): View =
-    Text(text.uppercase(), Theme.TEXT_CAPTION, colour, TextFonts.Weight.SEMIBOLD, tracking = Theme.TRACKING, wrap = false)
+fun eyebrow(
+    text: String,
+    colour: Int = Theme.INK_DIM,
+    size: Int = Theme.TEXT_CAPTION,
+    tracking: Int = Theme.TRACKING,
+): View = Text(text.uppercase(), size, colour, TextFonts.Weight.SEMIBOLD, tracking = tracking, wrap = false)
 
 /** A pill with a word in it: a version, a mode, a state. */
 fun chip(text: String, style: Style = Theme.chip): View = Panel(

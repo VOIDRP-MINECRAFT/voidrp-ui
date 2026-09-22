@@ -37,6 +37,8 @@ object Theme {
     var TRACKING = 2
 
     // Type scale, in canvas units — the same numbers the site's stylesheet uses
+    /** For labels that have to fit a narrow tile, where a caption would be cut short. */
+    var TEXT_MICRO = 10
     var TEXT_CAPTION = 12
     var TEXT_BODY = 14
     var TEXT_LEAD = 16
@@ -126,6 +128,7 @@ object Theme {
             RED = colour(config, "red", RED)
 
             TRACKING = config.getInt("tracking", TRACKING)
+            TEXT_MICRO = config.getInt("text.micro", TEXT_MICRO)
             TEXT_CAPTION = config.getInt("text.caption", TEXT_CAPTION)
             TEXT_BODY = config.getInt("text.body", TEXT_BODY)
             TEXT_LEAD = config.getInt("text.lead", TEXT_LEAD)

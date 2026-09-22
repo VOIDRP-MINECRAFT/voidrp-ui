@@ -23,6 +23,7 @@ tracking: 2
 
 # Кегли, в единицах холста (холст — 1820×1024)
 text:
+  micro: 10
   caption: 12
   body: 14
   lead: 16
