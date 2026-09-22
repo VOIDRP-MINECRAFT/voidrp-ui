@@ -44,6 +44,17 @@ object Preview {
         render(ru.voidrp.ui.page.HomePage().view(), File(out, "home.png"))
         render(ru.voidrp.ui.page.DemoPage().view(), File(out, "demo.png"))
         render(ru.voidrp.ui.page.ShopPage().view(), File(out, "shop.png"))
+
+        // The states a still picture of a fresh page never shows, and where layout bugs
+        // hide: a dropdown standing over the card below it, and a list part way down.
+        render(
+            ru.voidrp.ui.page.DemoPage().also { it.onClick("mode", ru.voidrp.ui.page.Button.LEFT) }.view(),
+            File(out, "demo-open.png"),
+        )
+        render(
+            ru.voidrp.ui.page.ShopPage().also { page -> repeat(3) { page.onScroll(1) } }.view(),
+            File(out, "shop-scrolled.png"),
+        )
         println("Снимки: ${out.absolutePath}")
     }
 

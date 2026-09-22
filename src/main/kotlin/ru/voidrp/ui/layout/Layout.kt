@@ -47,7 +47,11 @@ object Layout {
         val nodes = mutableListOf<Node>()
         val regions = mutableListOf<Region>()
         arrange(view, x, y, width, height, nodes, regions)
-        Placement(nodes, regions)
+        // What stands above the page goes on last, so a menu covers the card under it
+        // rather than the other way round. Its regions come last too: the cursor asks the
+        // list in reverse, so the topmost thing under it answers first.
+        val above = overlay.get()
+        Placement(nodes + above.nodes, regions + above.regions)
     }
 
     /** Lays a page out at its own size, centred on the canvas. */
@@ -77,6 +81,14 @@ object Layout {
 
     private val depth = ThreadLocal.withInitial { 0 }
 
+    /** What was put above the page during this pass. */
+    private class Above {
+        val nodes = mutableListOf<Node>()
+        val regions = mutableListOf<Region>()
+    }
+
+    private val overlay = ThreadLocal.withInitial { Above() }
+
     /**
      * Starts a page, or joins the one already being laid out.
      *
@@ -91,7 +103,10 @@ object Layout {
         } finally {
             val level = depth.get() - 1
             depth.set(level)
-            if (level == 0) measured.get().clear()
+            if (level == 0) {
+                measured.get().clear()
+                overlay.set(Above())
+            }
         }
     }
 
@@ -149,6 +164,8 @@ object Layout {
             )
         }
 
+        // Neither takes room: one is drawn over the page, the other placed by hand.
+        is Overlay -> Extent(0, 0)
         is Raw -> Extent(0, 0)
 
         is Panel -> {
@@ -335,6 +352,13 @@ object Layout {
         regions: MutableList<Region>,
     ) {
         when (view) {
+            // Laid out here, drawn last: the pass collects it and puts it on top of the
+            // finished page.
+            is Overlay -> {
+                val above = overlay.get()
+                arrange(view.view, x, y, width, height, above.nodes, above.regions)
+            }
+
             // Placed by hand, but inside its parent like anything else: the coordinates
             // in the node are read from wherever the layout put it.
             is Raw -> out += Painter.moved(view.node, x, y)
@@ -599,6 +623,22 @@ object Layout {
             // flow would only tell it about the children around it.
             if (child is Raw) {
                 arrange(child, x, y, width, height, out, regions)
+                return@forEachIndexed
+            }
+            // Something standing above the page starts where the flow has reached — under
+            // the button that opened it — and is given the rest of the panel to use,
+            // without taking any of it from the children that follow.
+            if (child is Overlay) {
+                // It gets the room it asks for rather than the room that is left. Handed
+                // the leftovers, a menu of three lines opening near the bottom of a card
+                // would be squeezed until its options sat on top of each other — and it is
+                // not inside the card anyway, it is over the page.
+                val wants = measure(child.view, width, height)
+                if (row) {
+                    arrange(child, x + cursor, y, wants.width, height, out, regions)
+                } else {
+                    arrange(child, x, y + cursor, width, wants.height, out, regions)
+                }
                 return@forEachIndexed
             }
             val alongSize = sizes[index]

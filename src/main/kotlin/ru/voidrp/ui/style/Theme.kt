@@ -87,6 +87,16 @@ object Theme {
     var buttonGhost = Style()
 
     /** A pill: the little tag the site marks a version or a mode with. */
+    /**
+     * What a menu standing over the page is made of.
+     *
+     * Every other surface here is a tint at some opacity over a surface whose colour is
+     * known, which is how a dark interface gets colours the palette cannot name. A menu
+     * does not know what it will be standing on — that is the point of it — so this one is
+     * opaque: the nearest colour the palette has, at full strength.
+     */
+    var menu = Style()
+
     var chip = Style()
 
     /** The same, in the accent colour, for the one thing that matters on a card. */
@@ -224,6 +234,16 @@ object Theme {
             radius = R_SM,
             padding = Insets.symmetric(SPACE_2, SPACE_4),
             textColour = INK_SOFT,
+            textSize = TEXT_BODY,
+        )
+
+        menu = Style(
+            background = Paint(Palette.nearest(lift(0.10)), 1.0),
+            border = Border(1, Paint(LINE, 0.22)),
+            radius = R_MD,
+            padding = Insets.all(4),
+            shadow = Shadow(offsetY = 6, paint = Paint(0x000000, 0.5)),
+            textColour = INK,
             textSize = TEXT_BODY,
         )
 

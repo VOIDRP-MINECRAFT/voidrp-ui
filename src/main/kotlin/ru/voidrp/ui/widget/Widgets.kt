@@ -4,6 +4,7 @@ import ru.voidrp.ui.layout.Align
 import ru.voidrp.ui.layout.Direction
 import ru.voidrp.ui.layout.Justify
 import ru.voidrp.ui.layout.Layout
+import ru.voidrp.ui.layout.Overlay
 import ru.voidrp.ui.layout.Panel
 import ru.voidrp.ui.layout.Scroll
 import ru.voidrp.ui.layout.Size
@@ -150,30 +151,39 @@ fun Page.select(
             )
         )
         if (open) {
-            options.forEachIndexed { index, option ->
-                val optionId = "$id:option:$index"
-                add(
+            // The open list stands over the page instead of pushing it: a dropdown that
+            // moves everything below it as it opens is a dropdown that moves the thing you
+            // were about to click.
+            add(
+                Overlay(
                     Panel(
-                        style = if (hovered == optionId) Theme.cardAccent else Theme.card,
+                        style = Theme.menu,
+                        gap = 2,
                         width = Size.Fill,
-                        height = Size.Fixed(34),
-                        direction = Direction.ROW,
-                        align = Align.CENTER,
-                        id = optionId,
-                        children = listOf(
-                            Text(
-                                option,
-                                Theme.TEXT_BODY,
-                                if (index == selected) Theme.INK else Theme.INK_SOFT,
-                                wrap = false,
-                            )
-                        ),
-                    )
-                )
-            }
+                        children = options.mapIndexed { index, option ->
+                            option(id, index, option, index == selected)
+                        },
+                    ),
+                ),
+            )
         }
     },
 )
+
+private fun Page.option(id: String, index: Int, option: String, selected: Boolean): View {
+    val optionId = "$id:option:$index"
+    return Panel(
+        style = if (hovered == optionId) Theme.cardAccent else Theme.card,
+        width = Size.Fill,
+        height = Size.Fixed(34),
+        direction = Direction.ROW,
+        align = Align.CENTER,
+        id = optionId,
+        children = listOf(
+            Text(option, Theme.TEXT_BODY, if (selected) Theme.INK else Theme.INK_SOFT, wrap = false),
+        ),
+    )
+}
 
 /**
  * A slider. Clicking or dragging it reports [id]; [sliderValue] says what was meant.

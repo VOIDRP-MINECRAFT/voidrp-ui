@@ -177,6 +177,18 @@ data class Grid(
 data class Gap(val size: Int = 0, val grow: Boolean = false) : View
 
 /**
+ * Something laid out where it stands but painted over everything else.
+ *
+ * A dropdown is the reason this exists. As an ordinary child it pushes the rest of the
+ * panel down as it opens and is painted before the things that come after it, so the row
+ * of buttons below covers its last option. Inside an [Overlay] it takes no room, nothing
+ * moves when it opens, and it goes on last — over the card underneath, as a menu should.
+ *
+ * The same goes for a tooltip, or anything else that stands above the page for a moment.
+ */
+data class Overlay(val view: View) : View
+
+/**
  * An escape hatch: a shape positioned by hand, for what the layout has no word for yet.
  *
  * It takes no room and moves nothing else, and its coordinates are read from the corner of
