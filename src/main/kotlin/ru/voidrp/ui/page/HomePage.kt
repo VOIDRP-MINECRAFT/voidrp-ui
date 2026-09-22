@@ -429,7 +429,7 @@ class HomePage : Page() {
             shadow = ru.voidrp.ui.style.Shadow(offsetY = 8, paint = Paint(0x000000, 0.4)),
         ),
         width = Size.Fill,
-        height = Size.Fixed(186),
+        height = Size.Fixed(198),
         direction = Direction.ROW,
         align = Align.CENTER,
         children = listOf(
@@ -448,10 +448,18 @@ class HomePage : Page() {
                         size = Theme.TEXT_H2,
                         weight = TextFonts.Weight.BOLD,
                     ),
-                    Text(
-                        "Развивайся, сражайся и стань легендой своей империи.",
-                        Theme.TEXT_BODY,
-                        Theme.INK_SOFT,
+                    // Held to the width the site holds it to, so it breaks after the same
+                    // words rather than running the length of the panel.
+                    Panel(
+                        width = Size.Fixed(540),
+                        children = listOf(
+                            Text(
+                                "Развивайся, сражайся и стань легендой своей империи. " +
+                                    "Лучший Minecraft RPG-сервер с уникальными возможностями.",
+                                Theme.TEXT_BODY,
+                                Theme.INK_SOFT,
+                            ),
+                        ),
                     ),
                     Panel(height = Size.Fixed(Theme.SPACE_2)),
                     Panel(
@@ -479,7 +487,14 @@ class HomePage : Page() {
                 align = Align.CENTER,
                 // Items rather than blocks: a block texture drawn flat is a grey square,
                 // while an item is a picture of itself.
-                children = listOf("diamond", "nether_star", "netherite_ingot").map { item ->
+                // Three of a size in a row reads as buttons. The site puts blocks back there
+                // at different sizes, so these differ too — the middle one largest, as the
+                // eye expects of a group.
+                children = listOf(
+                    "diamond" to 52,
+                    "nether_star" to 64,
+                    "netherite_ingot" to 48,
+                ).map { (item, size) ->
                     Panel(
                         style = Style(
                             background = Paint(Theme.VIOLET, 0.16),
@@ -490,11 +505,11 @@ class HomePage : Page() {
                             // words.
                             glow = Paint(Theme.VIOLET, 0.16),
                         ),
-                        width = Size.Fixed(56),
-                        height = Size.Fixed(56),
+                        width = Size.Fixed(size),
+                        height = Size.Fixed(size),
                         justify = Justify.CENTER,
                         align = Align.CENTER,
-                        children = listOf(Image(item, 32)),
+                        children = listOf(Image(item, size * 4 / 7)),
                     )
                 },
             ),
