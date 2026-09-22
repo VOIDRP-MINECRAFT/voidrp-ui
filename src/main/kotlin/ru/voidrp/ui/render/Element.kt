@@ -122,8 +122,66 @@ object GlyphEncoder {
 
     private const val Y_MAX = (1 shl Shaders.Y_BITS) - 1
 
+    /**
+     * The line being built, and what makes it small enough to send.
+     *
+     * A page is thousands of runs, and each one used to carry its own font and its own
+     * "no shadow" — eighty bytes of packet for a rectangle. Both are inherited from a
+     * parent, so the shadow is said once at the top and the font once per stretch of runs
+     * that share it. The home page went from nearly three hundred kilobytes on the wire to
+     * a third of that, and nothing about what is drawn changed.
+     */
+    private class Line {
+        private val root = Component.text()
+            // The shadow is separate vertices in a darkened colour the shader cannot
+            // recognise; left alone it would sit stranded where the text was laid out.
+            .shadowColor(ShadowColor.none())
+        private var font: Key? = null
+        private var group: TextComponent.Builder? = null
+        private var colour: TextColor? = null
+        private val pending = StringBuilder()
+
+        fun add(text: String, font: Key, colour: TextColor?) {
+            if (text.isEmpty()) return
+            // One shape often turns into several glyphs of the same colour — a rectangle is
+            // powers of two side by side — and consecutive ones join into a single run
+            // rather than repeating the colour for each.
+            if (font == this.font && colour == this.colour) {
+                pending.append(text)
+                return
+            }
+            close()
+            if (font != this.font) {
+                flush()
+                this.font = font
+                group = Component.text().font(font)
+            }
+            this.colour = colour
+            pending.append(text)
+        }
+
+        private fun close() {
+            if (pending.isEmpty()) return
+            val piece = Component.text(pending.toString())
+            group!!.append(colour?.let { piece.color(it) } ?: piece)
+            pending.setLength(0)
+        }
+
+        private fun flush() {
+            close()
+            group?.let { root.append(it) }
+            group = null
+        }
+
+        fun build(): Component {
+            flush()
+            return root.build()
+        }
+
+    }
+
     fun encode(nodes: List<Node>): Component {
-        val line = Component.text()
+        val line = Line()
         var pen = 0
 
         for (node in Painter.flatten(nodes)) {
@@ -139,11 +197,11 @@ object GlyphEncoder {
         // Bring the pen back to zero so the whole line is zero wide: the boss bar centres
         // its title, and a zero-width line starts exactly at the centre of the screen,
         // which is what the shader measures x from.
-        line.append(shapes(Glyphs.moveBy(-pen), Glyphs.ALPHA_LEVELS))
+        line.add(Glyphs.moveBy(-pen), shapeFont(Glyphs.ALPHA_LEVELS), null)
         return line.build()
     }
 
-    private fun appendRect(line: TextComponent.Builder, rect: Rect, penIn: Int): Int {
+    private fun appendRect(line: Line, rect: Rect, penIn: Int): Int {
         val level = Glyphs.alphaLevel(rect.paint.alpha)
         if (rect.width <= 0 || rect.height <= 0 || level == 0) return penIn
         var pen = penIn
@@ -153,7 +211,7 @@ object GlyphEncoder {
         tile(rect.x, rect.y, rect.width, rect.height, tiles)
         for (piece in tiles) {
             val colour = TextColor.color(pack(piece.top, fill))
-            line.append(shapes(Glyphs.moveBy(piece.left - pen) + Glyphs.rect(piece.w, piece.h), level).color(colour))
+            line.add(Glyphs.moveBy(piece.left - pen) + Glyphs.rect(piece.w, piece.h), shapeFont(level), colour)
             pen = piece.left + Glyphs.rectAdvance(piece.w)
         }
         return pen
@@ -185,7 +243,7 @@ object GlyphEncoder {
         tile(x, y + pieceHeight, width, height - pieceHeight, out)
     }
 
-    private fun appendCorner(line: TextComponent.Builder, piece: CornerPiece, penIn: Int): Int {
+    private fun appendCorner(line: Line, piece: CornerPiece, penIn: Int): Int {
         val level = Glyphs.alphaLevel(piece.paint.alpha)
         if (piece.radius !in Glyphs.RADII || level == 0) return penIn
         val colour = TextColor.color(pack(piece.y, quantise(piece.paint.rgb)))
@@ -195,31 +253,26 @@ object GlyphEncoder {
             Glyphs.corner(piece.radius, piece.corner)
         }
         val glyph = Glyphs.moveBy(piece.x - penIn) + shape
-        line.append(shapes(glyph, level).color(colour))
+        line.add(glyph, shapeFont(level), colour)
         return piece.x + ru.voidrp.ui.pack.Corners.advance(piece.radius, piece.corner, piece.ring, level)
     }
 
-    private fun appendSprite(line: TextComponent.Builder, sprite: Sprite, penIn: Int): Int {
+    private fun appendSprite(line: Line, sprite: Sprite, penIn: Int): Int {
         val colour = TextColor.color(pack(sprite.y, quantise(sprite.colour)))
         val font = sprite.font ?: Glyphs.fontName(Glyphs.ALPHA_LEVELS)
         // The move to the right place is written in the shape alphabet, which every font
         // of ours carries, so the picture and the step before it are one run.
-        line.append(
-            Component.text(Glyphs.moveBy(sprite.x - penIn) + sprite.glyph)
-                .font(Key.key("voidrp", font))
-                .color(colour)
-                .shadowColor(ShadowColor.none())
-        )
+        line.add(Glyphs.moveBy(sprite.x - penIn) + sprite.glyph, Key.key("voidrp", font), colour)
         return sprite.x + sprite.advance
     }
 
-    private fun appendGlow(line: TextComponent.Builder, piece: GlowPiece, penIn: Int): Int {
+    private fun appendGlow(line: Line, piece: GlowPiece, penIn: Int): Int {
         val level = Glyphs.haloLevel(piece.paint.alpha)
         if (level == 0) return penIn
         val colour = TextColor.color(pack(piece.y, quantise(piece.paint.rgb)))
         val glyph = Glyphs.moveBy(piece.x - penIn) +
             Glyphs.glow(piece.part, piece.corner, piece.step, piece.radius)
-        line.append(shapes(glyph, level).color(colour))
+        line.add(glyph, shapeFont(level), colour)
         return piece.x + ru.voidrp.ui.pack.Glow.advance(piece.part, piece.corner, piece.step, level, piece.radius)
     }
 
@@ -227,7 +280,7 @@ object GlyphEncoder {
      * A label is one run in one font: each letter followed by the spacer that makes up the
      * difference between the ink the client measures and the advance the typeface asks for.
      */
-    private fun appendLabel(line: TextComponent.Builder, label: Label, penIn: Int): Int {
+    private fun appendLabel(line: Line, label: Label, penIn: Int): Int {
         val size = TextFonts.nearestSize(label.size)
         val sheet = TextFonts.sheet(label.weight, size)
         val colour = TextColor.color(pack(label.y, quantise(label.colour)))
@@ -249,12 +302,7 @@ object GlyphEncoder {
             pen += metric.advance + label.tracking
         }
 
-        line.append(
-            Component.text(run.toString())
-                .font(font)
-                .color(colour)
-                .shadowColor(ShadowColor.none())
-        )
+        line.add(run.toString(), font, colour)
         return pen
     }
 
@@ -262,12 +310,7 @@ object GlyphEncoder {
     private fun highestPower(value: Int): Int =
         if (value <= 0) 0 else 31 - Integer.numberOfLeadingZeros(value)
 
-    private fun shapes(text: String, level: Int): TextComponent =
-        Component.text(text)
-            .font(Key.key("voidrp", Glyphs.fontName(level)))
-            // The shadow is separate vertices in a darkened colour the shader cannot
-            // recognise; left alone it would sit stranded where the text was laid out.
-            .shadowColor(ShadowColor.none())
+    private fun shapeFont(level: Int): Key = Key.key("voidrp", Glyphs.fontName(level))
 
     /** 0xRRGGBB → RGB 3-4-3. Rounded: truncation turned dark navy #0B1220 into green-black. */
     private fun quantise(rgb: Int): Int = ru.voidrp.ui.style.Palette.code(rgb)

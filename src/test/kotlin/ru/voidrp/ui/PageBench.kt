@@ -30,11 +30,20 @@ object PageBench {
             val line = GlyphEncoder.encode(nodes)
             val length = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
                 .serialize(line).length
+            // What actually goes out: every run carries its own colour and font, so the
+            // packet is several times the text in it.
+            val onWire = net.kyori.adventure.text.serializer.gson.GsonComponentSerializer.gson()
+                .serialize(line).toByteArray(Charsets.UTF_8).size
+            val pieces = generateSequence(listOf(line)) { level ->
+                level.flatMap { it.children() }.takeIf { it.isNotEmpty() }
+            }.sumOf { it.size }
             println(
-                "%-9s %4d фигур, %6d символов, %.2f мс (медиана), %.2f мс (худшая)".format(
+                "%-9s %4d фигур, %6d символов, %5d кусков, %6d Б в пакете, %.2f мс (медиана), %.2f мс (худшая)".format(
                     name,
                     nodes.size,
                     length,
+                    pieces,
+                    onWire,
                     runs.sorted()[runs.size / 2] / 1_000_000.0,
                     runs.max() / 1_000_000.0,
                 ),
