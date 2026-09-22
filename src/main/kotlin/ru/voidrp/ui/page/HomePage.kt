@@ -480,13 +480,15 @@ class HomePage : Page() {
                             // one across its width. The wash knows the panel it sits on, so
                             // it steps smoothly over a hundred and fifty units.
                             background = Gradient(
-                                Paint(0x8B5CF6),
-                                Paint(0xB47CF8),
+                                Paint(0x8668FC),
+                                Paint(0xB25AF2),
                                 direction = GradientDirection.HORIZONTAL,
                                 over = 0x2A2350,
                             ),
-                            radius = Theme.R_SM,
-                            padding = Insets.symmetric(10, 18),
+                            // Measured off the site: 146 by 42, rounded by twelve, and
+                            // violet running to magenta rather than to a paler violet.
+                            radius = 12,
+                            padding = Insets.symmetric(14, 14),
                             glow = Paint(Theme.VIOLET, 0.3),
                         ),
                         direction = Direction.ROW,

@@ -221,8 +221,9 @@ object Theme {
             background = Paint(VIOLET, 0.9),
             glow = Paint(VIOLET, 0.28),
             highlight = Paint(0xFFFFFF, 0.18),
-            radius = R_SM,
-            padding = Insets.symmetric(SPACE_2, SPACE_4),
+            radius = 12,
+            // Forty-two units tall, as the site's buttons are — measured off it.
+            padding = Insets.symmetric(14, 18),
             // Plain white on the accent. Dark ink on a violet button reads as switched
             // off, and the theme's ink is a blue-white that shows against a bright violet.
             textColour = 0xFFFFFF,
@@ -233,8 +234,8 @@ object Theme {
         buttonGhost = Style(
             background = tileFill,
             border = Border(1, Paint(LINE, 0.22)),
-            radius = R_SM,
-            padding = Insets.symmetric(SPACE_2, SPACE_4),
+            radius = 12,
+            padding = Insets.symmetric(14, 18),
             textColour = INK_SOFT,
             textSize = TEXT_BODY,
         )
