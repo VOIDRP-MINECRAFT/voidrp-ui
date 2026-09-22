@@ -126,6 +126,30 @@ class PenAccountingTest {
     }
 
     @Test
+    fun `the pack carries a shader for every version it claims to support`() {
+        // The claim is in pack.mcmeta: formats 63 through 200, which is 1.21.6 to whatever
+        // comes next. Those two eras name the text shader differently — `text.vsh` now,
+        // `rendertype_text.vsh` before — and a pack that offers only one of them loads
+        // happily on the other and draws nothing at all.
+        val paths = ClientSimulator.packPaths()
+        assertTrue(
+            "assets/minecraft/shaders/core/text.vsh" in paths,
+            "нет вершинного шейдера для 26.2",
+        )
+        assertTrue(
+            "assets/minecraft/shaders/core/text.fsh" in paths,
+            "нет фрагментного шейдера для 26.2 — тогда клиент выбросит всё слабее 0.1",
+        )
+        assertTrue(
+            "legacy_shaders/assets/minecraft/shaders/core/rendertype_text.vsh" in paths,
+            "нет оверлея для 1.21.6",
+        )
+        val meta = ClientSimulator.packEntry("pack.mcmeta")
+        assertTrue("\"overlays\"" in meta, "pack.mcmeta не объявляет оверлей")
+        assertTrue("legacy_shaders" in meta, "pack.mcmeta не знает про папку оверлея")
+    }
+
+    @Test
     fun `every path in the pack is a legal resource name`() {
         // Minecraft resource paths are lower case, and a font naming a file that cannot
         // exist is discarded whole — every glyph in it. A page of icons then draws as a

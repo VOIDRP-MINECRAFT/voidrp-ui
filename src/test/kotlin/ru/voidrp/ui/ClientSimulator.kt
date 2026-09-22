@@ -161,6 +161,16 @@ class ClientSimulator(pack: File) {
     companion object {
 
         /** Every path inside the pack, for checking they are names the client will accept. */
+        /** One file out of the pack, as text — for the few that are not pictures. */
+        fun packEntry(path: String): String {
+            val file = File.createTempFile("voidrp-ui-entry", ".zip").apply { deleteOnExit() }
+            PackBuilder().build(file)
+            return ZipFile(file).use { zip ->
+                val entry = zip.getEntry(path) ?: error("В паке нет $path")
+                zip.getInputStream(entry).readBytes().toString(Charsets.UTF_8)
+            }
+        }
+
         fun packPaths(): List<String> {
             val file = File.createTempFile("voidrp-ui-paths", ".zip").apply { deleteOnExit() }
             PackBuilder().build(file)

@@ -40,6 +40,46 @@ object PageBench {
                 ),
             )
         }
+
+        repeat(200) { cursorFrame() }
+        val frames = (1..2000).map { cursorFrame() }.sorted()
+        val median = frames[frames.size / 2] / 1_000_000.0
+        println(
+            "кадр курсора: %.3f мс (медиана) — при 62 кадрах в секунду это %d игроков на ядро".format(
+                median,
+                (1000.0 / 62 / median).toInt(),
+            ),
+        )
+    }
+
+    /**
+     * What one player costs the frame thread, sixty times a second.
+     *
+     * The page is encoded once and kept; what goes out every frame is the pointer, the
+     * highlight under it and any tooltip. This measures that, so "how many players can have
+     * a page open" is a number rather than a guess.
+     */
+    private fun cursorFrame(): Long {
+        val start = System.nanoTime()
+        val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
+        ru.voidrp.ui.render.Painter.fill(
+            1168, 439, 123, 78, 12,
+            ru.voidrp.ui.style.Paint(ru.voidrp.ui.style.Theme.VIOLET, 0.16),
+            nodes,
+        )
+        ru.voidrp.ui.render.Painter.outline(
+            1168, 439, 123, 78, 12, 1,
+            ru.voidrp.ui.style.Paint(ru.voidrp.ui.style.Theme.VIOLET, 0.55),
+            nodes,
+        )
+        nodes += ru.voidrp.ui.render.Sprite(
+            900,
+            500,
+            ru.voidrp.ui.pack.Glyphs.cursor(),
+            ru.voidrp.ui.pack.Glyphs.cursorAdvance(),
+        )
+        GlyphEncoder.encode(nodes)
+        return System.nanoTime() - start
     }
 
     private fun measure(page: Page): Long {
