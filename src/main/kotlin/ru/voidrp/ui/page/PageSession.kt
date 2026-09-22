@@ -139,18 +139,33 @@ class PageSession(
         // would eat the very readings the tracker is waiting for. This tick only asks what
         // the pointer is over now, because answering that means drawing the page again and
         // that can only happen on this thread.
-        val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
-        if (under != hovered) {
-            hovered = under
+        val over = regions.lastOrNull { it.contains(cursorX, cursorY) }
+        if (over?.id != hovered) {
+            // Whatever the pointer has just left, and whatever it has just reached: if
+            // either of them cannot be highlighted on the pointer's own bar, the page draws
+            // its own hover style instead and has to be sent again for it.
+            val handedToPage = !fitsOnCursorBar(regions.firstOrNull { it.id == hovered }) ||
+                !fitsOnCursorBar(over)
+            hovered = over?.id
             // Drawing the page again for a hover costs thirteen kilobytes of packet and a
             // couple of milliseconds of this thread, sixty times a second if the pointer is
             // sweeping — which is felt as the pointer stuttering exactly when it crosses
             // things. The highlight rides the pointer's own bar instead, where it costs a
             // few glyphs and arrives at frame rate. A page that really does need to be
             // rebuilt when the pointer moves over it can ask for it.
-            if (redrawOnHover()) render()
+            if (redrawOnHover() || handedToPage) render()
         }
     }
+
+    /**
+     * Whether a highlight for this region fits on the pointer's bar.
+     *
+     * That bar draws its line lower than the page's, so everything on it is lifted by the
+     * gap — and for something at the very top of the screen that lands above the canvas,
+     * where a y cannot go. Those few are left to the page, which has no such offset.
+     */
+    private fun fitsOnCursorBar(region: Layout.Region?): Boolean =
+        region == null || region.y - cursorBarOffset() >= 0
 
     /**
      * Where the aim says the pointer should be, read fresh.
@@ -369,16 +384,12 @@ class PageSession(
     private fun halo(lift: Int): Component? {
         val region = under ?: return null
         val paint = Paint(Theme.VIOLET, 0.55)
-        // The pointer's bar draws its line lower than the page's, so everything on it is
-        // lifted by that much — and for something near the top of the screen that lands
-        // above the canvas, where a y cannot go. Each piece of the outline was then clamped
-        // on its own and the shape came apart; the close button in the corner showed it
-        // plainly. So the highlight is cut at the top edge instead, which costs it a few
-        // units of its own outline and nothing else.
-        val wanted = region.y - lift
-        val top = wanted.coerceAtLeast(0)
-        val height = region.height - (top - wanted)
-        if (height <= 0) return null
+        // Anything too close to the top of the screen belongs to the page: lifted onto
+        // this bar it would land above the canvas, where a y cannot go, and each piece of
+        // the outline would be clamped on its own until the shape came apart.
+        if (!fitsOnCursorBar(region)) return null
+        val top = region.y - lift
+        val height = region.height
         val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
         // A wash inside the outline, so that what the pointer is on reads at a glance now
         // that the page itself no longer changes underneath it.
