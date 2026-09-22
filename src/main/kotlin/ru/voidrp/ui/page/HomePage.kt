@@ -69,8 +69,12 @@ class HomePage : Page() {
         "Сто убийств" to true,
         "Основатель" to true,
         "Ночь в аду" to true,
+        "Древний страж" to true,
+        "Золотая лихорадка" to true,
         "Сотня квестов" to false,
         "Мастер торговли" to false,
+        "Повелитель бездны" to false,
+        "Легенда сервера" to false,
     )
 
     /** Where the stars sit, as fractions of the canvas, so they scatter the same each time. */
@@ -420,7 +424,7 @@ class HomePage : Page() {
             shadow = ru.voidrp.ui.style.Shadow(offsetY = 8, paint = Paint(0x000000, 0.4)),
         ),
         width = Size.Fill,
-        height = Size.Fixed(196),
+        height = Size.Fixed(186),
         direction = Direction.ROW,
         align = Align.CENTER,
         children = listOf(
