@@ -34,7 +34,7 @@ import ru.voidrp.ui.widget.tooltipPanel
  * It is written as one function of its own fields — tick a box, the field changes, the
  * page says what it looks like now.
  */
-class DemoPage : Page() {
+open class DemoPage : Page() {
 
     private val rewards = listOf(
         "diamond" to "Алмаз",

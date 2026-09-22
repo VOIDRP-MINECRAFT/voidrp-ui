@@ -39,7 +39,7 @@ import ru.voidrp.ui.widget.eyebrow
  *
  * The data is made up. The point of the page is the design.
  */
-class HomePage : Page() {
+open class HomePage : Page() {
 
     private val rail = listOf(
         "home", "tech", "treasury", "users", "quest", "trophy",

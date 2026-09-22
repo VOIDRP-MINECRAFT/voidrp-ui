@@ -73,6 +73,49 @@ object Preview {
             ),
             File(out, "tooltip.png"),
         )
+        // A bordered, rounded panel on its own: the corner where a border meets its own
+        // rounding is where this kind of thing goes wrong.
+        render(
+            ru.voidrp.ui.layout.Panel(
+                style = ru.voidrp.ui.style.Theme.card,
+                width = ru.voidrp.ui.layout.Size.Fixed(420),
+                height = ru.voidrp.ui.layout.Size.Fixed(220),
+                justify = ru.voidrp.ui.layout.Justify.CENTER,
+                align = ru.voidrp.ui.layout.Align.CENTER,
+                children = listOf(
+                    ru.voidrp.ui.layout.Panel(
+                        style = ru.voidrp.ui.style.Style(
+                            background = ru.voidrp.ui.style.Paint(ru.voidrp.ui.style.Theme.VIOLET, 0.12),
+                            border = ru.voidrp.ui.style.Border(
+                                1,
+                                ru.voidrp.ui.style.Paint(ru.voidrp.ui.style.Theme.VIOLET, 0.4),
+                            ),
+                            radius = ru.voidrp.ui.style.Theme.R_MD,
+                        ),
+                        width = ru.voidrp.ui.layout.Size.Fixed(131),
+                        height = ru.voidrp.ui.layout.Size.Fixed(78),
+                    ),
+                ),
+            ),
+            File(out, "border.png"),
+        )
+        // Hovered states. A page only knows what the cursor is over through its session,
+        // so here it is simply told — these are the styles a still picture never shows and
+        // the outline the session draws over them.
+        render(
+            object : ru.voidrp.ui.page.HomePage() {
+                override val hovered = "tile:alliance"
+            }.view(),
+            File(out, "home-hover.png"),
+        )
+        render(
+            object : ru.voidrp.ui.page.ShopPage() {
+                override val hovered = "item:1"
+            }.view(),
+            File(out, "shop-hover.png"),
+        )
+        render(StatesSheet().view(), File(out, "states.png"))
+        render(StatesSheet(hover = "hover:button").view(), File(out, "states-hover.png"))
         println("Снимки: ${out.absolutePath}")
     }
 

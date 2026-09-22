@@ -271,6 +271,7 @@ class PenAccountingTest {
             "демо с открытым списком" to ru.voidrp.ui.page.DemoPage()
                 .also { it.onClick("mode", ru.voidrp.ui.page.Button.LEFT) }
                 .view(),
+            "лист состояний" to StatesSheet().view(),
         )
         val outside = mutableListOf<String>()
         pages.forEach { (name, view) ->
@@ -291,6 +292,22 @@ class PenAccountingTest {
             }
         }
         assertTrue(outside.isEmpty(), "за краем холста:\n" + outside.take(5).joinToString("\n"))
+    }
+
+    @Test
+    fun `every control in every state balances`() {
+        // The states a still of a fresh page never shows: a box that is checked, a menu
+        // that is open, a slider at nought and at full, a list part way down.
+        listOf(null, "hover:button").forEach { hover ->
+            assertBalanced(
+                "лист состояний" + (hover?.let { " с наведением" } ?: ""),
+                Layout.centred(
+                    StatesSheet(hover).view(),
+                    Shaders.CANVAS_WIDTH,
+                    Shaders.CANVAS_HEIGHT,
+                ).nodes,
+            )
+        }
     }
 
     @Test

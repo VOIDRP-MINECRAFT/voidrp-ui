@@ -112,8 +112,19 @@ object Shaders {
             float penX = ndc.x / ProjMat[0][0];
             float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
-            vec2 target = vec2(canvas.x / ${CANVAS_WIDTH_EXACT} * 2.0 - 1.0,
-                               1.0 - canvas.y / ${CANVAS_HEIGHT}.0 * 2.0);
+
+            // The canvas is fitted inside the window rather than stretched across it: on a
+            // screen that is not sixteen by nine, stretching would make every circle an
+            // ellipse and every square a brick. Whichever side runs out first sets the
+            // scale, and what is left over is margin. On sixteen by nine the two are equal
+            // and this is exactly the mapping it always was.
+            float windowWidth = 2.0 / ProjMat[0][0];
+            float windowHeight = -2.0 / ProjMat[1][1];
+            float scale = min(windowWidth / ${CANVAS_WIDTH_EXACT}, windowHeight / ${CANVAS_HEIGHT}.0);
+            float screenX = windowWidth * 0.5 + (canvas.x - ${CANVAS_WIDTH_EXACT} * 0.5) * scale;
+            float screenY = windowHeight * 0.5 + (canvas.y - ${CANVAS_HEIGHT}.0 * 0.5) * scale;
+            vec2 target = vec2(screenX / windowWidth * 2.0 - 1.0,
+                               1.0 - screenY / windowHeight * 2.0);
             return vec4(target * original.w, original.z, original.w);
         }
     """.trimIndent()

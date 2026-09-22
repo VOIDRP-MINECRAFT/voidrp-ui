@@ -442,6 +442,18 @@ object Painter {
      * smaller radius, which leaves exactly the ring visible — the same construction CSS
      * ends up with.
      */
+    /** The outline of a rounded box: four sides and four arcs. */
+    fun outline(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        radius: Int,
+        thickness: Int,
+        paint: Paint,
+        out: MutableList<Node>,
+    ) = ring(x, y, width, height, radius, thickness, paint, out)
+
     private fun ring(
         x: Int,
         y: Int,

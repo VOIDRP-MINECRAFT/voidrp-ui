@@ -1,5 +1,6 @@
 package ru.voidrp.ui.layout
 
+import ru.voidrp.ui.pack.Glyphs
 import ru.voidrp.ui.pack.Icons
 import ru.voidrp.ui.pack.UiIcons
 import ru.voidrp.ui.pack.TextFonts
@@ -33,8 +34,20 @@ object Layout {
     /** Measured size of a view, in canvas units. */
     data class Extent(val width: Int, val height: Int)
 
-    /** Where a named panel ended up, so the cursor can be told what it is over. */
-    data class Region(val id: String, val x: Int, val y: Int, val width: Int, val height: Int) {
+    /**
+     * Where a named panel ended up, so the cursor can be told what it is over.
+     *
+     * It carries the panel's rounding as well: whatever draws a highlight around it has to
+     * follow the same corners, or the outline is a square around a rounded thing.
+     */
+    data class Region(
+        val id: String,
+        val x: Int,
+        val y: Int,
+        val width: Int,
+        val height: Int,
+        val radius: Int = 0,
+    ) {
         fun contains(px: Int, py: Int): Boolean =
             px >= x && px < x + width && py >= y && py < y + height
     }
@@ -455,7 +468,16 @@ object Layout {
             }
 
             is Panel -> {
-                view.id?.let { regions += Region(it, x, y, width, height) }
+                view.id?.let {
+                    regions += Region(
+                        it,
+                        x,
+                        y,
+                        width,
+                        height,
+                        Glyphs.nearestRadius(view.style.radius, minOf(width, height) / 2),
+                    )
+                }
                 // The panel itself is painted first, then filled: a box with no children of
                 // its own, because everything inside is placed here as a sibling.
                 out += Box(x, y, width, height, view.style)

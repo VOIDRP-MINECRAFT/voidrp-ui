@@ -255,12 +255,10 @@ class PageSession(
         val region = under ?: return null
         val paint = Paint(Theme.VIOLET, 0.55)
         val top = region.y - lift
-        val nodes = listOf(
-            Rect(region.x, top, region.width, 1, paint),
-            Rect(region.x, top + region.height - 1, region.width, 1, paint),
-            Rect(region.x, top, 1, region.height, paint),
-            Rect(region.x + region.width - 1, top, 1, region.height, paint),
-        )
+        // Along the panel's own corners. A square drawn around a rounded card is the first
+        // thing anyone notices, and the cursor lands on rounded cards all day.
+        val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
+        ru.voidrp.ui.render.Painter.outline(region.x, top, region.width, region.height, region.radius, 1, paint, nodes)
         return GlyphEncoder.encode(nodes)
     }
 

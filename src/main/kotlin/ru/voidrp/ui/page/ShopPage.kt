@@ -29,7 +29,7 @@ import ru.voidrp.ui.widget.tooltipPanel
  * tooltips that follow the pointer, an amount to pick, prices set in two colours on one
  * line — and it is written the same way any page is: one function of the state above it.
  */
-class ShopPage : Page() {
+open class ShopPage : Page() {
 
     private data class Offer(val item: String, val name: String, val price: Int, val about: String)
 

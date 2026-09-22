@@ -26,7 +26,7 @@ abstract class Page {
     val player: Player get() = session?.player ?: error("Страница ещё не открыта")
 
     /** The id of the panel under the cursor, if any. */
-    val hovered: String? get() = session?.hovered
+    open val hovered: String? get() = session?.hovered
 
     /** Where the cursor is on the canvas. */
     val cursorX: Int get() = session?.cursorX ?: 0
