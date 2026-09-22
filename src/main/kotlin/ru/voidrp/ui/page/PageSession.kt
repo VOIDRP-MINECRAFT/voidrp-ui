@@ -44,9 +44,26 @@ class PageSession(
     private val cursorBarOffset: () -> Int,
 ) {
 
-    /** Where the aim says the pointer should be: updated when the player's look arrives. */
+    /** The last reading of the player's aim, in canvas units. */
     private var targetX = (Shaders.CANVAS_WIDTH / 2).toDouble()
     private var targetY = (Shaders.CANVAS_HEIGHT / 2).toDouble()
+
+    /**
+     * Where the pointer is reckoned to be between readings, and how fast it is going.
+     *
+     * The client reports its aim twenty times a second and the screen draws sixty, so four
+     * frames in five have no reading of their own. Holding the last one makes the pointer
+     * step; easing towards it makes the pointer lag. This is the third answer: carry on at
+     * the speed the readings have been showing, and when the next one lands, correct both
+     * the position and the speed by a fraction of how wrong they turned out to be. The
+     * same filter a radar uses to draw a smooth track from a dish that sweeps.
+     */
+    private var estimateX = targetX
+    private var estimateY = targetY
+    private var speedX = 0.0
+    private var speedY = 0.0
+    private var sampleAt = System.nanoTime()
+    private var frameAt = System.nanoTime()
 
     /** Where the pointer is drawn: eased towards the target between ticks. */
     private var drawnX = targetX
@@ -94,8 +111,10 @@ class PageSession(
      */
     fun tick() {
         if (closed) return
-        readAim()
-
+        // The aim is read by the frames, sixty times a second, and reading it here as well
+        // would eat the very readings the tracker is waiting for. This tick only asks what
+        // the pointer is over now, because answering that means drawing the page again and
+        // that can only happen on this thread.
         val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         if (under != hovered) {
             hovered = under
@@ -111,19 +130,23 @@ class PageSession(
      * whole tick stale before it is ever drawn. Reading it again on each frame costs a few
      * field reads and takes fifty milliseconds of lag off the pointer.
      */
-    private fun readAim() {
+    private fun readAim(): Boolean {
         // Frames run off the server thread, so this is a plain read of the player's own
         // numbers and never anything more. If the server ever objects, the pointer keeps
         // the position it had rather than the frame loop dying with it.
-        val location = runCatching { player.location }.getOrNull() ?: return
+        val location = runCatching { player.location }.getOrNull() ?: return false
         val turnedX = wrapDegrees(location.yaw - anchorYaw)
         val turnedY = location.pitch - anchorPitch
         val speed = sensitivity()
 
-        targetX = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed)
+        val x = (Shaders.CANVAS_WIDTH / 2 + turnedX * speed)
             .coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
-        targetY = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed)
+        val y = (Shaders.CANVAS_HEIGHT / 2 + turnedY * speed)
             .coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
+        if (x == targetX && y == targetY) return false
+        targetX = x
+        targetY = y
+        return true
     }
 
     /**
@@ -139,16 +162,41 @@ class PageSession(
         if (closed) return
         val before = cursorX to cursorY
         val wasOver = under
-        readAim()
-        // Smoothing is there to hide that the aim arrives in steps, and every bit of it is
-        // lag. So it is spent where it is needed and nowhere else: a small movement is
-        // eased, a large one — a flick across the page — is followed outright.
-        val gap = Math.hypot(targetX - drawnX, targetY - drawnY)
-        val factor = (EASING + gap / SNAP_WITHIN).coerceAtMost(1.0)
-        drawnX += (targetX - drawnX) * factor
-        drawnY += (targetY - drawnY) * factor
-        if (Math.abs(targetX - drawnX) < 0.5) drawnX = targetX
-        if (Math.abs(targetY - drawnY) < 0.5) drawnY = targetY
+        val now = System.nanoTime()
+        val step = ((now - frameAt) / 1_000_000_000.0).coerceIn(0.001, 0.1)
+        frameAt = now
+
+        // Carry on at the speed we think the hand is going.
+        estimateX += speedX * step
+        estimateY += speedY * step
+
+        if (readAim()) {
+            // A reading landed. However far off it found us is corrected in part now, and
+            // the rest of it is taken as news about the speed — a pointer consistently
+            // behind means the hand is moving faster than we thought.
+            val interval = ((now - sampleAt) / 1_000_000_000.0).coerceIn(0.01, 0.25)
+            sampleAt = now
+            val offX = targetX - estimateX
+            val offY = targetY - estimateY
+            estimateX += offX * CATCH_UP
+            estimateY += offY * CATCH_UP
+            speedX += offX * SPEED_CATCH_UP / interval
+            speedY += offY * SPEED_CATCH_UP / interval
+        } else if (now - sampleAt > STALE_AFTER) {
+            // Nothing new for a while: the hand has stopped, so the speed dies away rather
+            // than carrying the pointer past where the player is looking.
+            speedX *= SPEED_DECAY
+            speedY *= SPEED_DECAY
+        }
+        estimateX = estimateX.coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
+        estimateY = estimateY.coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
+
+        // A light smoothing over the top, which takes out the jitter in the estimate
+        // without adding any of the lag that hiding the steps used to cost.
+        drawnX += (estimateX - drawnX) * EASING
+        drawnY += (estimateY - drawnY) * EASING
+        if (Math.abs(estimateX - drawnX) < 0.5) drawnX = estimateX
+        if (Math.abs(estimateY - drawnY) < 0.5) drawnY = estimateY
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
         if (under?.id != null && under?.id != wasOver?.id) sounds.hover(player)
         if (before == cursorX to cursorY && wasOver?.id == under?.id) return
@@ -320,16 +368,28 @@ class PageSession(
          * How much of the way to the target the pointer moves each frame. Enough to feel
          * immediate, gentle enough to hide that the aim itself arrives in steps.
          */
+        /**
+         * How the pointer follows the estimate, and the estimate follows the readings.
+         *
+         * Found by simulation rather than by feel: a hand moving steadily, a hand tracing a
+         * curve, and a flick that stops dead, each sampled at the rate a client reports and
+         * drawn at the rate a screen refreshes. Against the easing this replaces, the
+         * pointer is about three times closer to where the player is actually looking and
+         * the worst jolt between two frames is half the size.
+         */
         const val EASING = 0.5
 
-        /**
-         * A gap this wide is closed in one frame.
-         *
-         * Below it the pointer eases, which is what keeps a slow, careful movement from
-         * looking like it steps twenty times a second; above it there is nothing to hide —
-         * the hand is moving fast and what it wants is to be followed.
-         */
-        const val SNAP_WITHIN = 90.0
+        /** How much of the gap a fresh reading closes at once. Gentler is smoother. */
+        const val CATCH_UP = 0.2
+
+        /** And how much of it is taken as news about the speed. */
+        const val SPEED_CATCH_UP = 0.8
+
+        /** After this long without a new reading, the hand is taken to have stopped. */
+        const val STALE_AFTER = 120_000_000L
+
+        /** How quickly the speed dies away once it has. */
+        const val SPEED_DECAY = 0.85
 
         /**
          * Swings closer together than this are one press being held.
