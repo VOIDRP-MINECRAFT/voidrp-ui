@@ -16,6 +16,7 @@ import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
+import ru.voidrp.ui.widget.screen
 import ru.voidrp.ui.widget.button
 import ru.voidrp.ui.widget.checkbox
 import ru.voidrp.ui.widget.chip
@@ -99,9 +100,7 @@ open class DemoPage : Page() {
             ),
         )
 
-        return Panel(
-            width = Size.Fixed(viewport.width),
-            height = Size.Fixed(viewport.height),
+        return screen(
             style = Theme.scrim,
             justify = Justify.CENTER,
             align = Align.CENTER,

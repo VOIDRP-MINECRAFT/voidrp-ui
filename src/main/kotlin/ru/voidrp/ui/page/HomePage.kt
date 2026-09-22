@@ -26,6 +26,7 @@ import ru.voidrp.ui.style.Palette
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
+import ru.voidrp.ui.widget.screen
 import ru.voidrp.ui.widget.chip
 import ru.voidrp.ui.widget.eyebrow
 
@@ -130,10 +131,7 @@ open class HomePage : Page() {
     // player named still has no strip of world down its side.
     override val bleed = listOf(Paint(0x000000, 0.97), pageTint)
 
-    override fun view(): View = Panel(
-        // The page is the screen it is given, whatever shape that screen is.
-        width = Size.Fixed(viewport.width),
-        height = Size.Fixed(viewport.height),
+    override fun view(): View = screen(
         // Not a window floating over the world: the screen belongs to the interface, the
         // way it does when a browser is drawing it.
         style = Style(background = Paint(0x000000, 0.97)),

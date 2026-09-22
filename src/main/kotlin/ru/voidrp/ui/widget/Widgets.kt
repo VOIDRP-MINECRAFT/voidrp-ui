@@ -30,6 +30,39 @@ import ru.voidrp.ui.style.Theme
  * told.
  */
 
+/**
+ * The root of a page: a panel exactly the size of this player's screen.
+ *
+ * Every page starts with one, and writing it out by hand means writing the viewport into
+ * each page and remembering to do it again on the next one. The height is always 1024; the
+ * width is whatever shape the player's window is.
+ *
+ * ```kotlin
+ * override fun view(): View = screen(style = Theme.scrim, align = Align.CENTER) {
+ *     listOf(card())
+ * }
+ * ```
+ */
+fun Page.screen(
+    style: Style = Style(),
+    direction: Direction = Direction.COLUMN,
+    justify: Justify = Justify.START,
+    align: Align = Align.START,
+    gap: Int = 0,
+    id: String? = null,
+    children: List<View>,
+): View = Panel(
+    children = children,
+    style = style,
+    direction = direction,
+    gap = gap,
+    justify = justify,
+    align = align,
+    width = Size.Fixed(viewport.width),
+    height = Size.Fixed(viewport.height),
+    id = id,
+)
+
 /** A button. Clicking it calls `onClick` with [id]. */
 fun Page.button(
     caption: String,

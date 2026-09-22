@@ -17,6 +17,7 @@ import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
 import ru.voidrp.ui.widget.button
+import ru.voidrp.ui.widget.screen
 import ru.voidrp.ui.widget.eyebrow
 
 /**
@@ -47,65 +48,73 @@ class ScreenPage(
 
     override fun view(): View {
         val screen = viewport
-        val inset = 3
-        return Panel(
-            width = Size.Fixed(screen.width),
-            height = Size.Fixed(screen.height),
-            style = Style(background = Paint(0x000000, 0.9)),
+        return screen(
             justify = Justify.CENTER,
             align = Align.CENTER,
-            children = listOf(frame(screen, inset)) + corners(screen, inset) + listOf(card(screen)),
+            children = marks(screen) + listOf(card(screen)),
         )
     }
 
-    /** The frame itself: a hairline all the way round the canvas the page believes in. */
-    private fun frame(screen: Viewport, inset: Int): View = Raw(
-        ru.voidrp.ui.render.Box(
-            inset,
-            inset,
-            screen.width - inset * 2,
-            screen.height - inset * 2,
-            Style(border = Border(2, Paint(Theme.VIOLET_SOFT, 0.9))),
-        ),
-    )
-
-    /** Thicker marks in the four corners, which is where an edge is easiest to judge. */
-    private fun corners(screen: Viewport, inset: Int): List<View> {
-        val arm = 64
-        val thick = 6
-        val paint = Paint(Theme.VIOLET_SOFT, 1.0)
-        val right = screen.width - inset - arm
-        val bottom = screen.height - inset - thick
-        return listOf(
-            Rect(inset, inset, arm, thick, paint),
-            Rect(inset, inset, thick, arm, paint),
-            Rect(right, inset, arm, thick, paint),
-            Rect(screen.width - inset - thick, inset, thick, arm, paint),
-            Rect(inset, bottom, arm, thick, paint),
-            Rect(inset, screen.height - inset - arm, thick, arm, paint),
-            Rect(right, bottom, arm, thick, paint),
-            Rect(screen.width - inset - thick, screen.height - inset - arm, thick, arm, paint),
-        ).map { Raw(it) }
+    /**
+     * The frame, and the brackets at its corners.
+     *
+     * Deliberately drawn over the world rather than over a wash of our own: the player is
+     * being asked where the edge of their screen is, and the world showing outside the
+     * frame is what tells them the canvas does not reach it yet.
+     */
+    private fun marks(screen: Viewport): List<View> {
+        val line = Paint(Theme.VIOLET_SOFT, 0.45)
+        val bracket = Paint(Theme.VIOLET_SOFT, 1.0)
+        val thin = 1
+        val thick = 4
+        val arm = 72
+        val right = screen.width - thin
+        val bottom = screen.height - thin
+        val shapes = listOf(
+            // The canvas, dimmed. It is the strongest signal on the page: everything
+            // inside the canvas is darker than the world, so the player is lining up a
+            // shaded rectangle with their screen rather than hunting for a hairline.
+            Rect(0, 0, screen.width, screen.height, Paint(0x05060E, 0.55)),
+            // The frame itself, a hairline right on the edge of the canvas.
+            Rect(0, 0, screen.width, thin, line),
+            Rect(0, bottom, screen.width, thin, line),
+            Rect(0, 0, thin, screen.height, line),
+            Rect(right, 0, thin, screen.height, line),
+            // Brackets, which is where an edge is easiest to judge by eye.
+            Rect(0, 0, arm, thick, bracket),
+            Rect(0, 0, thick, arm, bracket),
+            Rect(screen.width - arm, 0, arm, thick, bracket),
+            Rect(screen.width - thick, 0, thick, arm, bracket),
+            Rect(0, screen.height - thick, arm, thick, bracket),
+            Rect(0, screen.height - arm, thick, arm, bracket),
+            Rect(screen.width - arm, screen.height - thick, arm, thick, bracket),
+            Rect(screen.width - thick, screen.height - arm, thick, arm, bracket),
+        )
+        return shapes.map { Raw(it) }
     }
 
     private fun card(screen: Viewport): View = Panel(
-        style = Theme.card.copy(padding = Insets.all(Theme.SPACE_5)),
-        width = Size.Fixed(620),
+        // Nearly opaque: this card is read over whatever the player happens to be
+        // standing in front of, which may be a snowfield at noon.
+        style = Theme.card.copy(
+            background = Paint(0x0B0D18, 0.98),
+            padding = Insets.all(Theme.SPACE_5),
+        ),
+        width = Size.Fixed(660),
         gap = Theme.SPACE_3,
         align = Align.CENTER,
         children = listOf(
-            eyebrow("Настройка экрана"),
+            eyebrow("Шаг 1 из 1 · настройка экрана"),
             Text(
-                "Рамка должна лежать точно по краям экрана",
-                Theme.TEXT_LEAD,
+                "Подгоните рамку под края экрана",
+                Theme.TEXT_H3,
                 Theme.INK,
                 TextFonts.Weight.BOLD,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
             ),
             Text(
-                "Игра не сообщает серверу размер окна, поэтому формат выбираете вы. " +
-                    "Нажимайте варианты, пока рамка не сядет по краям — страница сразу " +
-                    "перерисуется под него.",
+                "Размер окна игра серверу не сообщает, поэтому формат задаёте вы — один раз. " +
+                    "Уголки должны сойтись с углами экрана.",
                 Theme.TEXT_BODY,
                 Theme.INK_SOFT,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
@@ -121,32 +130,47 @@ class ScreenPage(
                         name,
                         "screen:$name",
                         if (preset.width == screen.width) Theme.buttonPrimary else Theme.buttonGhost,
-                        height = 38,
+                        height = 40,
                     )
                 },
             ),
             // No window is exactly a named format: a title bar and a task bar take a slice
             // out of the height, so a maximised 1920×1080 screen is nearer 1.89 than 1.78.
-            // These two put the frame on the edge exactly.
             Panel(
                 direction = Direction.ROW,
-                gap = Theme.SPACE_2,
+                gap = Theme.SPACE_3,
                 justify = Justify.CENTER,
                 align = Align.CENTER,
                 width = Size.Fill,
                 children = listOf(
-                    button("← уже", "screen:narrower", Theme.buttonGhost, height = 34),
-                    Text(
-                        "${Viewport.name(screen)} · ${screen.width}×${screen.height}",
-                        Theme.TEXT_CAPTION,
-                        Theme.INK_DIM,
-                        wrap = false,
+                    button("←  уже", "screen:narrower", Theme.buttonGhost, Size.Fixed(120), height = 40),
+                    Panel(
+                        width = Size.Fixed(190),
+                        align = Align.CENTER,
+                        gap = 2,
+                        children = listOf(
+                            Text(
+                                Viewport.name(screen),
+                                Theme.TEXT_LEAD,
+                                Theme.INK,
+                                TextFonts.Weight.BOLD,
+                                wrap = false,
+                                align = ru.voidrp.ui.layout.TextAlign.CENTER,
+                            ),
+                            Text(
+                                "${screen.width} × ${screen.height}",
+                                Theme.TEXT_CAPTION,
+                                Theme.INK_DIM,
+                                wrap = false,
+                                align = ru.voidrp.ui.layout.TextAlign.CENTER,
+                            ),
+                        ),
                     ),
-                    button("шире →", "screen:wider", Theme.buttonGhost, height = 34),
+                    button("шире  →", "screen:wider", Theme.buttonGhost, Size.Fixed(120), height = 40),
                 ),
             ),
             Text(
-                "Точная подгонка — по 8 единиц за нажатие",
+                "Рамки не видно? Значит экран уже, чем думает сервер — жмите «уже».",
                 Theme.TEXT_CAPTION,
                 Theme.INK_DIM,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
@@ -157,7 +181,7 @@ class ScreenPage(
                 justify = Justify.CENTER,
                 width = Size.Fill,
                 children = listOf(
-                    button("Готово", "screen:done", Theme.buttonPrimary),
+                    button("Готово", "screen:done", Theme.buttonPrimary, Size.Fixed(200)),
                     button("Как на сервере", "screen:auto", Theme.buttonGhost),
                 ),
             ),
