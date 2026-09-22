@@ -188,6 +188,10 @@ class PageSession(
             speedX *= SPEED_DECAY
             speedY *= SPEED_DECAY
         }
+        // And never far ahead of the last thing actually known. Reckoning is for bridging
+        // the gap between readings, not for deciding where the player is looking.
+        estimateX = estimateX.coerceIn(targetX - RUN_AHEAD, targetX + RUN_AHEAD)
+        estimateY = estimateY.coerceIn(targetY - RUN_AHEAD, targetY + RUN_AHEAD)
         estimateX = estimateX.coerceIn(0.0, (Shaders.CANVAS_WIDTH - 1).toDouble())
         estimateY = estimateY.coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
 
@@ -377,13 +381,30 @@ class PageSession(
          * pointer is about three times closer to where the player is actually looking and
          * the worst jolt between two frames is half the size.
          */
-        const val EASING = 0.5
+        const val EASING = 0.45
 
         /** How much of the gap a fresh reading closes at once. Gentler is smoother. */
-        const val CATCH_UP = 0.2
+        const val CATCH_UP = 0.55
 
-        /** And how much of it is taken as news about the speed. */
-        const val SPEED_CATCH_UP = 0.8
+        /**
+         * And how much of it is taken as news about the speed.
+         *
+         * These two are not free of each other. Correct the speed harder than the position
+         * can settle and the tracker rings: every reading tells it that it overshot, so it
+         * turns around, overshoots the other way, and the pointer flies about. The bound is
+         * the critically damped one — the speed term is the square of the position term
+         * over two minus it — and this sits on it.
+         */
+        const val SPEED_CATCH_UP = CATCH_UP * CATCH_UP / (2 - CATCH_UP)
+
+        /**
+         * How far the reckoning may get ahead of the last reading.
+         *
+         * A hand cannot stop dead, but a reading can: the last one before a stop still
+         * shows full speed, so without a limit the pointer sails on for a frame or two and
+         * comes back. Thirty units is a finger's width on screen.
+         */
+        const val RUN_AHEAD = 30.0
 
         /** After this long without a new reading, the hand is taken to have stopped. */
         const val STALE_AFTER = 120_000_000L
