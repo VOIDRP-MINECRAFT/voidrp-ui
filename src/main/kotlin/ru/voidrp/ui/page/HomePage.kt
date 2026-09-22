@@ -13,13 +13,16 @@ import ru.voidrp.ui.layout.Size
 import ru.voidrp.ui.layout.Span
 import ru.voidrp.ui.layout.Text
 import ru.voidrp.ui.layout.View
+import ru.voidrp.ui.pack.Glyphs
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.pack.TextFonts
+import ru.voidrp.ui.render.Painter
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.style.Border
 import ru.voidrp.ui.style.Insets
 import ru.voidrp.ui.style.Gradient
 import ru.voidrp.ui.style.GradientDirection
+import ru.voidrp.ui.style.Palette
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
@@ -85,16 +88,38 @@ class HomePage : Page() {
     /** How wide the page itself is, whatever the window is. The site holds to the same. */
     private val BODY_WIDTH = 1278
 
+    // The surfaces, as the site's stylesheet has them: a near-black page, cards a shade
+    // above it, tiles a shade above those. Naming such colours outright does not survive
+    // the trip — the palette's dark end is coarse enough that page and card land on the
+    // same entry and the card disappears — so each is expressed as a colour and an opacity
+    // over what is behind it, which lands within a unit or two. See [Palette.express].
+    private val PAGE = 0x060711
+    private val CARD = 0x090B16
+    private val KPI = 0x0D0F19
+    private val TILE = 0x11131E
+    private val WELL = 0x191A28
+
+    /** The well the player stands in, in the profile card. */
+    private val WELL_WIDTH = 286
+    private val WELL_HEIGHT = 300
+
+    private val pageTint = Palette.express(PAGE, 0x000000)
+    private val cardFill = Palette.express(CARD, PAGE)
+    private val kpiFill = Palette.express(KPI, PAGE)
+    private val tileFill = Palette.express(TILE, CARD)
+    private val wellFill = Palette.express(WELL, CARD)
+
     override fun view(): View = Panel(
         width = Size.Fixed(Shaders.CANVAS_WIDTH),
         height = Size.Fixed(Shaders.CANVAS_HEIGHT),
         // Not a window floating over the world: the screen belongs to the interface, the
         // way it does when a browser is drawing it.
-        style = Style(background = Paint(0x0A0716, 0.97)),
+        style = Style(background = Paint(0x000000, 0.97)),
         direction = Direction.ROW,
-        // The stars are placed on the canvas directly and take no room in the row, so the
-        // rail and the page lay out as if they were not there.
-        children = starNodes() + listOf(iconRail(), content()),
+        // The tint and the stars are placed on the canvas directly and take no room in the
+        // row, so the rail and the page lay out as if they were not there.
+        children = listOf(Raw(Rect(0, 0, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT, pageTint))) +
+            starNodes() + listOf(iconRail(), content()),
     )
 
     /** A sky behind the page. Each star is one unit of nothing much, and they add up. */
@@ -276,15 +301,15 @@ class HomePage : Page() {
                     // The site fades this one from the middle out; a fade across something
                     // this small has three opacity steps to work with and shows every one,
                     // so it is left flat.
-                    background = Paint(0x9A93D8, 0.12),
+                    background = wellFill,
                     border = Border(1, Paint(Theme.LINE, 0.1)),
                     radius = Theme.R_LG,
                 ),
                 width = Size.Fill,
-                height = Size.Fixed(300),
+                height = Size.Fixed(WELL_HEIGHT),
                 justify = Justify.CENTER,
                 align = Align.CENTER,
-                children = listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
+                children = wellGlow() + listOf(Icon("user", 64, Paint(Theme.VIOLET_SOFT, 0.55).rgb)),
             ),
             Text(
                 "mironoouv",
@@ -475,8 +500,43 @@ class HomePage : Page() {
         ),
     )
 
+    /**
+     * The soft violet light the site has behind the player in this well.
+     *
+     * There is no radial gradient to be had here — a glyph is one flat colour — so it is
+     * built the way a photographer would: a few squares of light, each the faintest
+     * opacity the alphabet has, laid one inside the other. Four of them stack up to about
+     * the brightness the site's centre has, and because each is rounded and each edge is
+     * only five units of colour, what the eye gets is a blob rather than a set of boxes.
+     */
+    private fun wellGlow(): List<View> = buildList {
+        // The faintest opacity the alphabet has is a sixteenth, which of the theme's violet
+        // is a step you can see. A violet half as bright, at that same sixteenth, is a step
+        // you cannot — so the light is built from more layers of less.
+        //
+        // Red has eight steps to blue's eight and green's sixteen, and none of them sits
+        // where this violet wants to be: one is too grey, the next too pink. The layers
+        // alternate between them, and what the eye adds up is the colour in between.
+        val cool = Paint(0x2E3070, 1.0 / Glyphs.ALPHA_LEVELS)
+        val warm = Paint(0x4A3470, 1.0 / Glyphs.ALPHA_LEVELS)
+        listOf(272, 248, 224, 200, 176, 152, 128, 104, 82, 60).forEachIndexed { index, size ->
+            val light = if (index % 2 == 0) cool else warm
+            val shape = mutableListOf<ru.voidrp.ui.render.Node>()
+            Painter.rounded(
+                (WELL_WIDTH - size) / 2,
+                (WELL_HEIGHT - size) / 2,
+                size,
+                size,
+                Glyphs.nearestRadius(24, size / 2),
+                light,
+                shape,
+            )
+            shape.forEach { add(Raw(it)) }
+        }
+    }
+
     private fun kpi(icon: String, caption: String, value: String, colour: Int) = Panel(
-        style = panel(padding = Insets.symmetric(14, 16)),
+        style = panel(padding = Insets.symmetric(14, 16)).copy(background = kpiFill),
         width = Size.Fill,
         gap = 4,
         children = listOf(
@@ -508,7 +568,7 @@ class HomePage : Page() {
                 children = stats.map { (icon, label, value) ->
                     Panel(
                         style = Style(
-                            background = Paint(Theme.LINE, 0.04),
+                            background = tileFill,
                             border = Border(1, Paint(Theme.LINE, 0.1)),
                             radius = Theme.R_MD,
                             padding = Insets.symmetric(12, 4),
@@ -553,7 +613,7 @@ class HomePage : Page() {
                             )
                         } else {
                             Style(
-                                background = Paint(Theme.LINE, 0.04),
+                                background = tileFill,
                                 border = Border(1, Paint(Theme.LINE, 0.1)),
                                 radius = Theme.R_MD,
                             )
@@ -599,7 +659,7 @@ class HomePage : Page() {
                 children = achievements.map { (name, unlocked) ->
                     Panel(
                         style = Style(
-                            background = Paint(Theme.LINE, 0.04),
+                            background = tileFill,
                             border = Border(1, Paint(if (unlocked) Theme.GOLD else Theme.LINE, if (unlocked) 0.2 else 0.1)),
                             radius = Theme.R_MD,
                             padding = Insets.symmetric(10, 12),
@@ -649,7 +709,7 @@ class HomePage : Page() {
     )
 
     private fun panel(padding: Insets = Insets.all(Theme.SPACE_4)) = Style(
-        background = Paint(Theme.LINE, 0.05),
+        background = cardFill,
         border = Border(1, Paint(Theme.LINE, 0.12)),
         radius = Theme.R_XL,
         padding = padding,

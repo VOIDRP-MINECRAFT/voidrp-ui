@@ -1,6 +1,7 @@
 package ru.voidrp.ui.style
 
 import java.util.concurrent.ConcurrentHashMap
+import ru.voidrp.ui.pack.Glyphs
 
 /**
  * The colours the transport can actually carry, and how to land on the right one.
@@ -25,6 +26,7 @@ object Palette {
     private const val BLUE_STEPS = 7
 
     private val cache = ConcurrentHashMap<Int, Int>()
+    private val expressed = ConcurrentHashMap<Long, Paint>()
 
     /** The ten bits to send for a colour: RGB 3-4-3. */
     fun code(rgb: Int): Int = cache.getOrPut(rgb and 0xFFFFFF) { search(rgb) }
@@ -39,6 +41,55 @@ object Palette {
 
     /** The colour a paint will really come out as, for anything that has to match it. */
     fun nearest(rgb: Int): Int = rgbOf(code(rgb))
+
+    /**
+     * How to draw [target] when [over] is known to be behind it.
+     *
+     * Naming a colour outright spends the whole budget on one axis: ten bits, and at the
+     * dark end of them the steps are as coarse as the colours a dark interface is made of
+     * — a page at #060711 and a card at #090b16 both land on the same entry, and the card
+     * stops being a card. Opacity is a second axis with sixteen steps of its own, and what
+     * the eye sees is the two composed. So both are chosen together: of every palette
+     * colour at every opacity, the pair whose result over [over] looks nearest.
+     *
+     * It lands the site's own surface colours within a unit or two, where naming them
+     * missed by ten to twenty.
+     */
+    fun express(target: Int, over: Int): Paint = expressed.getOrPut((target.toLong() shl 32) or over.toLong()) {
+        var best = Paint(nearest(target))
+        var bestDistance = Double.MAX_VALUE
+        val wanted = oklab(target shr 16 and 0xFF, target shr 8 and 0xFF, target and 0xFF)
+        for (code in 0 until (1 shl 10)) {
+            val colour = rgbOf(code)
+            for (step in 1..Glyphs.ALPHA_LEVELS) {
+                val alpha = step.toDouble() / Glyphs.ALPHA_LEVELS
+                val r = mix(colour shr 16 and 0xFF, over shr 16 and 0xFF, alpha)
+                val g = mix(colour shr 8 and 0xFF, over shr 8 and 0xFF, alpha)
+                val b = mix(colour and 0xFF, over and 0xFF, alpha)
+                val lab = oklab(r, g, b)
+                val distance = (lab[0] - wanted[0]) * (lab[0] - wanted[0]) +
+                    (lab[1] - wanted[1]) * (lab[1] - wanted[1]) +
+                    (lab[2] - wanted[2]) * (lab[2] - wanted[2])
+                if (distance < bestDistance) {
+                    bestDistance = distance
+                    best = Paint(colour, alpha)
+                }
+            }
+        }
+        best
+    }
+
+    /** What a colour over another actually comes out as — the composite the eye will see. */
+    fun composite(paint: Paint, over: Int): Int {
+        val colour = nearest(paint.rgb)
+        val alpha = Glyphs.alphaLevel(paint.alpha).toDouble() / Glyphs.ALPHA_LEVELS
+        return (mix(colour shr 16 and 0xFF, over shr 16 and 0xFF, alpha) shl 16) or
+            (mix(colour shr 8 and 0xFF, over shr 8 and 0xFF, alpha) shl 8) or
+            mix(colour and 0xFF, over and 0xFF, alpha)
+    }
+
+    private fun mix(top: Int, bottom: Int, alpha: Double): Int =
+        Math.round(top * alpha + bottom * (1.0 - alpha)).toInt().coerceIn(0, 255)
 
     private fun search(rgb: Int): Int {
         val target = oklab(rgb shr 16 and 0xFF, rgb shr 8 and 0xFF, rgb and 0xFF)

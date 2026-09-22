@@ -40,6 +40,16 @@ object Painter {
         return out
     }
 
+    /** The same shape, somewhere else. A box moves with everything inside it. */
+    fun moved(node: Node, dx: Int, dy: Int): Node = when (node) {
+        is Box -> node.copy(x = node.x + dx, y = node.y + dy)
+        is Rect -> node.copy(x = node.x + dx, y = node.y + dy)
+        is CornerPiece -> node.copy(x = node.x + dx, y = node.y + dy)
+        is GlowPiece -> node.copy(x = node.x + dx, y = node.y + dy)
+        is Label -> node.copy(x = node.x + dx, y = node.y + dy)
+        is Sprite -> node.copy(x = node.x + dx, y = node.y + dy)
+    }
+
     private fun paint(node: Node, dx: Int, dy: Int, out: MutableList<Node>) {
         when (node) {
             is Box -> paintBox(node, dx, dy, out)

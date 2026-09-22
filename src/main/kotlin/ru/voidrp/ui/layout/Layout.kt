@@ -335,7 +335,9 @@ object Layout {
         regions: MutableList<Region>,
     ) {
         when (view) {
-            is Raw -> out += view.node
+            // Placed by hand, but inside its parent like anything else: the coordinates
+            // in the node are read from wherever the layout put it.
+            is Raw -> out += Painter.moved(view.node, x, y)
             is Gap -> Unit
 
             is Text -> {
@@ -592,6 +594,13 @@ object Layout {
         }
 
         panel.children.forEachIndexed { index, child ->
+            // A hand-placed shape is measured from the corner its parent holds, not from
+            // wherever the flow happens to have reached: it takes no room, so a slot in the
+            // flow would only tell it about the children around it.
+            if (child is Raw) {
+                arrange(child, x, y, width, height, out, regions)
+                return@forEachIndexed
+            }
             val alongSize = sizes[index]
             val crossWanted = measure(child, width, height).let { if (row) it.height else it.width }
             val crossSpan = if (row) height else width

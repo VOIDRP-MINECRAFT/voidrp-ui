@@ -176,5 +176,11 @@ data class Grid(
 /** Empty space, for when a gap is not enough — the flexible kind pushes things apart. */
 data class Gap(val size: Int = 0, val grow: Boolean = false) : View
 
-/** An escape hatch: something already positioned, for what the layout has no word for yet. */
+/**
+ * An escape hatch: a shape positioned by hand, for what the layout has no word for yet.
+ *
+ * It takes no room and moves nothing else, and its coordinates are read from the corner of
+ * whatever holds it — so a page can scatter stars across the whole canvas, or lay a glow
+ * inside one panel, without either needing to know where the other ended up.
+ */
 data class Raw(val node: Node) : View
