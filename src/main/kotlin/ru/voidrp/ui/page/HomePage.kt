@@ -438,13 +438,19 @@ open class HomePage : Page() {
             // The light sits in the bottom left corner and falls away two ways: across,
             // which the wash does, and upwards, which the shade over it does.
             background = Gradient(
-                Paint(0x32295F),
-                Paint(0x16112C),
+                Paint(0x2D2456),
+                Paint(0x14102A),
                 direction = GradientDirection.HORIZONTAL,
                 over = PAGE,
-                stop = 0.45,
+                // The site holds the violet for the first fifth and then drops away fast;
+                // a fade that starts at the very edge is dimmer than it where the words are.
+                start = 0.0,
+                stop = 0.38,
             ),
-            overlay = Gradient(Paint(0x000000, 0.25), Paint(0x000000, 0.0)),
+            // No second wash across this one. A fade in opacity alone has sixteen steps and
+            // the faintest is out of use, so a gentle darkening towards the top came out in
+            // four hard bands lying across the panel. One clean fade beats two that stripe.
+
             border = Border(1, Paint(Theme.VIOLET, 0.26)),
             radius = Theme.R_XL,
             highlight = Paint(0xFFFFFF, 0.08),

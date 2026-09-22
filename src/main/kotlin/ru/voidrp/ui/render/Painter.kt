@@ -133,11 +133,21 @@ object Painter {
         along: GradientDirection = GradientDirection.VERTICAL,
     ) {
         if (width <= 0 || height <= 0 || !paint.visible) return
-        if (radius <= 0 || (!roundStart && !roundEnd)) {
+        // A cap cannot be wider than what it caps. Asked for more, it used to hang over the
+        // shape beside it — two stripes of a gradient blended where they overlapped and the
+        // end of the button came out a brighter colour than anything in the gradient.
+        //
+        // How much room there is depends on which ends are rounded: two corners sit one
+        // above the other across the band, and side by side only if both ends are capped.
+        val across = if (along == GradientDirection.VERTICAL) width else height
+        val alongRoom = if (along == GradientDirection.VERTICAL) height else width
+        val r = radius.coerceAtMost(
+            minOf(across / 2, if (roundStart && roundEnd) alongRoom / 2 else alongRoom),
+        )
+        if (r <= 0 || (!roundStart && !roundEnd)) {
             out += Rect(x, y, width, height, paint)
             return
         }
-        val r = radius
         if (along == GradientDirection.VERTICAL) {
             // Rounded at the top, the bottom, or both; the rest is one plain band. A stripe
             // in the middle of a gradient is square at both ends, and the stripes at the
@@ -238,6 +248,73 @@ object Painter {
     }
 
     /**
+     * Lays a run of stripes along a box, merging the ones that came out the same.
+     *
+     * The stripes at the two ends carry the box's rounded caps, so neither may be narrower
+     * than the radius: a three-unit stripe asked to cap a twelve-unit rounding drew that
+     * cap over its neighbour, and the two blended into a band brighter than any colour in
+     * the gradient. Where that happens the end stripe simply takes more of the box.
+     */
+    private fun stripes(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        radius: Int,
+        span: Int,
+        steps: Int,
+        vertical: Boolean,
+        out: MutableList<Node>,
+        paintOf: (Int) -> Paint?,
+    ) {
+        data class Run(var from: Int, var to: Int, val paint: Paint)
+
+        val runs = mutableListOf<Run>()
+        var step = 0
+        while (step < steps) {
+            var last = step
+            val paint = paintOf(step)
+            while (last + 1 < steps && paintOf(last + 1) == paint) last++
+            if (paint != null) {
+                runs += Run(span * step / steps, span * (last + 1) / steps, paint)
+            }
+            step = last + 1
+        }
+        if (runs.isEmpty()) return
+
+        // Make room for the caps at both ends.
+        val cap = radius.coerceAtMost(span / 2)
+        while (runs.size > 1 && runs.first().to < cap) {
+            runs[1].from = runs[0].from
+            runs.removeAt(0)
+        }
+        while (runs.size > 1 && span - runs.last().from < cap) {
+            runs[runs.size - 2].to = runs.last().to
+            runs.removeAt(runs.size - 1)
+        }
+
+        runs.forEachIndexed { index, run ->
+            val first = index == 0 && run.from == 0
+            val last = index == runs.lastIndex && run.to == span
+            if (vertical) {
+                rounded(
+                    x, y + run.from, width, run.to - run.from, radius, run.paint, out,
+                    roundStart = first,
+                    roundEnd = last,
+                    along = GradientDirection.VERTICAL,
+                )
+            } else {
+                rounded(
+                    x + run.from, y, run.to - run.from, height, radius, run.paint, out,
+                    roundStart = first,
+                    roundEnd = last,
+                    along = GradientDirection.HORIZONTAL,
+                )
+            }
+        }
+    }
+
+    /**
      * A wash over a surface whose colour is known, which is the good way to draw one.
      *
      * Naming a stripe's colour outright spends everything on ten bits, and along the line
@@ -284,29 +361,7 @@ object Painter {
             previous = Palette.composite(paint, under)
             paint
         }
-        var step = 0
-        while (step < steps) {
-            var last = step
-            while (last + 1 < steps && paints[last + 1] == paints[step]) last++
-            val start = span * step / steps
-            val end = span * (last + 1) / steps
-            if (vertical) {
-                rounded(
-                    x, y + start, width, end - start, radius, paints[step], out,
-                    roundStart = step == 0,
-                    roundEnd = last == steps - 1,
-                    along = GradientDirection.VERTICAL,
-                )
-            } else {
-                rounded(
-                    x + start, y, end - start, height, radius, paints[step], out,
-                    roundStart = step == 0,
-                    roundEnd = last == steps - 1,
-                    along = GradientDirection.HORIZONTAL,
-                )
-            }
-            step = last + 1
-        }
+        stripes(x, y, width, height, radius, span, steps, vertical, out) { paints[it] }
     }
 
     /**
@@ -367,32 +422,8 @@ object Painter {
         }
 
         passes.forEach { pass ->
-            var step = 0
-            while (step < steps) {
-                var last = step
-                while (last + 1 < steps && pass[last + 1] == pass[step]) last++
-                val level = pass[step]
-                if (level > 0) {
-                    val start = span * step / steps
-                    val end = span * (last + 1) / steps
-                    val paint = Paint(gradient.from.rgb, level.toDouble() / levels)
-                    if (vertical) {
-                        rounded(
-                            x, y + start, width, end - start, radius, paint, out,
-                            roundStart = step == 0,
-                            roundEnd = last == steps - 1,
-                            along = GradientDirection.VERTICAL,
-                        )
-                    } else {
-                        rounded(
-                            x + start, y, end - start, height, radius, paint, out,
-                            roundStart = step == 0,
-                            roundEnd = last == steps - 1,
-                            along = GradientDirection.HORIZONTAL,
-                        )
-                    }
-                }
-                step = last + 1
+            stripes(x, y, width, height, radius, span, steps, vertical, out) { step ->
+                pass[step].takeIf { it > 0 }?.let { Paint(gradient.from.rgb, it.toDouble() / levels) }
             }
         }
     }
