@@ -50,7 +50,16 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     /** The screen shape assumed for a player who has not said what theirs is. */
     private var serverScreen = ru.voidrp.ui.layout.Viewport.DEFAULT
 
-    val pages = PageManager(this, renderer, messages, sounds, ::sendPack, ::packReady, screens::of)
+    val pages = PageManager(
+        this,
+        renderer,
+        messages,
+        sounds,
+        ::sendPack,
+        ::packReady,
+        screens,
+        { config.getBoolean("display.ask-screen", true) },
+    )
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
     private var packHash: String = ""

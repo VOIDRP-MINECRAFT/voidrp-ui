@@ -129,7 +129,7 @@ object Preview {
 
         // The one page a player sees before any other, if the server did not guess their
         // screen right: the frame they line up with their own edges.
-        render(ru.voidrp.ui.page.ScreenPage {}, File(out, "screen.png"), Viewport.parse("5:4")!!)
+        render(ru.voidrp.ui.page.ScreenPage(choose = {}), File(out, "screen.png"), Viewport.parse("5:4")!!)
 
         render(StatesSheet().view(), File(out, "states.png"))
         render(StatesSheet(hover = "hover:button").view(), File(out, "states-hover.png"))

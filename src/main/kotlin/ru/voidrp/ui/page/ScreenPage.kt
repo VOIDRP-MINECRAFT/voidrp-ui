@@ -31,7 +31,14 @@ import ru.voidrp.ui.widget.eyebrow
  *
  * It takes about five seconds and is asked once in a player's life.
  */
-class ScreenPage(private val choose: (Viewport?) -> Unit) : Page() {
+class ScreenPage(
+    private val choose: (Viewport?) -> Unit,
+    /** Where the player goes when they are done — the page they actually asked for. */
+    private val done: () -> Unit = {},
+) : Page() {
+
+    /** Whether [done] takes the player somewhere, or this page has to close itself. */
+    var isFollowed: Boolean = false
 
     private companion object {
         /** Canvas units a nudge moves the edge by — about eight pixels on a 1080p screen. */
@@ -159,7 +166,10 @@ class ScreenPage(private val choose: (Viewport?) -> Unit) : Page() {
 
     override fun onClick(id: String, button: Button) {
         when {
-            id == "screen:done" -> if (!back()) close()
+            id == "screen:done" -> {
+                done()
+                if (!isFollowed) if (!back()) close()
+            }
             id == "screen:auto" -> {
                 choose(null)
                 refresh()

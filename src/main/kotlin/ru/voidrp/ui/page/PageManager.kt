@@ -41,7 +41,16 @@ class PageManager(
      * A page is laid out against it, so this is what makes an interface adapt rather than
      * be squashed onto whatever window it lands in.
      */
-    private val screens: (Player) -> ru.voidrp.ui.layout.Viewport = { ru.voidrp.ui.layout.Viewport.DEFAULT },
+    private val screens: ru.voidrp.ui.layout.Screens? = null,
+    /**
+     * Whether a player who has never said what shape their screen is gets asked before
+     * their first page.
+     *
+     * Five seconds, once in their life, and after it every page is laid out for the window
+     * they actually have. Without it the server has to guess, and a guess that is too wide
+     * takes a slice off both sides of every page they ever open.
+     */
+    private val askScreen: () -> Boolean = { true },
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -123,11 +132,29 @@ class PageManager(
      * Without the pack the glyphs are not in any font the client knows, and the page comes
      * out as a row of broken squares — so the player is told what happened instead.
      */
+    /** The canvas this player's pages are drawn on. */
+    fun viewportOf(player: Player): ru.voidrp.ui.layout.Viewport =
+        screens?.of(player) ?: ru.voidrp.ui.layout.Viewport.DEFAULT
+
     override fun open(player: Player, page: Page): Boolean {
         if (!packReady(player)) {
             player.sendMessage(messages.get("pack.missing"))
             packSender(player)
             return false
+        }
+        // The one thing the game never tells us, asked once and then never again. Anyone
+        // who skips it is taken as agreeing with the server's guess, so this cannot loop.
+        val store = screens
+        if (store != null && askScreen() && page !is ScreenPage && !store.isSet(player)) {
+            val wanted = page
+            val ask = ScreenPage(
+                choose = { chosen -> if (chosen == null) store.clear(player) else store.set(player, chosen) },
+                done = {
+                    if (!store.isSet(player)) store.set(player, viewportOf(player))
+                    open(player, wanted)
+                },
+            ).also { it.isFollowed = true }
+            return open(player, ask)
         }
         close(player)
         val session = PageSession(
@@ -140,7 +167,7 @@ class PageManager(
                 { cursorBarOffset },
                 { redrawOnHover },
                 aim,
-                { screens(player) },
+                { viewportOf(player) },
             ) { over -> sessions.remove(over.player.uniqueId, over) }
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed

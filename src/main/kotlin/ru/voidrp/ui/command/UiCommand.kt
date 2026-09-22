@@ -65,9 +65,11 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             // believes in, and the player picks until it sits on the edges of their screen.
             val opened = plugin.pages.open(
                 player,
-                ru.voidrp.ui.page.ScreenPage { chosen ->
-                    if (chosen == null) screens.clear(player) else screens.set(player, chosen)
-                },
+                ru.voidrp.ui.page.ScreenPage(
+                    choose = { chosen ->
+                        if (chosen == null) screens.clear(player) else screens.set(player, chosen)
+                    },
+                ),
             )
             if (!opened) {
                 player.sendMessage(
