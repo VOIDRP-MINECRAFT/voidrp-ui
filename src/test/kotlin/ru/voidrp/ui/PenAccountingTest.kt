@@ -17,6 +17,7 @@ import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.GlyphEncoder
 import ru.voidrp.ui.render.Label
 import ru.voidrp.ui.render.Node
+import ru.voidrp.ui.render.Painter
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Shadow
@@ -256,6 +257,40 @@ class PenAccountingTest {
             }
         }
         assertTrue(wrong.isEmpty(), "шаг ореола разошёлся:\n" + wrong.take(6).joinToString("\n"))
+    }
+
+    @Test
+    fun `nothing on a page hangs off the canvas`() {
+        // A panel that asks for more room than it has used to stick out over the edge of
+        // the screen, where nobody looks until a player mentions it. The layout shrinks
+        // rows to fit now, and this is what says so.
+        val pages = mapOf(
+            "главная" to ru.voidrp.ui.page.HomePage().view(),
+            "магазин" to ru.voidrp.ui.page.ShopPage().view(),
+            "демо" to ru.voidrp.ui.page.DemoPage().view(),
+            "демо с открытым списком" to ru.voidrp.ui.page.DemoPage()
+                .also { it.onClick("mode", ru.voidrp.ui.page.Button.LEFT) }
+                .view(),
+        )
+        val outside = mutableListOf<String>()
+        pages.forEach { (name, view) ->
+            val nodes = Painter.flatten(
+                Layout.centred(view, Shaders.CANVAS_WIDTH, Shaders.CANVAS_HEIGHT).nodes,
+            )
+            nodes.forEach { node ->
+                val (width, height) = when (node) {
+                    is Rect -> node.width to node.height
+                    is ru.voidrp.ui.render.Box -> node.width to node.height
+                    else -> 0 to 0
+                }
+                val right = node.x + width
+                val bottom = node.y + height
+                if (node.x < 0 || node.y < 0 || right > Shaders.CANVAS_WIDTH || bottom > Shaders.CANVAS_HEIGHT) {
+                    outside += "$name: ${width}×$height @ ${node.x},${node.y}"
+                }
+            }
+        }
+        assertTrue(outside.isEmpty(), "за краем холста:\n" + outside.take(5).joinToString("\n"))
     }
 
     @Test
