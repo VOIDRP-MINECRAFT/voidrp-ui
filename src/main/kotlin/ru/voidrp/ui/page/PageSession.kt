@@ -370,13 +370,29 @@ class PageSession(
         if (closed) return
         val canvas = viewport
         val placement = Layout.centred(page.view(), canvas.width, canvas.height)
+        // Painted first and wider than the canvas: the page was laid out for the screen
+        // the player said they have, and any difference from the real one is a strip of
+        // the world down the side. See Page.bleed.
+        val nodes = if (page.bleed.isEmpty()) {
+            placement.nodes
+        } else {
+            page.bleed.map { paint ->
+                ru.voidrp.ui.render.Rect(
+                    -ru.voidrp.ui.layout.Viewport.BLEED,
+                    0,
+                    canvas.width + ru.voidrp.ui.layout.Viewport.BLEED * 2,
+                    canvas.height,
+                    paint,
+                )
+            } + placement.nodes
+        }
         regions = placement.regions
         // The page is encoded once and kept: the cursor moves every tick, the page does not.
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         tooltip = page.tooltip()
         tooltipEncoded = null
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
-        renderer.render(player, GlyphEncoder.encode(placement.nodes, canvas.width / 2))
+        renderer.render(player, GlyphEncoder.encode(nodes, canvas.width / 2))
         draw()
     }
 

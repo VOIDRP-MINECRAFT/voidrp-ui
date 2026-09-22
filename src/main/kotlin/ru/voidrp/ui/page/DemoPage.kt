@@ -59,6 +59,9 @@ open class DemoPage : Page() {
 
     override val usesKeys: Boolean get() = true
 
+    /** The page's own wash, carried past the edges of the canvas. See [Page.bleed]. */
+    override val bleed = listOfNotNull(Theme.scrim.background as? Paint)
+
     override fun view(): View {
         val width = 720
         val inner = width - Theme.SPACE_6 * 2 - 2

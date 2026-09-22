@@ -33,6 +33,11 @@ import ru.voidrp.ui.widget.eyebrow
  */
 class ScreenPage(private val choose: (Viewport?) -> Unit) : Page() {
 
+    private companion object {
+        /** Canvas units a nudge moves the edge by — about eight pixels on a 1080p screen. */
+        const val NUDGE = 8
+    }
+
     override fun view(): View {
         val screen = viewport
         val inset = 3
@@ -113,8 +118,28 @@ class ScreenPage(private val choose: (Viewport?) -> Unit) : Page() {
                     )
                 },
             ),
+            // No window is exactly a named format: a title bar and a task bar take a slice
+            // out of the height, so a maximised 1920×1080 screen is nearer 1.89 than 1.78.
+            // These two put the frame on the edge exactly.
+            Panel(
+                direction = Direction.ROW,
+                gap = Theme.SPACE_2,
+                justify = Justify.CENTER,
+                align = Align.CENTER,
+                width = Size.Fill,
+                children = listOf(
+                    button("← уже", "screen:narrower", Theme.buttonGhost, height = 34),
+                    Text(
+                        "${Viewport.name(screen)} · ${screen.width}×${screen.height}",
+                        Theme.TEXT_CAPTION,
+                        Theme.INK_DIM,
+                        wrap = false,
+                    ),
+                    button("шире →", "screen:wider", Theme.buttonGhost, height = 34),
+                ),
+            ),
             Text(
-                "Сейчас: ${Viewport.name(screen)} · ${screen.width}×${screen.height} единиц",
+                "Точная подгонка — по 8 единиц за нажатие",
                 Theme.TEXT_CAPTION,
                 Theme.INK_DIM,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
@@ -137,6 +162,16 @@ class ScreenPage(private val choose: (Viewport?) -> Unit) : Page() {
             id == "screen:done" -> if (!back()) close()
             id == "screen:auto" -> {
                 choose(null)
+                refresh()
+            }
+
+            id == "screen:narrower" -> {
+                choose(Viewport((viewport.width - NUDGE).coerceAtLeast(640)))
+                refresh()
+            }
+
+            id == "screen:wider" -> {
+                choose(Viewport((viewport.width + NUDGE).coerceAtMost(4096)))
                 refresh()
             }
 

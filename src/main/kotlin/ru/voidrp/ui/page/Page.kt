@@ -3,6 +3,7 @@ package ru.voidrp.ui.page
 import org.bukkit.entity.Player
 import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.layout.View
+import ru.voidrp.ui.style.Paint
 
 /** Which mouse button the player used. */
 enum class Button { LEFT, RIGHT }
@@ -47,6 +48,18 @@ abstract class Page {
 
     /** Where a named panel ended up when the page was last laid out. */
     fun region(id: String): Layout.Region? = session?.region(id)
+
+    /**
+     * The colours that must reach the edges of the screen, whatever shape it turns out to
+     * be — painted behind everything, wider than the canvas on both sides.
+     *
+     * A page is laid out for the screen the player said they have, and no window is
+     * exactly a named format: a title bar and a task bar take a slice out of the height,
+     * so a maximised 1920×1080 window is nearer 1.89 than 1.78. The difference is a strip
+     * of the world down one side. Listing the page's background here fills those strips,
+     * in order, back to front.
+     */
+    open val bleed: List<Paint> get() = emptyList()
 
     /** What the page looks like right now. Called again whenever something changes. */
     abstract fun view(): View

@@ -71,6 +71,9 @@ open class ShopPage : Page() {
         children = offers.map { row(it) },
     )
 
+    /** The page's own wash, carried past the edges of the canvas. See [Page.bleed]. */
+    override val bleed = listOfNotNull(Theme.scrim.background as? Paint)
+
     override fun view(): View {
         val page = Panel(
             style = Theme.page,

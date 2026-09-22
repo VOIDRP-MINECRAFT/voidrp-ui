@@ -76,6 +76,18 @@ data class Viewport(val width: Int, val height: Int = HEIGHT) {
         /** 4:3 — the narrowest shape anyone still plays on, and so the safe band. */
         const val SAFE = 1365
 
+        /**
+         * How far past the edge of the canvas a page's background is painted.
+         *
+         * The shape of a window is never exactly a named format: a title bar and a task
+         * bar take a slice out of the height, so a maximised 1920×1080 screen is nearer
+         * 1.89 than 1.78, and a canvas laid out for 16:9 stops short of the sides. The
+         * page's own background is painted this much wider on both sides, so that
+         * whatever the error, the world does not show through along the edges. Nothing a
+         * player reads or clicks goes out here — only the colour behind it.
+         */
+        const val BLEED = 320
+
         /** Below this a screen is 4:3 or 5:4: the page needs fewer columns. */
         const val COMPACT_MAX = 1500
 

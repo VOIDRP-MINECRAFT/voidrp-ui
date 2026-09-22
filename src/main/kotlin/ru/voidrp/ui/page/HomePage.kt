@@ -126,6 +126,10 @@ open class HomePage : Page() {
     private val tileFill = Palette.express(TILE, CARD)
     private val wellFill = Palette.express(WELL, CARD)
 
+    // Painted past the edges of the canvas, so a window that is not quite the shape the
+    // player named still has no strip of world down its side.
+    override val bleed = listOf(Paint(0x000000, 0.97), pageTint)
+
     override fun view(): View = Panel(
         // The page is the screen it is given, whatever shape that screen is.
         width = Size.Fixed(viewport.width),
