@@ -176,11 +176,18 @@ object Preview {
 
             is Sprite -> icon(node)?.let { picture ->
                 val size = node.font?.substringAfterLast('_')?.toIntOrNull() ?: 16
+                // A server's own picture keeps its proportions; everything else here is
+                // square by construction.
+                val width = if (node.font?.startsWith("ui_images_") == true) {
+                    Math.round(picture.width.toDouble() * size / picture.height).toInt()
+                } else {
+                    size
+                }
                 g.setRenderingHint(
                     RenderingHints.KEY_INTERPOLATION,
                     RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR,
                 )
-                g.drawImage(picture, node.x, node.y, size, size, null)
+                g.drawImage(picture, node.x, node.y, width, size, null)
             }
 
             // A halo tile is the very picture the pack ships, tinted by the glyph's colour.

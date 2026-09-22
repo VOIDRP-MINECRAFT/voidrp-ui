@@ -75,6 +75,13 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             org.bukkit.configuration.file.YamlConfiguration
                 .loadConfiguration(File(dataFolder, "theme.yml"))
         )
+        // Anything a server drops in here is in the pack next time it is built.
+        val images = File(dataFolder, "images").apply { mkdirs() }
+        ru.voidrp.ui.pack.ServerImages.load(images)
+        if (ru.voidrp.ui.pack.ServerImages.names.isNotEmpty()) {
+            logger.info("Свои картинки: ${ru.voidrp.ui.pack.ServerImages.names.joinToString(", ")}")
+        }
+
         packFile = File(dataFolder, "voidrp-ui.zip")
         // Baked into the shader, so it is decided when the pack is built.
         ru.voidrp.ui.pack.Shaders.fitCanvas = config.getBoolean("display.keep-proportions", false)

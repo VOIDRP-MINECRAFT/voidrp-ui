@@ -149,6 +149,11 @@ object Layout {
 
         is Icon -> UiIcons.nearestSize(view.size).let { Extent(it, it) }
 
+        is Picture -> {
+            val height = ru.voidrp.ui.pack.ServerImages.nearestHeight(view.height)
+            Extent(ru.voidrp.ui.pack.ServerImages.width(view.name, height), height)
+        }
+
         is RichText -> {
             var width = 0
             var height = 0
@@ -403,6 +408,20 @@ object Layout {
                         }
                     }
                     out += Label(x + offset, y + index * step, line, view.size, view.colour, view.weight, view.tracking)
+                }
+            }
+
+            is Picture -> {
+                val height = ru.voidrp.ui.pack.ServerImages.nearestHeight(view.height)
+                ru.voidrp.ui.pack.ServerImages.glyph(view.name)?.let { glyph ->
+                    out += Sprite(
+                        x,
+                        y,
+                        glyph,
+                        ru.voidrp.ui.pack.ServerImages.advance(view.name, height),
+                        0xFFFFFF,
+                        ru.voidrp.ui.pack.ServerImages.fontName(height),
+                    )
                 }
             }
 

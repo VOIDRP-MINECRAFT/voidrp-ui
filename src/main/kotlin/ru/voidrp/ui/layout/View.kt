@@ -137,6 +137,15 @@ data class Icon(
 data class Image(val item: String, val size: Int = 32) : View
 
 /**
+ * A picture the server put in itself — a logo, a banner — by the name of its file in
+ * `plugins/VoidRpUI/images/`.
+ *
+ * [height] is what it is drawn at; the width follows from the picture's own proportions,
+ * so a wide banner stays wide. Unlike [Icon] it keeps its own colours.
+ */
+data class Picture(val name: String, val height: Int = 64) : View
+
+/**
  * A column of things taller than the space it is given, shown through a window into it.
  *
  * Nothing can be clipped halfway on the way to the client — a glyph is drawn whole or not

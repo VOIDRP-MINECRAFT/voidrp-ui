@@ -108,6 +108,16 @@ class PackBuilder(
             }
             // The interface's own icons travel with us — they are ours, and the client has
             // nothing like them.
+            // A server's own pictures: one texture each, offered at every height.
+            ServerImages.textures().forEach { (name, png) ->
+                zip.put("assets/voidrp/textures/$name", png)
+            }
+            if (ServerImages.names.isNotEmpty()) {
+                ServerImages.HEIGHTS.forEach { height ->
+                    zip.put("assets/voidrp/font/${ServerImages.fontName(height)}.json", ServerImages.fontJson(height))
+                }
+            }
+
             UiIcons.SIZES.forEach { size ->
                 zip.put("assets/voidrp/font/${UiIcons.fontName(size)}.json", UiIcons.fontJson(size))
                 UiIcons.NAMES.forEach { name ->
