@@ -67,15 +67,56 @@ class BossBarRenderer(private val log: Logger? = null) {
         }
 
     fun clear(player: Player) {
-        pages.remove(player.uniqueId)?.let { player.hideBossBar(it) }
-        cursors.remove(player.uniqueId)?.let { player.hideBossBar(it) }
+        pages.remove(player.uniqueId)?.let { runCatching { player.hideBossBar(it) } }
+        cursors.remove(player.uniqueId)?.let { runCatching { player.hideBossBar(it) } }
     }
 
+    /**
+     * Takes down every bar, on the way out.
+     *
+     * Written in the plainest way there is, and every step allowed to fail on its own:
+     * this runs while the plugin is being unloaded, when a class the code has not touched
+     * before may no longer be loadable. It once threw on a set union — a whole Kotlin
+     * helper class that had never been needed until that moment — and the bars were left
+     * hanging on the players. They are invisible, so nobody sees them; what they do is
+     * push the next plugin's page down a line, which showed up as the page sitting too low
+     * and the pointer drawing somewhere off the screen.
+     */
     fun clearAll() {
-        (pages.keys + cursors.keys).toSet().forEach { id ->
-            org.bukkit.Bukkit.getPlayer(id)?.let { clear(it) }
+        for (entry in pages.entries) {
+            try {
+                org.bukkit.Bukkit.getPlayer(entry.key)?.hideBossBar(entry.value)
+            } catch (ignored: Throwable) {
+            }
+        }
+        for (entry in cursors.entries) {
+            try {
+                org.bukkit.Bukkit.getPlayer(entry.key)?.hideBossBar(entry.value)
+            } catch (ignored: Throwable) {
+            }
         }
         pages.clear()
         cursors.clear()
+    }
+
+    /**
+     * Takes down bars left over from a previous life of this plugin.
+     *
+     * A page's vertical place on screen depends on how many bars are above it, so one
+     * orphan is enough to put every page a line out. Ours are recognisable: white, and
+     * empty of progress — which the pack also relies on, since it is the white bar's
+     * texture that is made transparent.
+     */
+    fun clearOrphans(player: Player) {
+        val ours = pages[player.uniqueId]
+        val cursor = cursors[player.uniqueId]
+        for (bar in player.activeBossBars()) {
+            if (bar === ours || bar === cursor) continue
+            if (bar.color() != BossBar.Color.WHITE || bar.progress() != 0f) continue
+            try {
+                player.hideBossBar(bar)
+            } catch (ignored: Throwable) {
+            }
+        }
     }
 }

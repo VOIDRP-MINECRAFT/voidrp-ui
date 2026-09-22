@@ -98,6 +98,9 @@ class PageSession(
     private var closed = false
 
     fun open() {
+        // A bar left behind by an earlier life of the plugin would push this page down a
+        // line, and the pointer with it.
+        runCatching { renderer.clearOrphans(player) }
         page.session = this
         sounds.open(player)
         anchorYaw = player.location.yaw
