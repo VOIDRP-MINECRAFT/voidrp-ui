@@ -151,6 +151,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         if (config.getBoolean("pack.send-on-join", true)) {
             sendPack(event.player)
         }
+        if (config.getBoolean("heads.collect", true)) collectSkin(event.player)
     }
 
     /** Says in the log what the client did with the pack — the first thing to check when nothing is drawn. */
@@ -187,6 +188,45 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      * other packs the server already applies — so this coexists with a server's own pack
      * instead of replacing it.
      */
+    /**
+     * Keeps a copy of a player's skin, so their face can be drawn on a page.
+     *
+     * The skin is not fetched from anywhere: the server already holds it. Every player
+     * carries a signed "textures" property on their profile with the address their skin is
+     * served from — Mojang's own for an online-mode server, whatever the skin plugin set
+     * for any other — and that address is what is read here. Nothing is asked of Mojang and
+     * no third-party service is involved, which is also why it works on a server with its
+     * own skins.
+     *
+     * The picture only enters the pack the next time the pack is built, and players fetch
+     * the pack when it changes, so a face appears after a restart rather than the moment
+     * its owner walks in. That is the price of drawing anything on a vanilla client.
+     */
+    private fun collectSkin(player: Player) {
+        val folder = File(dataFolder, "heads")
+        val file = File(folder, "${player.name.lowercase()}.png")
+        if (file.exists()) return
+        server.scheduler.runTaskAsynchronously(
+            this,
+            Runnable {
+                runCatching {
+                    val textures = player.playerProfile.properties.firstOrNull { it.name == "textures" } ?: return@Runnable
+                    val json = String(java.util.Base64.getDecoder().decode(textures.value))
+                    // The property is a small JSON blob; the skin's address is the one
+                    // field we want out of it.
+                    val url = Regex("\"SKIN\"[^}]*?\"url\"\\s*:\\s*\"([^\"]+)\"")
+                        .find(json)?.groupValues?.get(1)?.replace("\\/", "/") ?: return@Runnable
+                    val bytes = java.net.URI.create(url).toURL().openStream().use { it.readBytes() }
+                    folder.mkdirs()
+                    file.writeBytes(bytes)
+                    logger.info("Скин ${player.name} сохранён — лицо появится в паке после следующей сборки.")
+                }.onFailure {
+                    logger.fine("Скин ${player.name} забрать не удалось: ${it.message}")
+                }
+            },
+        )
+    }
+
     fun sendPack(player: Player) {
         val url = packUrl(player)
         if (url.isBlank()) {
