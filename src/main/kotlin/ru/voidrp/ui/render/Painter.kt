@@ -5,6 +5,7 @@ import ru.voidrp.ui.style.Fill
 import ru.voidrp.ui.style.Gradient
 import ru.voidrp.ui.style.GradientDirection
 import ru.voidrp.ui.style.Paint
+import ru.voidrp.ui.style.Palette
 import ru.voidrp.ui.style.Style
 
 /**
@@ -77,6 +78,18 @@ object Painter {
 
         val inset = border?.width ?: 0
         style.background?.let {
+            fill(
+                x + inset,
+                y + inset,
+                box.width - inset * 2,
+                box.height - inset * 2,
+                Glyphs.nearestRadius(radius - inset, (minOf(box.width, box.height) / 2 - inset).coerceAtLeast(0)),
+                it,
+                out,
+            )
+        }
+
+        style.overlay?.let {
             fill(
                 x + inset,
                 y + inset,
@@ -185,6 +198,10 @@ object Painter {
         // thin stripes: neighbouring opacity steps differ by a sixteenth of one colour,
         // which the eye mixes, where neighbouring palette colours differ by a jump it
         // sees as a stripe.
+        gradient.over?.let { backdrop ->
+            expressed(x, y, width, height, radius, gradient, backdrop, span, vertical, out)
+            return
+        }
         val opacityOnly = gradient.from.rgb == gradient.to.rgb
         if (opacityOnly && gradient.dither) {
             fade(x, y, width, height, radius, gradient, span, vertical, out)
@@ -196,7 +213,7 @@ object Painter {
             val start = span * step / steps
             val end = span * (step + 1) / steps
             if (end <= start) continue
-            val exact = blend(gradient.from, gradient.to, (step + 0.5) / steps)
+            val exact = blend(gradient.from, gradient.to, gradient.at((step + 0.5) / steps))
             val paint = when {
                 !gradient.dither -> exact
                 opacityOnly -> dither(exact, DITHER[step % DITHER.size], colour = false)
@@ -217,6 +234,78 @@ object Painter {
                     along = GradientDirection.HORIZONTAL,
                 )
             }
+        }
+    }
+
+    /**
+     * A wash over a surface whose colour is known, which is the good way to draw one.
+     *
+     * Naming a stripe's colour outright spends everything on ten bits, and along the line
+     * from violet to the page's dark there are four colours to be had: the fade comes out
+     * in slabs. Fading the opacity instead gives sixteen steps of one colour, which is a
+     * stripe every ten units of blue — dithering those only trades the slabs for a
+     * corduroy, because a jump of ten is not something the eye blends away.
+     *
+     * Knowing what is underneath changes the arithmetic. A colour at an opacity is a
+     * colour mixed with the backdrop, so the reachable set is every palette entry at every
+     * opacity — and near a backdrop of its own colour family, that set is dense: a step of
+     * one or two units, where naming colours gave twenty. So a flat layer is laid down
+     * first, at the colour the middle of the fade wants, and every stripe is then expressed
+     * against what that layer actually came out as. Thirty-nine reachable shades along this
+     * line instead of four.
+     *
+     * Stripes that land on the same pair are merged, so a wash is a few dozen rectangles.
+     */
+    private fun expressed(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        radius: Int,
+        gradient: Gradient,
+        backdrop: Int,
+        span: Int,
+        vertical: Boolean,
+        out: MutableList<Node>,
+    ) {
+        val steps = (gradient.steps ?: (span / BAND)).coerceIn(2, span.coerceAtLeast(2))
+
+        // The floor: the middle of the fade, flat, under the whole thing.
+        val middle = blend(gradient.from, gradient.to, gradient.at(0.5))
+        val floor = Palette.express(middle.rgb, backdrop)
+        rounded(x, y, width, height, radius, floor, out)
+        val under = Palette.composite(floor, backdrop)
+
+        // And the stripes, each expressed against the floor rather than against the page.
+        var previous: Int? = null
+        val paints = Array(steps) { step ->
+            val wanted = blend(gradient.from, gradient.to, gradient.at((step + 0.5) / steps)).rgb
+            val paint = Palette.express(wanted, under, previous)
+            previous = Palette.composite(paint, under)
+            paint
+        }
+        var step = 0
+        while (step < steps) {
+            var last = step
+            while (last + 1 < steps && paints[last + 1] == paints[step]) last++
+            val start = span * step / steps
+            val end = span * (last + 1) / steps
+            if (vertical) {
+                rounded(
+                    x, y + start, width, end - start, radius, paints[step], out,
+                    roundStart = step == 0,
+                    roundEnd = last == steps - 1,
+                    along = GradientDirection.VERTICAL,
+                )
+            } else {
+                rounded(
+                    x + start, y, end - start, height, radius, paints[step], out,
+                    roundStart = step == 0,
+                    roundEnd = last == steps - 1,
+                    along = GradientDirection.HORIZONTAL,
+                )
+            }
+            step = last + 1
         }
     }
 
@@ -256,7 +345,7 @@ object Painter {
         // ones under it left short.
         val passes = List(FADE_LAYERS) { IntArray(steps) }
         for (step in 0 until steps) {
-            val wanted = blend(gradient.from, gradient.to, (step + 0.5) / steps).alpha.coerceIn(0.0, 1.0)
+            val wanted = blend(gradient.from, gradient.to, gradient.at((step + 0.5) / steps)).alpha.coerceIn(0.0, 1.0)
             var covered = 0.0
             passes.forEachIndexed { index, pass ->
                 val left = if (covered >= 1.0) 0.0 else (wanted - covered) / (1.0 - covered)

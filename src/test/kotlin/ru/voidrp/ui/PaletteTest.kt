@@ -2,6 +2,10 @@ package ru.voidrp.ui
 
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import ru.voidrp.ui.render.Painter
+import ru.voidrp.ui.style.Gradient
+import ru.voidrp.ui.style.GradientDirection
+import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Palette
 
 /**
@@ -54,6 +58,44 @@ class PaletteTest {
             if (distance(rgb, ours) > distance(rgb, plain) + 1e-9) worse++
         }
         assertTrue(worse == 0, "$worse цветов легли дальше, чем при простом округлении")
+    }
+
+    @Test
+    fun `a wash over a known surface has no visible steps`() {
+        // The complaint that started this: a fade drawn by interpolating the colour, or by
+        // fading the opacity of one, came out in stripes ten units of blue apart. Told what
+        // is behind it, the painter lays a floor and expresses each stripe against that,
+        // and the steps come down to a few units — which at these widths cannot be picked
+        // out. If this ever climbs back, the welcome panel is banded again.
+        val backdrop = 0x070710
+        val out = mutableListOf<ru.voidrp.ui.render.Node>()
+        Painter.fill(
+            0,
+            0,
+            944,
+            186,
+            0,
+            Gradient(
+                Paint(0x32295F),
+                Paint(0x16112C),
+                direction = GradientDirection.HORIZONTAL,
+                over = backdrop,
+                stop = 0.45,
+            ),
+            out,
+        )
+        val rects = out.filterIsInstance<ru.voidrp.ui.render.Rect>()
+        val floor = Palette.composite(rects.first().paint, backdrop)
+        val shades = rects.drop(1).sortedBy { it.x }.map { Palette.composite(it.paint, floor) }
+        assertTrue(shades.size > 8, "полос всего ${shades.size} — затухание вышло слишком грубым")
+        val worst = shades.zipWithNext().maxOf { (a, b) ->
+            maxOf(
+                Math.abs((a shr 16 and 0xFF) - (b shr 16 and 0xFF)),
+                Math.abs((a shr 8 and 0xFF) - (b shr 8 and 0xFF)),
+                Math.abs((a and 0xFF) - (b and 0xFF)),
+            )
+        }
+        assertTrue(worst <= 6, "между соседними полосами $worst единиц — это видно полосой")
     }
 
     private fun distance(a: Int, b: Int): Double {

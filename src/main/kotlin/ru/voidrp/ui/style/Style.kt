@@ -44,7 +44,33 @@ data class Gradient(
      * where the pattern itself becomes the thing you see.
      */
     val dither: Boolean = true,
-) : Fill
+    /**
+     * What is behind this, if it is known.
+     *
+     * Told that, a wash is drawn a different way entirely: each stripe is given the colour
+     * and the opacity whose result over that backdrop looks nearest to what the stripe
+     * wants, and a flat layer underneath brings the whole range within reach. It is the
+     * difference between a fade in bands and a fade you cannot pick the steps out of, so
+     * say it wherever the surface underneath is known.
+     */
+    val over: Int? = null,
+    /**
+     * Where the fade begins and ends, as fractions of the side it runs along.
+     *
+     * A wash rarely runs corner to corner: the site's welcome panel is done fading two
+     * fifths of the way across and flat from there. Same idea as the positions on a
+     * stylesheet's colour stops.
+     */
+    val start: Double = 0.0,
+    val stop: Double = 1.0,
+) : Fill {
+
+    /** How far between the two colours a point at [position] along the side is. */
+    fun at(position: Double): Double = when {
+        stop <= start -> if (position < start) 0.0 else 1.0
+        else -> ((position - start) / (stop - start)).coerceIn(0.0, 1.0)
+    }
+}
 
 enum class GradientDirection { VERTICAL, HORIZONTAL }
 
@@ -73,6 +99,14 @@ data class Shadow(val offsetY: Int, val spread: Int = 0, val paint: Paint)
 /** Everything that can be said about a box. Unset parts simply are not drawn. */
 data class Style(
     val background: Fill? = null,
+    /**
+     * A second wash over the first, in the same shape.
+     *
+     * One fade runs in one direction, and light in a real interface rarely does: the site's
+     * welcome panel is brightest at the bottom left and falls away both upwards and to the
+     * right. Two crossed washes say that, where one cannot.
+     */
+    val overlay: Fill? = null,
     val border: Border? = null,
     val radius: Int = 0,
     val padding: Insets = Insets.NONE,

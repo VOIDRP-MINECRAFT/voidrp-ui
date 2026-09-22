@@ -55,10 +55,19 @@ object Palette {
      * It lands the site's own surface colours within a unit or two, where naming them
      * missed by ten to twenty.
      */
-    fun express(target: Int, over: Int): Paint = expressed.getOrPut((target.toLong() shl 32) or over.toLong()) {
+    fun express(target: Int, over: Int, after: Int? = null): Paint {
+        val key = (target.toLong() shl 40) or (over.toLong() shl 16) or ((after ?: -1).toLong() and 0xFFFF)
+        return expressed.getOrPut(key) { searchExpressed(target, over, after) }
+    }
+
+    private fun searchExpressed(target: Int, over: Int, after: Int?): Paint {
         var best = Paint(nearest(target))
         var bestDistance = Double.MAX_VALUE
         val wanted = oklab(target shr 16 and 0xFF, target shr 8 and 0xFF, target and 0xFF)
+        // In a wash, what the eye picks out is not a stripe being a unit off the colour it
+        // wanted — it is one stripe sitting far from the next. So where two pairs are
+        // nearly as good, the one that follows on from the stripe before wins.
+        val previous = after?.let { oklab(it shr 16 and 0xFF, it shr 8 and 0xFF, it and 0xFF) }
         for (code in 0 until (1 shl 10)) {
             val colour = rgbOf(code)
             for (step in 1..Glyphs.ALPHA_LEVELS) {
@@ -70,14 +79,26 @@ object Palette {
                 val distance = (lab[0] - wanted[0]) * (lab[0] - wanted[0]) +
                     (lab[1] - wanted[1]) * (lab[1] - wanted[1]) +
                     (lab[2] - wanted[2]) * (lab[2] - wanted[2])
-                if (distance < bestDistance) {
-                    bestDistance = distance
+                val cost = if (previous == null) {
+                    distance
+                } else {
+                    distance + CONTINUITY * (
+                        (lab[0] - previous[0]) * (lab[0] - previous[0]) +
+                            (lab[1] - previous[1]) * (lab[1] - previous[1]) +
+                            (lab[2] - previous[2]) * (lab[2] - previous[2])
+                        )
+                }
+                if (cost < bestDistance) {
+                    bestDistance = cost
                     best = Paint(colour, alpha)
                 }
             }
         }
-        best
+        return best
     }
+
+    /** How much a stripe is pulled towards the one before it, against its own colour. */
+    private const val CONTINUITY = 2.0
 
     /** What a colour over another actually comes out as — the composite the eye will see. */
     fun composite(paint: Paint, over: Int): Int {

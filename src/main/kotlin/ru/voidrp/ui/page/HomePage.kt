@@ -412,11 +412,16 @@ class HomePage : Page() {
             // the opacity rather than in the colour: opacity has sixteen steps against the
             // palette's eight of blue, so a wash this wide stays smooth where interpolating
             // the colour would band into stripes.
+            // The light sits in the bottom left corner and falls away two ways: across,
+            // which the wash does, and upwards, which the shade over it does.
             background = Gradient(
-                Paint(0x6E5CD8, 0.5),
-                Paint(0x6E5CD8, 0.1),
+                Paint(0x32295F),
+                Paint(0x16112C),
                 direction = GradientDirection.HORIZONTAL,
+                over = PAGE,
+                stop = 0.45,
             ),
+            overlay = Gradient(Paint(0x000000, 0.25), Paint(0x000000, 0.0)),
             border = Border(1, Paint(Theme.VIOLET, 0.26)),
             radius = Theme.R_XL,
             highlight = Paint(0xFFFFFF, 0.08),
@@ -480,6 +485,10 @@ class HomePage : Page() {
                             background = Paint(Theme.VIOLET, 0.16),
                             border = Border(1, Paint(Theme.VIOLET, 0.3)),
                             radius = Theme.R_MD,
+                            // The site lights this corner from behind the artwork, which is
+                            // why the panel is not darkest where it is furthest from the
+                            // words.
+                            glow = Paint(Theme.VIOLET, 0.16),
                         ),
                         width = Size.Fixed(56),
                         height = Size.Fixed(56),
