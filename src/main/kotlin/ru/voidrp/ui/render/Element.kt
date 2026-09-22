@@ -270,12 +270,7 @@ object GlyphEncoder {
             .shadowColor(ShadowColor.none())
 
     /** 0xRRGGBB → RGB 3-4-3. Rounded: truncation turned dark navy #0B1220 into green-black. */
-    private fun quantise(rgb: Int): Int {
-        val r = Math.round((rgb shr 16 and 0xFF) * 7 / 255.0).toInt()
-        val g = Math.round((rgb shr 8 and 0xFF) * 15 / 255.0).toInt()
-        val b = Math.round((rgb and 0xFF) * 7 / 255.0).toInt()
-        return (r shl 7) or (g shl 3) or b
-    }
+    private fun quantise(rgb: Int): Int = ru.voidrp.ui.style.Palette.code(rgb)
 
     /**
      * Marker nibble, then y (10 bits), then fill (10 bits). One step is one canvas unit,

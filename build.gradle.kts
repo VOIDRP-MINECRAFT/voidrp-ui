@@ -81,6 +81,13 @@ tasks.register<JavaExec>("preview") {
     environment("VOIDRP_CLIENT_JAR", System.getenv("VOIDRP_CLIENT_JAR") ?: "")
 }
 
+tasks.register<JavaExec>("bench") {
+    group = "voidrp"
+    description = "Меряет, во что обходится отрисовка страницы"
+    mainClass.set("ru.voidrp.ui.PageBench")
+    classpath = sourceSets["test"].runtimeClasspath
+}
+
 tasks.register<JavaExec>("packWeight") {
     group = "voidrp"
     description = "Собирает пак и печатает его вес"

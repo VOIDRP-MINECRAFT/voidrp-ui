@@ -18,6 +18,8 @@ import ru.voidrp.ui.pack.TextFonts
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.style.Border
 import ru.voidrp.ui.style.Insets
+import ru.voidrp.ui.style.Gradient
+import ru.voidrp.ui.style.GradientDirection
 import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Style
 import ru.voidrp.ui.style.Theme
@@ -260,7 +262,14 @@ class HomePage : Page() {
         children = listOf(
             Panel(
                 style = Style(
-                    background = Paint(0x141033, 0.9),
+                    // A pale violet at low opacity, the way a stylesheet would tint a dark
+                    // surface. Naming the dark colour outright does not work at this end of
+                    // the palette — red and blue have two steps each down here, and #141033
+                    // lands on a warm grey, which is how the well used to come out brown.
+                    // The site fades this one from the middle out; a fade across something
+                    // this small has three opacity steps to work with and shows every one,
+                    // so it is left flat.
+                    background = Paint(0x9A93D8, 0.12),
                     border = Border(1, Paint(Theme.LINE, 0.1)),
                     radius = Theme.R_LG,
                 ),
@@ -363,7 +372,15 @@ class HomePage : Page() {
     /** The one loud thing on the page, with a few blocks thrown behind the words. */
     private fun welcome() = Panel(
         style = Style(
-            background = Paint(0x2A1B5E, 0.92),
+            // Violet at the words, the page's own dark under the artwork. The fade is in
+            // the opacity rather than in the colour: opacity has sixteen steps against the
+            // palette's eight of blue, so a wash this wide stays smooth where interpolating
+            // the colour would band into stripes.
+            background = Gradient(
+                Paint(0x6E5CD8, 0.5),
+                Paint(0x6E5CD8, 0.1),
+                direction = GradientDirection.HORIZONTAL,
+            ),
             border = Border(1, Paint(Theme.VIOLET, 0.26)),
             radius = Theme.R_XL,
             highlight = Paint(0xFFFFFF, 0.08),

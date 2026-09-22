@@ -20,6 +20,16 @@ object Painter {
     /** How tall a stripe of a gradient is by default, in canvas units. */
     private const val BAND = 3
 
+    /**
+     * How many layers a fade is laid down in.
+     *
+     * The first takes the opacity step below what a band wants, the second makes up the
+     * remainder. A third buys nothing — each layer's own opacity comes in the same
+     * sixteenths, so stacking them shrinks the step by the fraction left uncovered and no
+     * further.
+     */
+    private const val FADE_LAYERS = 2
+
     /** The order neighbouring stripes are sent up or down the palette in. */
     private val DITHER = doubleArrayOf(0.125, 0.625, 0.375, 0.875)
 
@@ -161,6 +171,15 @@ object Painter {
         val vertical = gradient.direction == GradientDirection.VERTICAL
         val span = if (vertical) height else width
         if (span <= 0 || width <= 0 || height <= 0) return
+        // A fade in opacity alone is the kind this transport carries best, and it wants
+        // thin stripes: neighbouring opacity steps differ by a sixteenth of one colour,
+        // which the eye mixes, where neighbouring palette colours differ by a jump it
+        // sees as a stripe.
+        val opacityOnly = gradient.from.rgb == gradient.to.rgb
+        if (opacityOnly && gradient.dither) {
+            fade(x, y, width, height, radius, gradient, span, vertical, out)
+            return
+        }
         val steps = (gradient.steps ?: (span / BAND)).coerceIn(2, span.coerceAtLeast(2))
 
         for (step in 0 until steps) {
@@ -168,7 +187,11 @@ object Painter {
             val end = span * (step + 1) / steps
             if (end <= start) continue
             val exact = blend(gradient.from, gradient.to, (step + 0.5) / steps)
-            val paint = if (gradient.dither) dither(exact, DITHER[step % DITHER.size]) else exact
+            val paint = when {
+                !gradient.dither -> exact
+                opacityOnly -> dither(exact, DITHER[step % DITHER.size], colour = false)
+                else -> dither(exact, DITHER[step % DITHER.size])
+            }
             if (vertical) {
                 rounded(
                     x, y + start, width, end - start, radius, paint, out,
@@ -188,6 +211,92 @@ object Painter {
     }
 
     /**
+     * One colour fading out, drawn twice.
+     *
+     * Opacity comes in sixteen steps, and a fade that only uses part of that range has
+     * only the steps inside it — six or seven for a wash from a half to a tenth, which is
+     * few enough to see as bands. Dithering between two steps trades the bands for a
+     * corduroy of thin stripes, which at these widths is no better.
+     *
+     * So the fade is laid down in two passes. The first takes the opacity step just below
+     * what the band wants. The second makes up what is left — a fraction of a step, which
+     * cannot be drawn exactly either, so it is the one that gets dithered: bands either
+     * side of a boundary are sent up and down by turns, and the eye reads the ramp instead
+     * of the edge.
+     *
+     * The pattern therefore only appears where a hard edge would otherwise be: away from a
+     * boundary every band agrees and merges back into a single rectangle. On the home page
+     * the whole wash costs some two thousand characters of line and a third of a millisecond.
+     */
+    private fun fade(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        radius: Int,
+        gradient: Gradient,
+        span: Int,
+        vertical: Boolean,
+        out: MutableList<Node>,
+    ) {
+        val levels = Glyphs.ALPHA_LEVELS
+        val steps = (gradient.steps ?: (span / BAND)).coerceIn(2, span.coerceAtLeast(2))
+
+        // What each band wants, as a stack of opacity steps: each layer makes up what the
+        // ones under it left short.
+        val passes = List(FADE_LAYERS) { IntArray(steps) }
+        for (step in 0 until steps) {
+            val wanted = blend(gradient.from, gradient.to, (step + 0.5) / steps).alpha.coerceIn(0.0, 1.0)
+            var covered = 0.0
+            passes.forEachIndexed { index, pass ->
+                val left = if (covered >= 1.0) 0.0 else (wanted - covered) / (1.0 - covered)
+                val exact = left * levels
+                // The last layer is the fine one, and where it falls between two steps the
+                // bands either side of the boundary are sent up and down by turns. Away
+                // from a boundary every band agrees and merges back into one rectangle, so
+                // the pattern only ever appears where a hard edge would otherwise be.
+                val level = if (index == FADE_LAYERS - 1) {
+                    Math.floor(exact + DITHER[step % DITHER.size]).toLong()
+                } else {
+                    Math.floor(exact).toLong()
+                }
+                pass[step] = level.toInt().coerceIn(0, levels)
+                covered = 1.0 - (1.0 - covered) * (1.0 - pass[step].toDouble() / levels)
+            }
+        }
+
+        passes.forEach { pass ->
+            var step = 0
+            while (step < steps) {
+                var last = step
+                while (last + 1 < steps && pass[last + 1] == pass[step]) last++
+                val level = pass[step]
+                if (level > 0) {
+                    val start = span * step / steps
+                    val end = span * (last + 1) / steps
+                    val paint = Paint(gradient.from.rgb, level.toDouble() / levels)
+                    if (vertical) {
+                        rounded(
+                            x, y + start, width, end - start, radius, paint, out,
+                            roundStart = step == 0,
+                            roundEnd = last == steps - 1,
+                            along = GradientDirection.VERTICAL,
+                        )
+                    } else {
+                        rounded(
+                            x + start, y, end - start, height, radius, paint, out,
+                            roundStart = step == 0,
+                            roundEnd = last == steps - 1,
+                            along = GradientDirection.HORIZONTAL,
+                        )
+                    }
+                }
+                step = last + 1
+            }
+        }
+    }
+
+    /**
      * Nudges a stripe to the palette colour above or below the one it wants, by turns.
      *
      * Colour travels in ten bits, so between violet and fuchsia there are only three or
@@ -197,7 +306,7 @@ object Painter {
      * eye mixes them back into the colour that was asked for — the same trick a printer
      * plays with dots. Opacity, which has sixteen steps, is dithered the same way.
      */
-    private fun dither(paint: Paint, bias: Double): Paint {
+    private fun dither(paint: Paint, bias: Double, colour: Boolean = true): Paint {
         fun channel(shift: Int, levels: Int): Int {
             val value = ((paint.rgb shr shift) and 0xFF) / 255.0
             val level = Math.floor(value * levels + bias).toInt().coerceIn(0, levels)
@@ -205,10 +314,12 @@ object Painter {
         }
         val alphaLevels = Glyphs.ALPHA_LEVELS
         val alphaLevel = Math.floor(paint.alpha * alphaLevels + bias).toInt().coerceIn(0, alphaLevels)
-        return Paint(
-            (channel(16, 7) shl 16) or (channel(8, 15) shl 8) or channel(0, 7),
-            alphaLevel.toDouble() / alphaLevels,
-        )
+        val rgb = if (colour) {
+            (channel(16, 7) shl 16) or (channel(8, 15) shl 8) or channel(0, 7)
+        } else {
+            paint.rgb
+        }
+        return Paint(rgb, alphaLevel.toDouble() / alphaLevels)
     }
 
     /** One colour part of the way to another, opacity included. */

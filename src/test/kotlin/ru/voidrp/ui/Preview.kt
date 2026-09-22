@@ -192,11 +192,8 @@ object Preview {
 
     /** What is left of a colour after the ten bits it has to travel in. */
     private fun quantise(rgb: Int): Color {
-        fun channel(shift: Int, levels: Int): Int {
-            val value = (rgb shr shift) and 0xFF
-            return Math.round(Math.round(value * levels / 255.0) * 255.0 / levels).toInt()
-        }
-        return Color(channel(16, 7), channel(8, 15), channel(0, 7))
+        val shown = ru.voidrp.ui.style.Palette.nearest(rgb)
+        return Color(shown shr 16 and 0xFF, shown shr 8 and 0xFF, shown and 0xFF)
     }
 
     private fun colourOf(paint: Paint): Color {
