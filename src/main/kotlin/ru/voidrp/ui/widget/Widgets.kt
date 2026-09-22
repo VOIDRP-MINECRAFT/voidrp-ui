@@ -234,9 +234,15 @@ fun Page.scrollFromBar(scroll: Scroll, id: String, viewportWidth: Int, viewportH
     return (limit * position).toInt()
 }
 
-/** A tooltip: a title, and lines of explanation under it. */
+/**
+ * A tooltip: a title, and lines of explanation under it.
+ *
+ * Built from the menu's surface rather than the page's, because it floats over whatever
+ * the cursor happens to be on and every other surface here is a tint that would let that
+ * show through.
+ */
 fun tooltipPanel(title: String, lines: List<String> = emptyList(), width: Int = 260): View = Panel(
-    style = Theme.page.copy(padding = Insets.all(Theme.SPACE_3), radius = Theme.R_MD),
+    style = Theme.menu.copy(padding = Insets.all(Theme.SPACE_3)),
     width = Size.Fixed(width),
     gap = 4,
     children = buildList {

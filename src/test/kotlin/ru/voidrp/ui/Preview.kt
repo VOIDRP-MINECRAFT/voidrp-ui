@@ -55,6 +55,24 @@ object Preview {
             ru.voidrp.ui.page.ShopPage().also { page -> repeat(3) { page.onScroll(1) } }.view(),
             File(out, "shop-scrolled.png"),
         )
+        // The tooltip never appears in a still of a page — it rides on the cursor — so it
+        // is drawn here on its own, over a card, to be looked at.
+        render(
+            ru.voidrp.ui.layout.Panel(
+                style = ru.voidrp.ui.style.Theme.card,
+                width = ru.voidrp.ui.layout.Size.Fixed(520),
+                height = ru.voidrp.ui.layout.Size.Fixed(260),
+                justify = ru.voidrp.ui.layout.Justify.CENTER,
+                align = ru.voidrp.ui.layout.Align.CENTER,
+                children = listOf(
+                    ru.voidrp.ui.widget.tooltipPanel(
+                        "Алмаз",
+                        listOf("Цена: 120 ₽", "В наличии: 12", "Годится на инструменты и броню."),
+                    ),
+                ),
+            ),
+            File(out, "tooltip.png"),
+        )
         println("Снимки: ${out.absolutePath}")
     }
 
