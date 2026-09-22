@@ -63,6 +63,15 @@ class PageManager(
      */
     var cursorBarOffset: Int = plugin.config.getInt("input.cursor-bar-offset", 19)
 
+    /**
+     * Whether moving the pointer onto something redraws the page.
+     *
+     * The page is one long line of text; sending it again costs a dozen kilobytes, and
+     * doing that every time the pointer crosses a card is felt as the pointer stuttering.
+     * The highlight rides the pointer's own bar instead.
+     */
+    var redrawOnHover: Boolean = plugin.config.getBoolean("input.redraw-on-hover", false)
+
     /** Starts drawing frames at about the rate a screen refreshes. */
     fun start() {
         frames.scheduleAtFixedRate(
@@ -93,7 +102,7 @@ class PageManager(
             return false
         }
         close(player)
-        val session = PageSession(plugin, player, page, renderer, sounds, { sensitivity }, { cursorBarOffset })
+        val session = PageSession(plugin, player, page, renderer, sounds, { sensitivity }, { cursorBarOffset }, { redrawOnHover })
         sessions[player.uniqueId] = session
         session.open()
         return true

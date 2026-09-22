@@ -7,6 +7,7 @@ import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
 import ru.voidrp.ui.render.GlyphEncoder
 import ru.voidrp.ui.render.Node
+import ru.voidrp.ui.render.Painter
 import ru.voidrp.ui.pack.Glyphs
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.render.Sprite
@@ -42,6 +43,14 @@ class PageSession(
      * lifted by that much to land where the page thinks it should.
      */
     private val cursorBarOffset: () -> Int,
+    /**
+     * Whether a page is drawn again when the pointer moves onto something else.
+     *
+     * Off by default: the highlight under the pointer rides the pointer's own bar, and the
+     * page stays as it was. Worth turning on only for a page whose contents really change
+     * with what is hovered.
+     */
+    private val redrawOnHover: () -> Boolean,
 ) {
 
     /** The last reading of the player's aim, in canvas units. */
@@ -118,7 +127,13 @@ class PageSession(
         val under = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         if (under != hovered) {
             hovered = under
-            render()
+            // Drawing the page again for a hover costs thirteen kilobytes of packet and a
+            // couple of milliseconds of this thread, sixty times a second if the pointer is
+            // sweeping — which is felt as the pointer stuttering exactly when it crosses
+            // things. The highlight rides the pointer's own bar instead, where it costs a
+            // few glyphs and arrives at frame rate. A page that really does need to be
+            // rebuilt when the pointer moves over it can ask for it.
+            if (redrawOnHover()) render()
         }
     }
 
@@ -328,10 +343,21 @@ class PageSession(
         val region = under ?: return null
         val paint = Paint(Theme.VIOLET, 0.55)
         val top = region.y - lift
+        val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
+        // A wash inside the outline, so that what the pointer is on reads at a glance now
+        // that the page itself no longer changes underneath it.
+        Painter.fill(
+            region.x,
+            top,
+            region.width,
+            region.height,
+            region.radius,
+            Paint(Theme.VIOLET, 0.16),
+            nodes,
+        )
         // Along the panel's own corners. A square drawn around a rounded card is the first
         // thing anyone notices, and the cursor lands on rounded cards all day.
-        val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
-        ru.voidrp.ui.render.Painter.outline(region.x, top, region.width, region.height, region.radius, 1, paint, nodes)
+        Painter.outline(region.x, top, region.width, region.height, region.radius, 1, paint, nodes)
         return GlyphEncoder.encode(nodes)
     }
 
