@@ -838,6 +838,13 @@ open class HomePage : Page() {
                 return
             }
 
+            // The gear is the one rail icon that leads somewhere in the demo: to the
+            // screen question, which is the only setting a player of ours actually has.
+            id == "rail:settings" -> {
+                ru.voidrp.ui.api.VoidRpUi.get()?.askScreen(player, then = this)
+                return
+            }
+
             id.startsWith("rail:") -> selected = id.removePrefix("rail:")
         }
         refresh()

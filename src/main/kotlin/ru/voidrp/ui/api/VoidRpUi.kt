@@ -43,7 +43,30 @@ interface VoidRpUi {
     /** Sends this player the resource pack again — useful after they rejected it. */
     fun sendPack(player: Player)
 
-    /** Canvas units per degree of turn; what a page is drawn on measures 1820×1024. */
+    /**
+     * The canvas this player's pages are drawn on: 1024 units tall, as wide as the shape
+     * of their window.
+     *
+     * Read it in a page through `viewport`; this is for everything outside one.
+     */
+    fun viewport(player: Player): ru.voidrp.ui.layout.Viewport
+
+    /**
+     * Sets what shape this player's screen is, or clears it back to the server's own
+     * setting with null. Their open page is drawn again at once.
+     */
+    fun setViewport(player: Player, viewport: ru.voidrp.ui.layout.Viewport?)
+
+    /**
+     * Shows the screen question: a frame on the edge of the canvas that the player lines
+     * up with their own screen, and then carries on to [then].
+     *
+     * The plugin asks this by itself before a player's first page ever. This is for
+     * putting it behind a button of your own — a settings page, a gear in a rail.
+     */
+    fun askScreen(player: Player, then: Page? = null): Boolean
+
+    /** Canvas units per degree of turn. */
     var sensitivity: Double
 
     companion object {

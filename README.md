@@ -1,6 +1,8 @@
 # VoidRP UI
 
 [![Сборка и тесты](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml)
+[![Релиз](https://img.shields.io/github/v/release/VOIDRP-MINECRAFT/voidrp-ui?label=релиз)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest)
+[![Лицензия MIT](https://img.shields.io/badge/лицензия-MIT-blue)](LICENSE)
 
 Настоящие интерфейсы на **ванильном клиенте Minecraft**. Без модов, без форджа, без
 клиентских установок: игрок заходит обычным клиентом, принимает ресурспак — и видит окна
@@ -42,8 +44,13 @@
 
 ## Установка
 
-1. Положите `voidrp-ui.jar` в `plugins/` и перезапустите сервер.
-2. Всё.
+1. Скачайте jar из [релизов](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest).
+2. Положите его в `plugins/` и перезапустите сервер.
+3. Всё.
+
+Первому зашедшему игроку плагин покажет настройку формата экрана — рамку по краям, которую
+он подгоняет под свой монитор. Это пять секунд и один раз в жизни; зачем оно нужно, написано
+в [адаптивности](docs/адаптивность.md), а выключается через `display.ask-screen: false`.
 
 Плагин собирает ресурспак сам и сам же его раздаёт: поднимает маленький HTTP-сервер (порт
 `8123` по умолчанию) и даёт игроку ссылку на тот адрес, который игрок ввёл при подключении.

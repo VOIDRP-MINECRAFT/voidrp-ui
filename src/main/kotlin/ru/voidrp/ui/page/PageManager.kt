@@ -50,7 +50,7 @@ class PageManager(
      * they actually have. Without it the server has to guess, and a guess that is too wide
      * takes a slice off both sides of every page they ever open.
      */
-    private val askScreen: () -> Boolean = { true },
+    private val asksScreen: () -> Boolean = { true },
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -136,25 +136,37 @@ class PageManager(
     fun viewportOf(player: Player): ru.voidrp.ui.layout.Viewport =
         screens?.of(player) ?: ru.voidrp.ui.layout.Viewport.DEFAULT
 
+    override fun viewport(player: Player): ru.voidrp.ui.layout.Viewport = viewportOf(player)
+
+    override fun setViewport(player: Player, viewport: ru.voidrp.ui.layout.Viewport?) {
+        val store = screens ?: return
+        if (viewport == null) store.clear(player) else store.set(player, viewport)
+        refresh(player)
+    }
+
+    override fun askScreen(player: Player, then: Page?): Boolean {
+        val store = screens ?: return false
+        val ask = ScreenPage(
+            choose = { chosen -> if (chosen == null) store.clear(player) else store.set(player, chosen) },
+            done = {
+                // Pressing Готово without choosing counts as agreeing with the server's
+                // guess: the question is asked once whatever the player does with it.
+                if (!store.isSet(player)) store.set(player, viewportOf(player))
+                then?.let { open(player, it) }
+            },
+        ).also { it.isFollowed = then != null }
+        return open(player, ask)
+    }
+
     override fun open(player: Player, page: Page): Boolean {
         if (!packReady(player)) {
             player.sendMessage(messages.get("pack.missing"))
             packSender(player)
             return false
         }
-        // The one thing the game never tells us, asked once and then never again. Anyone
-        // who skips it is taken as agreeing with the server's guess, so this cannot loop.
-        val store = screens
-        if (store != null && askScreen() && page !is ScreenPage && !store.isSet(player)) {
-            val wanted = page
-            val ask = ScreenPage(
-                choose = { chosen -> if (chosen == null) store.clear(player) else store.set(player, chosen) },
-                done = {
-                    if (!store.isSet(player)) store.set(player, viewportOf(player))
-                    open(player, wanted)
-                },
-            ).also { it.isFollowed = true }
-            return open(player, ask)
+        // The one thing the game never tells us, asked once and then never again.
+        if (screens?.isSet(player) == false && asksScreen() && page !is ScreenPage) {
+            return askScreen(player, then = page)
         }
         close(player)
         val session = PageSession(
