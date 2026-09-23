@@ -15,11 +15,13 @@ Clients from 1.21.6 to 26.1.2 are served too. Mojang renamed the text shader in 
 pack names its files outright, so one archive cannot cover both versions — the plugin
 builds two packs and hands each player the one their client can read.
 
-![The home page, drawn by a vanilla client](docs/home.png)
+![The home page on a vanilla client, cursor and all](docs/home.png)
 
-This is not a mock-up: the page above was drawn by the same code that sends it to a player.
+That is a screenshot, not a mock-up and not a render: a vanilla client, the player's own
+skin, the game's own item textures, and the cursor sitting on the tile it is hovering.
 Every rectangle, letter and icon in it travels as one line of text in an invisible boss
-bar. The picture is taken with `./gradlew preview`, without starting the game.
+bar. The pictures further down are drawn with `./gradlew preview`, which puts the same
+pages on disk without starting the game.
 
 ## Why
 

@@ -129,7 +129,7 @@ object Preview {
         render(StatesSheet().view(), File(out, "states.png"))
         render(StatesSheet(part = 2).view(), File(out, "states-2.png"))
         render(StatesSheet(hover = "hover:button").view(), File(out, "states-hover.png"))
-        println("Снимки: ${out.absolutePath}")
+        println("Drawn into ${out.absolutePath}")
     }
 
 }
