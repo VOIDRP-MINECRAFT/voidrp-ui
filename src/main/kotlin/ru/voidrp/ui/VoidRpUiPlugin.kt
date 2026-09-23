@@ -118,7 +118,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     override fun onEnable() {
         saveDefaultConfig()
         // The look is a server's own: colours, type scale and rounding come from theme.yml.
-        runCatching { saveResource("theme.yml", false) }
+        // The jar carries a few to start from, and `theme` in the config says which one is
+        // written out on the first run. After that the file belongs to the server.
+        installTheme()
         Theme.reload(
             org.bukkit.configuration.file.YamlConfiguration
                 .loadConfiguration(File(dataFolder, "theme.yml"))
@@ -326,6 +328,28 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 }
             },
         )
+    }
+
+    /**
+     * Writes a theme out on the first run, from the set the jar carries.
+     *
+     * Only once: the moment `theme.yml` exists it is the server's own look, and changing
+     * the setting afterwards will not paint over it.
+     */
+    private fun installTheme() {
+        val target = File(dataFolder, "theme.yml")
+        if (target.isFile) return
+        val name = config.getString("theme", "midnight")?.lowercase()?.takeIf { it.isNotBlank() } ?: "midnight"
+        val source = getResource("themes/$name.yml") ?: getResource("themes/midnight.yml")
+        if (source == null) {
+            logger.warning("No theme named $name in the jar; the built-in look is used.")
+            return
+        }
+        runCatching {
+            dataFolder.mkdirs()
+            source.use { input -> target.outputStream().use { input.copyTo(it) } }
+            logger.info("Theme $name written to theme.yml — edit it there, it is yours now.")
+        }
     }
 
     fun sendPack(player: Player) = sendPack(player, older = wantsLegacy(player))

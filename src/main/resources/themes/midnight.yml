@@ -1,0 +1,39 @@
+# The look of the interface. Everything is optional: anything unset comes from the VoidRP
+# theme. Colours are #rrggbb.
+
+# The page's surfaces and its text
+bg: "#05060D"
+surface: "#0F1526"
+ink: "#EAF0FF"
+ink-soft: "#AEB9D6"
+ink-dim: "#6B779A"
+# The tint of every border and divider
+line: "#96A8DC"
+
+# Accents
+accent: "#8B7BFF"
+accent-soft: "#A78BFA"
+accent-second: "#D946EF"
+green: "#34D399"
+gold: "#FBBF24"
+red: "#FB7185"
+
+# Tracking for the small caps labels
+tracking: 2
+
+# Type sizes, in canvas units (the canvas is 1024 units tall)
+text:
+  micro: 10
+  caption: 12
+  body: 14
+  lead: 16
+  h3: 20
+  h2: 28
+  h1: 40
+
+# Rounding
+radius:
+  sm: 8
+  md: 12
+  lg: 16
+  xl: 20

@@ -1,0 +1,32 @@
+# Ember — warm dark: charcoal with an orange fire in it.
+
+bg: "#0C0705"
+surface: "#17100C"
+ink: "#FBEFE6"
+ink-soft: "#D2B7A4"
+ink-dim: "#8C7565"
+line: "#C9A184"
+
+accent: "#F97316"
+accent-soft: "#FB923C"
+accent-second: "#E11D48"
+green: "#65A30D"
+gold: "#FACC15"
+red: "#EF4444"
+
+tracking: 2
+
+text:
+  micro: 10
+  caption: 12
+  body: 14
+  lead: 16
+  h3: 20
+  h2: 28
+  h1: 40
+
+radius:
+  sm: 8
+  md: 12
+  lg: 16
+  xl: 20

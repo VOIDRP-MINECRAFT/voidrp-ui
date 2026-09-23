@@ -105,36 +105,36 @@ open class HomePage : Page() {
     // the trip — the palette's dark end is coarse enough that page and card land on the
     // same entry and the card disappears — so each is expressed as a colour and an opacity
     // over what is behind it, which lands within a unit or two. See [Palette.express].
-    private val PAGE = 0x060711
-    private val CARD = 0x090B16
-    private val KPI = 0x0D0F19
-    private val TILE = 0x11131E
+    // …and they come from the theme rather than from here, so the page follows whatever
+    // look the server chose. A page that names its own colours outright stays dark on a
+    // light theme and unreadable on every theme but the one it was written against.
+    private val PAGE get() = Theme.onGround
+    private val CARD get() = Theme.onPage
     /** Whose page this is. The demo data is made up; the face, if there is one, is not. */
     private val PLAYER = "mironoouv"
 
-    private val WELL = 0x191A28
-
-    /** What the middle of the well comes to, measured off the site. */
-    private val WELL_LIGHT = 0x2A284A
+    /** The well the player stands in: a card's own surface, and the light inside it. */
+    private val WELL get() = Palette.composite(Theme.tileFill, Theme.onCard)
+    private val WELL_LIGHT get() = Palette.composite(Paint(Theme.VIOLET, 0.35), WELL)
 
     /** The well the player stands in, in the profile card. */
     private val WELL_WIDTH = 286
     private val WELL_HEIGHT = 300
 
-    private val pageTint = Palette.express(PAGE, 0x000000)
-    private val cardFill = Palette.express(CARD, PAGE)
-    private val kpiFill = Palette.express(KPI, PAGE)
-    private val tileFill = Palette.express(TILE, CARD)
-    private val wellFill = Palette.express(WELL, CARD)
+    private val pageTint get() = Theme.groundFill
+    private val cardFill get() = Theme.pageFill
+    private val kpiFill get() = Theme.cardFill
+    private val tileFill get() = Theme.cardFill
+    private val wellFill get() = Theme.tileFill
 
     // Painted past the edges of the canvas, so a window that is not quite the shape the
     // player named still has no strip of world down its side.
-    override val bleed = listOf(Paint(0x000000, 0.97), pageTint)
+    override val bleed get() = listOf(Paint(0x000000, 0.93), pageTint)
 
     override fun view(): View = screen(
         // Not a window floating over the world: the screen belongs to the interface, the
         // way it does when a browser is drawing it.
-        style = Style(background = Paint(0x000000, 0.97)),
+        style = Theme.scrim,
         direction = Direction.ROW,
         // The tint and the stars are placed on the canvas directly and take no room in the
         // row, so the rail and the page lay out as if they were not there.
@@ -460,10 +460,12 @@ open class HomePage : Page() {
             // The light sits in the bottom left corner and falls away two ways: across,
             // which the wash does, and upwards, which the shade over it does.
             background = Gradient(
-                Paint(0x2D2456),
-                Paint(0x14102A),
+                // Both ends are the accent over the surface this panel stands on, so the
+                // banner follows the theme instead of carrying two violets of its own.
+                Paint(Palette.composite(Paint(Theme.VIOLET, 0.30), CARD)),
+                Paint(Palette.composite(Paint(Theme.VIOLET, 0.06), CARD)),
                 direction = GradientDirection.HORIZONTAL,
-                over = PAGE,
+                over = CARD,
                 // The site holds the violet for the first fifth and then drops away fast;
                 // a fade that starts at the very edge is dimmer than it where the words are.
                 start = 0.0,
@@ -519,10 +521,12 @@ open class HomePage : Page() {
                             // one across its width. The wash knows the panel it sits on, so
                             // it steps smoothly over a hundred and fifty units.
                             background = Gradient(
-                                Paint(0x8668FC),
-                                Paint(0xB25AF2),
+                                // The accent running to the second accent, over whatever
+                                // the banner behind it came out as.
+                                Paint(Theme.VIOLET),
+                                Paint(Palette.composite(Paint(Theme.FUCHSIA, 0.75), Theme.VIOLET)),
                                 direction = GradientDirection.HORIZONTAL,
-                                over = 0x2A2350,
+                                over = Palette.composite(Paint(Theme.VIOLET, 0.30), CARD),
                             ),
                             // Measured off the site: 146 by 42, rounded by twelve, and
                             // violet running to magenta rather than to a paler violet.

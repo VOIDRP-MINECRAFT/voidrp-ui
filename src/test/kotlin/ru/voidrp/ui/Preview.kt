@@ -110,6 +110,22 @@ object Preview {
         // screen right: the frame they line up with their own edges.
         render(ru.voidrp.ui.page.ScreenPage(choose = {}), File(out, "screen.png"), Viewport.parse("5:4")!!)
 
+        // The same page in every look the jar ships, so a server owner can see what they
+        // are choosing between — and so a theme that breaks on a light background is
+        // caught here rather than by whoever installs it.
+        listOf("midnight", "daylight", "ember", "grove").forEach { name ->
+            val file = File("src/main/resources/themes/$name.yml")
+            if (!file.isFile) return@forEach
+            ru.voidrp.ui.style.Theme.reload(
+                org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(file),
+            )
+            render(ru.voidrp.ui.page.HomePage(), File(out, "theme-$name.png"))
+        }
+        ru.voidrp.ui.style.Theme.reload(
+            org.bukkit.configuration.file.YamlConfiguration
+                .loadConfiguration(File("src/main/resources/themes/midnight.yml")),
+        )
+
         render(StatesSheet().view(), File(out, "states.png"))
         render(StatesSheet(part = 2).view(), File(out, "states-2.png"))
         render(StatesSheet(hover = "hover:button").view(), File(out, "states-hover.png"))

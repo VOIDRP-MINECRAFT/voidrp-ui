@@ -38,6 +38,7 @@ shown. No repacking to add a button.
 | [Layout](docs/layout.md) | panels, sizes, grids, scrolling, regions — what a page is built from |
 | [Pages](docs/page.md) | state, events, navigation, tooltips, text input, the API for your own plugin |
 | [Components](docs/components.md) | buttons, tabs, switches, tiles, notices, dialogs — and how to write your own |
+| [Theming](docs/theming.md) | four themes in the jar, every token, and how to write your own |
 | [Responsive](docs/responsive.md) | a canvas shaped like the player's screen, breakpoints, the safe band, screen setup |
 | [Example plugin](example/) | the working minimum: a command, a page, one dependency — copy the folder and build it |
 | [Internals](docs/internals.md) | how the trick works, and every rake it stepped on |
@@ -257,7 +258,7 @@ Three files in `plugins/VoidRpUI/`, all optional — anything unset comes from t
 | File | What is in it |
 |---|---|
 | `config.yml` | where the pack is served from, cursor sensitivity, interface sounds, the screen the pages are laid out for |
-| `theme.yml` | colours, type sizes, rounding, spacing — the whole look, for your own brand |
+| `theme.yml` | colours, type sizes, rounding — the whole look, for your own brand ([four to start from](docs/theming.md)) |
 | `messages.yml` | every string a player is shown; MiniMessage is supported |
 
 `language: en` or `ru` in the config decides which set of words is written into

@@ -155,19 +155,68 @@ object Theme {
     }
 
     /**
+     * Whether this theme is a dark one, worked out from the page's own colour.
+     *
+     * A few things have to know: a surface above another is lighter on a dark theme and
+     * lighter still — towards white — on a light one, and the lit top edge that gives a
+     * dark card its depth is simply invisible on a pale one.
+     */
+    val isDark: Boolean get() = luminance(SURFACE) < 0.5
+
+    private fun luminance(rgb: Int): Double {
+        val r = ((rgb shr 16) and 0xFF) / 255.0
+        val g = ((rgb shr 8) and 0xFF) / 255.0
+        val b = (rgb and 0xFF) / 255.0
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+
+    /**
      * A surface a little above the one under it, the way a stylesheet mixes two colours.
      *
-     * Every surface in the theme is [SURFACE] carried some of the way towards [LINE], the
-     * cool grey the hairlines are tinted with: a page, a card on it, a tile in the card.
+     * On a dark theme every surface is [SURFACE] carried some of the way towards [LINE],
+     * the cool grey the hairlines are tinted with. On a light one it goes towards white
+     * instead: a card on a pale page is paler still, and carrying it towards the line
+     * colour would make it a shade of grey — the wrong direction entirely.
      */
     private fun lift(amount: Double): Int {
+        val target = if (isDark) LINE else 0xFFFFFF
         fun channel(shift: Int): Int {
             val from = (SURFACE shr shift) and 0xFF
-            val to = (LINE shr shift) and 0xFF
+            val to = (target shr shift) and 0xFF
             return Math.round(from + (to - from) * amount).toInt().coerceIn(0, 255)
         }
         return (channel(16) shl 16) or (channel(8) shl 8) or channel(0)
     }
+
+    /** The lit top edge of a card. It says "depth" on a dark theme and nothing on a light one. */
+    private fun topLight(alpha: Double): Paint? =
+        if (isDark) Paint(0xFFFFFF, alpha) else null
+
+    /**
+     * The surfaces the theme derives, for a page that builds a panel of its own.
+     *
+     * A page that names its own colours outright stops being themeable — it stays dark on
+     * a light theme and unreadable on any theme but the one it was written against. These
+     * are the same fills the built-in styles are made of: the ground the page stands on,
+     * the page, a card on it, a tile in the card, and what each one actually comes out as
+     * once it is composited, for [Palette.express] over it.
+     */
+    var groundFill = Paint(0x000000)
+        private set
+    var pageFill = Paint(0x000000)
+        private set
+    var cardFill = Paint(0x000000)
+        private set
+    var tileFill = Paint(0x000000)
+        private set
+
+    /** What the ground, the page and a card come out as — pass these as `over`. */
+    var onGround = 0x000000
+        private set
+    var onPage = 0x000000
+        private set
+    var onCard = 0x000000
+        private set
 
     private fun rebuild() {
         // Every surface stands on the one below it, so the chain is built from the bottom:
@@ -185,13 +234,21 @@ object Theme {
         val onCard = Palette.composite(cardFill, onPage)
         val tileFill = Palette.express(lift(0.12), onCard)
 
+        this.groundFill = ground
+        this.pageFill = pageFill
+        this.cardFill = cardFill
+        this.tileFill = tileFill
+        this.onGround = onGround
+        this.onPage = onPage
+        this.onCard = onCard
+
         page = Style(
             background = pageFill,
             border = Border(1, Paint(LINE, 0.25)),
             radius = R_XL,
             padding = Insets.all(SPACE_6),
             shadow = Shadow(offsetY = 8, paint = Paint(0x000000, 0.45)),
-            highlight = Paint(0xFFFFFF, 0.06),
+            highlight = topLight(0.06),
             textColour = INK,
             textSize = TEXT_BODY,
         )
@@ -201,7 +258,7 @@ object Theme {
             border = Border(1, Paint(LINE, 0.14)),
             radius = R_MD,
             padding = Insets.all(SPACE_4),
-            highlight = Paint(0xFFFFFF, 0.05),
+            highlight = topLight(0.05),
             textColour = INK,
             textSize = TEXT_BODY,
         )

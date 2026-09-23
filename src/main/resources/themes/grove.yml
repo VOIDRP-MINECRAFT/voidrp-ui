@@ -1,0 +1,32 @@
+# Grove — dark green, for a server that is mostly outdoors.
+
+bg: "#050B08"
+surface: "#0C1712"
+ink: "#E8F5EC"
+ink-soft: "#A8C5B4"
+ink-dim: "#6B8577"
+line: "#8FC3A6"
+
+accent: "#22C55E"
+accent-soft: "#4ADE80"
+accent-second: "#14B8A6"
+green: "#34D399"
+gold: "#EAB308"
+red: "#F87171"
+
+tracking: 2
+
+text:
+  micro: 10
+  caption: 12
+  body: 14
+  lead: 16
+  h3: 20
+  h2: 28
+  h1: 40
+
+radius:
+  sm: 8
+  md: 12
+  lg: 16
+  xl: 20

@@ -5,6 +5,15 @@
 # After that the file is yours — changing this will not overwrite it.
 language: en
 
+# Which look is written into theme.yml on this server's first run:
+#   midnight — near-black with violet, the one in the screenshots
+#   daylight — a light theme: pale page, dark ink, indigo accent
+#   ember    — warm dark, charcoal and orange
+#   grove    — dark green
+# After the first run the file is yours; changing this will not paint over it. Making your
+# own is a matter of editing theme.yml — see docs/theming.md.
+theme: midnight
+
 pack:
   # Where the archive is served from. Leave it empty and the plugin serves it itself.
   # Fill it in only to host plugins/VoidRpUI/voidrp-ui.zip somewhere else (your own web

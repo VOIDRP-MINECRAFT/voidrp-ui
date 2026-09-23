@@ -1,0 +1,41 @@
+# Daylight — a light theme: a pale page, ink that is actually ink, one indigo accent.
+#
+# Everything below is optional; what is left out comes from the VoidRP theme. Colours are
+# #rrggbb.
+
+# The page's surfaces and its text
+bg: "#E7E9F0"
+surface: "#F4F5F9"
+ink: "#161A26"
+ink-soft: "#414A63"
+ink-dim: "#727C96"
+# The tint of every border and divider
+line: "#8A93AD"
+
+# Accents
+accent: "#4F46E5"
+accent-soft: "#6366F1"
+accent-second: "#C026D3"
+green: "#0F9D58"
+gold: "#B45309"
+red: "#DC2626"
+
+# Tracking for the small caps labels
+tracking: 2
+
+# Type sizes, in canvas units (the canvas is 1024 units tall)
+text:
+  micro: 10
+  caption: 12
+  body: 14
+  lead: 16
+  h3: 20
+  h2: 28
+  h1: 40
+
+# Rounding
+radius:
+  sm: 8
+  md: 12
+  lg: 16
+  xl: 20
