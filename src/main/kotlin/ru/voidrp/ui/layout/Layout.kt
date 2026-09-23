@@ -169,6 +169,9 @@ object Layout {
 
         is Gap -> Extent(view.size, view.size)
 
+        // Behind everything and part of nothing: like a hand-placed shape, it takes no room.
+        is Particles -> Extent(0, 0)
+
         is Image -> Icons.nearestSize(view.size).let { Extent(it, it) }
 
         is Icon -> UiIcons.nearestSize(view.size).let { Extent(it, it) }
@@ -520,6 +523,23 @@ object Layout {
                 }
             }
 
+            is Particles -> {
+                // A stable scatter: the same seed lays the field out the same way every
+                // time, so the page does not shimmer when it is drawn again.
+                val random = java.util.Random(view.seed.toLong())
+                repeat(view.count) {
+                    val size = if (random.nextInt(5) == 0) view.size + 1 else view.size
+                    out += Rect(
+                        x + random.nextInt(width.coerceAtLeast(1)),
+                        y + random.nextInt(height.coerceAtLeast(1)),
+                        size,
+                        size,
+                        Paint(view.colour, if (random.nextBoolean()) view.alpha else view.alpha * 0.6),
+                        drift = true,
+                    )
+                }
+            }
+
             is Scroll -> arrangeScroll(view, x, y, width, height, out, regions)
 
             is Grid -> {
@@ -731,7 +751,7 @@ object Layout {
     private fun View.shrinks(): Boolean = this !is Panel || shrink
 
     /** Something that takes no room in the flow cannot start a new line either. */
-    private fun View.inFlow(): Boolean = this !is Raw && this !is Overlay
+    private fun View.inFlow(): Boolean = this !is Raw && this !is Overlay && this !is Particles
 
     /**
      * Packs the children into lines that fit, greedily, the way `flex-wrap` does.
@@ -880,10 +900,10 @@ object Layout {
         }
 
         children.forEachIndexed { index, child ->
-            // A hand-placed shape is measured from the corner its parent holds, not from
-            // wherever the flow happens to have reached: it takes no room, so a slot in the
-            // flow would only tell it about the children around it.
-            if (child is Raw) {
+            // A hand-placed shape, or a field of specks, is measured from the corner its
+            // parent holds and given the whole of it: neither takes any room, so a slot in
+            // the flow would only tell it about the children around it.
+            if (child is Raw || child is Particles) {
                 arrange(child, x, y, width, height, out, regions)
                 return@forEachIndexed
             }

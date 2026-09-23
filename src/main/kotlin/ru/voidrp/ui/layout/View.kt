@@ -255,6 +255,29 @@ data class Gap(val size: Int = 0, val grow: Boolean = false) : View
 data class Overlay(val view: View) : View
 
 /**
+ * A field of drifting specks behind the page.
+ *
+ * It takes no room and moves nothing, like [Raw] — it is scattered over the whole canvas
+ * and painted wherever it is put in the list, so it goes first, behind everything.
+ *
+ * The specks move by themselves: each carries a marker the shader knows, and the shader
+ * works out where it is from the time of day. So the page is still sent once and never
+ * again, and the motion costs nothing — no frames, no packets, no server thread. Where the
+ * pack was built without that branch (`effects.particles: false`), the same specks are
+ * sent as an ordinary still field.
+ */
+data class Particles(
+    val count: Int = 60,
+    val colour: Int = Theme.INK,
+    /** How faint. Two shades are used, so a field has some depth to it. */
+    val alpha: Double = 0.45,
+    /** A speck is one or two units; the bigger ones are rarer. */
+    val size: Int = 1,
+    /** Changes the scatter — the same seed always lays them out the same way. */
+    val seed: Int = 7,
+) : View
+
+/**
  * An escape hatch: a shape positioned by hand, for what the layout has no word for yet.
  *
  * It takes no room and moves nothing else, and its coordinates are read from the corner of

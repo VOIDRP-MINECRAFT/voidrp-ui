@@ -148,6 +148,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 "(${serverScreen.width}×${serverScreen.height}). A player sets their own with /vui screen."
         )
 
+        // Baked into the shader, so it is decided before the pack is built.
+        ru.voidrp.ui.pack.Shaders.particles = config.getBoolean("effects.particles", false)
+
         packFile = File(dataFolder, "voidrp-ui.zip")
         packHash = PackBuilder(
             shaderMode = config.getString("pack.shader-mode", "patched")!!,
@@ -254,6 +257,13 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         // what an old client does with the new shader names. A failed download is a hash
         // or a network problem, and sending a different archive would only paper over it.
         if (event.status != PlayerResourcePackStatusEvent.Status.FAILED_RELOAD) return
+        if (ru.voidrp.ui.pack.Shaders.particles) {
+            logger.warning(
+                "The pack would not load and effects.particles is on. That setting asks the " +
+                    "text shader for the client's globals; if this client will not have them it " +
+                    "refuses the whole pack. Turn it off and restart to be sure."
+            )
+        }
         val player = event.player
         if (!canSendLegacy(player)) return
         if (sentHash[player.uniqueId] == legacyHash) return

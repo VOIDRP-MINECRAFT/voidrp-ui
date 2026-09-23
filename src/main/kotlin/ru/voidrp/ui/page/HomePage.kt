@@ -140,8 +140,13 @@ open class HomePage : Page() {
         direction = Direction.ROW,
         // The tint and the stars are placed on the canvas directly and take no room in the
         // row, so the rail and the page lay out as if they were not there.
-        children = listOf(Raw(Rect(0, 0, viewport.width, viewport.height, pageTint))) +
-            starNodes() + listOf(iconRail(), content()),
+        children = listOf(
+            Raw(Rect(0, 0, viewport.width, viewport.height, pageTint)),
+            // The sky behind the page. It drifts by itself where the pack was built for it
+            // and stands still where it was not — either way it is part of the page and
+            // costs nothing to keep.
+            ru.voidrp.ui.layout.Particles(count = 90, colour = Theme.VIOLET_SOFT, alpha = 0.5),
+        ) + listOf(iconRail(), content()),
     )
 
     /** A sky behind the page. Each star is one unit of nothing much, and they add up. */

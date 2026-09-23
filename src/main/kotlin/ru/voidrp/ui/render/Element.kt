@@ -25,6 +25,15 @@ data class Rect(
     val width: Int,
     val height: Int,
     val paint: Paint = Paint(0xFFFFFF),
+    /**
+     * Whether this one drifts by itself.
+     *
+     * A page is sent once and then sits still. A speck of light behind it should not be:
+     * marked as drifting, it carries a marker of its own and the shader works out where it
+     * is from the time of day, so a whole field of them moves at the client's frame rate
+     * and costs nothing after the page is sent. See [Shaders.MARKER_DRIFT].
+     */
+    val drift: Boolean = false,
 ) : Node
 
 /** One rounded corner of a box: a quarter disc filling the inside of that corner. */
@@ -214,11 +223,15 @@ object GlyphEncoder {
         if (rect.width <= 0 || rect.height <= 0 || level == 0) return penIn
         var pen = penIn
         val fill = quantise(rect.paint.rgb)
+        // Only where the pack carries the branch that moves it. Without it the marker
+        // would mean nothing to the shader, and a speck would be drawn as an ordinary
+        // letter at the pen — so it is sent as an ordinary static shape instead.
+        val drifts = rect.drift && Shaders.particles
 
         val tiles = mutableListOf<Tile>()
         tile(rect.x, rect.y, rect.width, rect.height, tiles)
         for (piece in tiles) {
-            val colour = TextColor.color(pack(piece.top, fill))
+            val colour = TextColor.color(pack(piece.top, fill, drifts))
             line.add(Glyphs.moveBy(piece.left - pen) + Glyphs.rect(piece.w, piece.h), shapeFont(level), colour)
             pen = piece.left + Glyphs.rectAdvance(piece.w)
         }
@@ -327,8 +340,9 @@ object GlyphEncoder {
      * Marker nibble, then y (10 bits), then fill (10 bits). One step is one canvas unit,
      * so a y survives the trip untouched and pieces of the same panel always meet exactly.
      */
-    private fun pack(y: Int, fill: Int): Int {
+    private fun pack(y: Int, fill: Int, drift: Boolean = false): Int {
         val qy = y.coerceIn(0, Y_MAX)
-        return (Shaders.MARKER shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
+        val marker = if (drift) Shaders.MARKER_DRIFT else Shaders.MARKER
+        return (marker shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
     }
 }

@@ -105,6 +105,31 @@ Palette.express(0x1A2030, over = Theme.onCard)              // a colour of your 
 `onPage`, `onCard` are what they actually come out as, for expressing something over them.
 `Theme.isDark` says which kind of theme is loaded.
 
+## Something that moves
+
+A page is sent once and then sits still, which is right for a page and wrong for what is
+behind it. So a field of specks is drawn by the shader rather than by the server:
+
+```kotlin
+override fun view(): View = screen(children = listOf(
+    Raw(Rect(0, 0, viewport.width, viewport.height, background)),
+    Particles(count = 90, colour = Theme.VIOLET_SOFT, alpha = 0.5),
+    content(),
+))
+```
+
+Each speck carries a marker of its own, and the shader works out where it is from the time
+of day — its place on the line is its seed, so every one of them drifts at its own pace and
+sways by its own amount. The page is still sent once and never again: the motion costs no
+frames, no packets and no server thread, and it runs at the client's frame rate rather than
+at ours.
+
+It asks the text shader for one thing more than it otherwise would — the client's own
+globals, where the time of day lives — and a client that will not have that refuses the
+whole pack rather than that one line. So it starts off: `effects.particles: true` in the
+config, open a page, and see. With it off the same `Particles` are drawn as a still field
+and the shader is left exactly as it was, so a page written with them works either way.
+
 ## Changing it while the server runs
 
 `/vui reload`-style restarts are not needed: the theme is re-read with the config, and the

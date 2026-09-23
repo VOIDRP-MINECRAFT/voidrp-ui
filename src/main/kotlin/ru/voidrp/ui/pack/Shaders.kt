@@ -43,6 +43,28 @@ object Shaders {
     const val MARKER = 0xB
 
     /**
+     * The same, for a glyph that drifts.
+     *
+     * A page is sent once and then sits still, which is right for a page and wrong for the
+     * specks of light behind it: a background that moves has to move at the client's frame
+     * rate, not at the server's. So a drifting glyph carries its own marker, and the shader
+     * works out where it is from the time of day rather than from anything we send.
+     *
+     * 0xC for the same reason 0xB was chosen: the sixteen named colours have red 00, 55, AA
+     * or FF, so none of them lands on it.
+     */
+    const val MARKER_DRIFT = 0xC
+
+    /**
+     * Whether the pack carries the drifting branch at all.
+     *
+     * It costs one import — the client's own globals, where the time of day lives — and a
+     * server that would rather not have its text shader reach for anything extra can build
+     * the pack without it. The encoder then sends the specks as ordinary static shapes.
+     */
+    var particles = false
+
+    /**
      * How tall the canvas is: the height of the player's window, always.
      *
      * It is 1024 on purpose: the vertical position travels in 10 bits, and 1024 steps over
@@ -76,9 +98,11 @@ object Shaders {
         // y (10) followed by the fill colour (10, RGB 3-4-3).
         // (Nothing here may be named "packed" — a reserved word in GLSL that makes strict
         // drivers reject the whole shader while lenient compilers let it pass.)
-        bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill) {
+        bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill, out bool drifts) {
             int red = int(floor(color.r * 255.0 + 0.5));
-            if ((red >> 4) != ${MARKER}) {
+            int mark = red >> 4;
+            drifts = mark == ${MARKER_DRIFT};
+            if (mark != ${MARKER} && !drifts) {
                 return false;
             }
             int bits = ((red & 15) << 16)
@@ -107,11 +131,32 @@ object Shaders {
         // The glyph's own extent arrives in GUI pixels and is read as canvas units, which
         // is what makes a page the same size at every GUI scale: a 64-unit tile is a
         // 64-pixel glyph, and 64 units is 1/16 of the window's height either way.
-        vec4 voidrp_place(float canvasY, vec4 original) {
+        // Where a speck of light is at this moment.
+        //
+        // Nothing about it is sent: its own place on the line is its seed, so every speck
+        // drifts at its own pace and sways by its own amount, and the whole field is one
+        // static page that never needs sending again.
+        vec2 voidrp_drift(vec2 canvas, float seed, float time) {
+            float pace = 0.35 + fract(seed * 7.13) * 0.9;
+            float sway = 4.0 + fract(seed * 3.71) * 10.0;
+            float y = mod(canvas.y + time * pace + seed * ${CANVAS_HEIGHT}.0, ${CANVAS_HEIGHT}.0);
+            float x = canvas.x + sin(time * 0.012 + seed * 6.2831) * sway;
+            return vec2(x, y);
+        }
+
+        vec4 voidrp_place(float canvasY, vec4 original, bool drifts) {
             vec2 ndc = original.xy / original.w;
             float penX = ndc.x / ProjMat[0][0];
             float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
+        #ifdef VOIDRP_PARTICLES
+            if (drifts) {
+                // Ticks since the world began, near enough: GameTime runs 0…1 over twenty
+                // minutes, which is all a drift needs.
+                float time = GameTime * 24000.0;
+                canvas = voidrp_drift(canvas, fract(sin(canvas.x * 12.9898) * 43758.5453), time);
+            }
+        #endif
 
             // A unit is square, and stays square.
             //
@@ -164,7 +209,12 @@ object Shaders {
             return patched
         }
 
-    val TEXT_VSH_MODERN: String get() = MODERN_TEMPLATE
+    private fun withParticles(source: String): String =
+        if (!particles) source
+        else source.replaceFirst("#version 330", "#version 330\n#define VOIDRP_PARTICLES 1")
+            .replaceFirst("#version 150", "#version 150\n#define VOIDRP_PARTICLES 1")
+
+    val TEXT_VSH_MODERN: String get() = withParticles(MODERN_TEMPLATE)
 
     /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
     private val MODERN_TEMPLATE = """
@@ -177,6 +227,9 @@ object Shaders {
 
         #moj_import <minecraft:dynamictransforms.glsl>
         #moj_import <minecraft:projection.glsl>
+        #ifdef VOIDRP_PARTICLES
+        #moj_import <minecraft:globals.glsl>
+        #endif
 
         in vec3 Position;
         in vec4 Color;
@@ -205,9 +258,10 @@ object Shaders {
 
             float canvasY;
             vec3 fill;
+            bool drifts;
             voidrpShape = 0.0;
-            if (voidrp_decode(Color, canvasY, fill)) {
-                gl_Position = voidrp_place(canvasY, gl_Position);
+            if (voidrp_decode(Color, canvasY, fill, drifts)) {
+                gl_Position = voidrp_place(canvasY, gl_Position, drifts);
                 tint = vec4(fill, 1.0);
                 voidrpShape = 1.0;
             }
@@ -223,7 +277,7 @@ object Shaders {
         }
     """.trimIndent().replace("//__VOIDRP_COMMON__", COMMON)
 
-    val TEXT_VSH_LEGACY: String get() = LEGACY_TEMPLATE
+    val TEXT_VSH_LEGACY: String get() = withParticles(LEGACY_TEMPLATE)
 
     /** 1.21.6 … 26.1.2: the older `rendertype_text.vsh`, GLSL 150. */
     private val LEGACY_TEMPLATE = """
@@ -232,6 +286,10 @@ object Shaders {
         #moj_import <minecraft:fog.glsl>
         #moj_import <minecraft:dynamictransforms.glsl>
         #moj_import <minecraft:projection.glsl>
+        #ifdef VOIDRP_PARTICLES
+        // 1.21.6 has no uniform blocks here: the time of day is a uniform of its own.
+        uniform float GameTime;
+        #endif
 
         in vec3 Position;
         in vec4 Color;
@@ -256,9 +314,10 @@ object Shaders {
 
             float canvasY;
             vec3 fill;
+            bool drifts;
             voidrpShape = 0.0;
-            if (voidrp_decode(Color, canvasY, fill)) {
-                gl_Position = voidrp_place(canvasY, gl_Position);
+            if (voidrp_decode(Color, canvasY, fill, drifts)) {
+                gl_Position = voidrp_place(canvasY, gl_Position, drifts);
                 tint = vec4(fill, 1.0);
                 voidrpShape = 1.0;
             }

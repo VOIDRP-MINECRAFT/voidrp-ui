@@ -3,6 +3,22 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.0
+
+**Something that moves.** A page is sent once and then sits still, which is right for a page
+and wrong for what is behind it. `Particles` is a field of specks that the **shader** draws:
+each carries a marker of its own, and where it is comes from the time of day rather than
+from anything the server sends. Its place on the line is its seed, so every speck drifts at
+its own pace and sways by its own amount. The page is still sent once and never again — the
+motion costs no frames, no packets and no server thread, and it runs at the client's frame
+rate rather than at ours.
+
+It asks the text shader for one thing more than it otherwise would, the client's own
+globals, and a client that will not have those refuses the whole pack rather than that one
+line. So it ships off: `effects.particles: true`, open a page, and see. With it off the same
+`Particles` are drawn as a still field and the shader is untouched, so a page written with
+them works either way.
+
 ## 0.2.5
 
 - Something that takes no room no longer earns a gap either. A dropdown's open list is an
