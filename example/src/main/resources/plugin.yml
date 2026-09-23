@@ -1,0 +1,9 @@
+name: UiDemo
+version: '${version}'
+main: com.example.uidemo.UiDemoPlugin
+api-version: '1.21'
+# Страницы рисует VoidRP UI, без него плагину делать нечего.
+depend: [VoidRpUI]
+commands:
+  uidemo:
+    description: Открыть страницу примера
