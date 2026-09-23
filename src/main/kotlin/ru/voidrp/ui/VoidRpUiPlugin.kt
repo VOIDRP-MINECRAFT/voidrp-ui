@@ -198,6 +198,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         server.servicesManager.register(VoidRpUi::class.java, pages, this, ServicePriority.Normal)
         // The cursor follows the player's aim, so it is read every tick.
         server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
+        pages.start()
         if (!pages.ordersBars) {
             logger.info(
                 "No PacketEvents: if another plugin shows a boss bar, a page opened after it " +
@@ -211,7 +212,6 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                 "No PacketEvents: aim is read once a tick, so the cursor lags by up to 50 ms."
             },
         )
-        pages.start()
         getCommand("vui")?.let {
             val handler = UiCommand(this)
             it.setExecutor(handler)

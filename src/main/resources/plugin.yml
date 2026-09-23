@@ -2,6 +2,10 @@ name: VoidRpUI
 version: '${version}'
 main: ru.voidrp.ui.VoidRpUiPlugin
 api-version: '1.21'
+# Loaded after PacketEvents where it is present, so that the aim can be read straight off
+# the packets. Without this the order is whatever the server happens to choose, and enabling
+# first means the check for it fails and the cursor falls back to once a tick.
+softdepend: [packetevents]
 author: VoidRP
 website: https://void-rp.ru
 description: Real interfaces on a vanilla client. Open source, MIT.

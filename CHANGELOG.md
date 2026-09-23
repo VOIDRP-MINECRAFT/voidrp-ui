@@ -3,6 +3,59 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.3
+
+**The pointer, measured rather than guessed at.** A recording of a live one
+(`/vui debug trace`) showed three things at once, and none of them was the thing the
+prediction added in 0.3.2 was meant to fix:
+
+- **It came to rest twelve units from the aim and stayed there.** A stop is *silence* — a
+  client sends its aim only when the aim has changed — so with the readings ended, nothing
+  pulled the reckoning onto the last one. It was clamped into a window around it and left
+  at the edge: a pointer that settles beside the button it is pointed at. It comes home to
+  the aim now.
+- **It sailed 45 units past a hand that stopped**, and took 110 ms to even start back. A
+  stop was noticed by a threshold at 120 ms, which is longer than two gaps between
+  readings, so the pointer was thrown forward by a speed the hand no longer had. Belief in
+  the reckoning now fades with the age of the last reading instead of falling off a cliff,
+  and the speed the lead is taken from drops the moment a reading shows a drop while a rise
+  has to be shown three times.
+- **It assumed the readings arrive a tick apart.** On the client they were measured landing
+  66 to 110 ms apart. Everything counted in gaps — how long a reading stays fresh, how far
+  the reckoning may run, half the wait for the next one — is counted in the measured gap
+  now.
+
+And one thing the recording could not have shown, because the hands it was made with do
+not exist: **a single reading showing a huge step is ambiguous** — a hand moving very fast,
+or one jump — and thrown forward by the speed it implies, the pointer leaves the screen.
+There is a ceiling on the throw now, 32 units, about three per cent of the height of the
+screen.
+
+Against the numbers before them, over six hands and four connections in simulation: the
+worst overshoot down 61%, the worst jolt between two frames down 39%, the resting error
+gone, and a fast sweep about 20% further behind the hand, which is the price. Measured for
+real instead — the same scripted hand, the same client, one build against the other —
+resting error 12.2 units to none, overshoot down 15%, the worst jolt between two frames
+down 22%. The simulation is kinder than the rig because the rig's mouse teleports, which is
+the one thing no ceiling and no filter can follow gracefully and no hand ever does.
+
+The lead a far-away player is given is capped at 75 ms rather than 140: below about 80 ms
+of ping the cap decides nothing, and above it a pointer that bounces reads as broken where
+one that trails only reads as slow.
+
+The arithmetic moved out of the session into `ru.voidrp.ui.input.Pointer`, where it can be
+— and is — tested against a hand that sweeps, flicks, eases, arcs, creeps onto a small
+button, and merely rests on the mouse.
+
+**Also**
+- The plugin no longer says it has no PacketEvents on a server that has it. The listeners
+  were installed while the plugin was being constructed, which is before its dependencies
+  are enabled; they are installed when it starts now, and `softdepend` names PacketEvents
+  so it is loaded first.
+- `/vui debug trace <seconds>` writes `cursor-trace.csv` — the moment, the aim, the
+  reckoning and the drawn position, every frame. "The mouse feels bad" cannot be acted on;
+  four columns can.
+
 ## 0.3.2
 
 **The pointer is drawn where the player will be looking, not where they were.** Every link

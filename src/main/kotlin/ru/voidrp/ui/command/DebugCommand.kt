@@ -167,6 +167,17 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
             // Walks a panel across the canvas so placement can be judged in motion.
             "sweep" -> player(sender)?.let { plugin.startSweep(it) }
 
+            // A recording of the pointer, to look at rather than to feel.
+            "trace" -> player(sender)?.let { player ->
+                val seconds = args.getOrNull(1)?.toIntOrNull()?.coerceIn(1, 60) ?: 10
+                val file = java.io.File(plugin.dataFolder, "cursor-trace.csv")
+                if (plugin.pages.traceCursor(player, seconds, file)) {
+                    sender.sendMessage("§aRecording the pointer for ${seconds}s → §f${file.path}")
+                } else {
+                    sender.sendMessage("§cOpen a page first.")
+                }
+            }
+
             // Design without logging in twice: whatever the player is looking at, drawn to
             // a PNG next to the plugin. The same renderer the tests and the docs use.
             "shot" -> player(sender)?.let { player ->
@@ -201,7 +212,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "cursor", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()

@@ -61,6 +61,10 @@ class PageManager(
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
 
+    /** Records the pointer for a few seconds, so that a feeling can be looked at. */
+    fun traceCursor(player: Player, seconds: Int, into: java.io.File): Boolean =
+        session(player)?.trace(seconds, into) ?: false
+
     /** What the pointer's chain costs this player right now, or null if no page is open. */
     fun cursorTiming(player: Player): String? = session(player)?.timing()
 
@@ -79,11 +83,21 @@ class PageManager(
      */
     private val aim = ru.voidrp.ui.input.PacketAim()
 
-    /** Whether the look is coming from the wire. Logged once at startup. */
-    val readsPackets: Boolean = runCatching { aim.install() }.getOrDefault(false)
+    /**
+     * Whether the look is coming from the wire. Logged once at startup.
+     *
+     * Set when the pages start rather than when this object is made: a plugin is
+     * constructed during the load phase, when the plugin it wants is loaded but not yet
+     * enabled — so asking then always answered no, and every ordinary server start fell
+     * back to reading the aim once a tick. Only a reload after the server was up ever got
+     * the fast path, which is why it looked as though it worked.
+     */
+    var readsPackets: Boolean = false
+        private set
 
     /** Whether foreign bars can be pushed below the page. Logged once at startup. */
-    val ordersBars: Boolean = runCatching { bars.install() }.getOrDefault(false)
+    var ordersBars: Boolean = false
+        private set
 
     /**
      * Frames are drawn off the server thread, because the server thread only runs twenty
@@ -131,6 +145,10 @@ class PageManager(
 
     /** Starts drawing frames at about the rate a screen refreshes. */
     fun start() {
+        // Now, not in the constructor: by the time a plugin is enabled, the plugins it
+        // asked to come first are enabled too.
+        readsPackets = runCatching { aim.install() }.getOrDefault(false)
+        ordersBars = runCatching { bars.install() }.getOrDefault(false)
         frames.scheduleAtFixedRate(
             {
                 runCatching { sessions.values.forEach { it.frame() } }

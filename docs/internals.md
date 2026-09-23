@@ -222,8 +222,22 @@ The cursor is the player's aim converted into canvas coordinates. The findings t
   pure function of the current aim.
 - **Pitch runs out at 90°.** Open a page while looking at your feet and the room to move
   down is already spent. Level the aim once, when the page opens — one packet, no fight.
-- **The client reports its rotation 20 times a second.** That is the ceiling on knowing the
-  position, but not on drawing: between ticks the cursor can be interpolated.
+- **The client reports its rotation 20 times a second — at best.** That is the ceiling on
+  *knowing* the position, but not on drawing it: between readings the cursor is reckoned
+  forward. Measured on a live client they arrived 66 to 110 ms apart, not the 50 the
+  protocol suggests, so the tracker measures the gap rather than assuming it.
+- **A hand at rest is silence, not a reading.** A client sends its aim only when the aim has
+  changed. Anything that waits to be *told* the hand has stopped waits for ever: a tracker
+  has to treat an overdue reading as the news. Getting this wrong left the pointer resting
+  twelve units from the button it was pointed at, and that is not visible in any simulation
+  that feeds it a steady stream of readings.
+- **A pointer that bounces reads as broken; one that trails only reads as slow.** The lead
+  that cancels the lag is worth having and has to be spent carefully: a drop in speed is
+  believed at once and a rise only after three readings agree, and there is a ceiling on how
+  far forward the pointer may be thrown. See `ru.voidrp.ui.input.Pointer`, where the
+  arithmetic and the measurements that chose its numbers live together.
+- **`/vui debug trace <seconds>`** writes every frame of the pointer to a CSV: the aim, the
+  reckoning and what was drawn. "The mouse feels bad" cannot be acted on; four columns can.
 - **The game does not report a button press — it reports a swing of the arm.** Held down,
   the swing arrives **every tick, exactly 50 ms apart**; clicked by hand, no closer than
   140 ms. The ranges do not overlap, so a press is the first swing after a pause of 80 ms.
