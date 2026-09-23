@@ -141,7 +141,7 @@ class PageManager(
      * is between one position and the next. Eighty-five is about one frame of a 144 Hz
      * screen; past that the packets cost more than the smoothness is worth.
      */
-    val frameRate: Int = plugin.config.getInt("input.frame-rate", 85).coerceIn(20, 144)
+    val frameRate: Int = plugin.config.getInt("input.frame-rate", DEFAULT_FRAME_RATE).coerceIn(20, 144)
 
     /**
      * How many gaps between readings the pointer is given to cover the distance one shows.
@@ -200,7 +200,7 @@ class PageManager(
         val ask = ScreenPage(
             choose = { chosen -> if (chosen == null) store.clear(player) else store.set(player, chosen) },
             done = {
-                // Pressing Готово without choosing counts as agreeing with the server's
+                // Pressing Done without choosing counts as agreeing with the server's
                 // guess: the question is asked once whatever the player does with it.
                 if (!store.isSet(player)) store.set(player, viewportOf(player))
                 then?.let { open(player, it) }
@@ -354,5 +354,11 @@ class PageManager(
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
         close(event.player)
+    }
+
+    companion object {
+
+        /** How often the pointer is drawn when nothing says otherwise. */
+        const val DEFAULT_FRAME_RATE = 85
     }
 }

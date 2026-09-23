@@ -21,9 +21,9 @@ object PageBench {
     @JvmStatic
     fun main(args: Array<String>) {
         listOf<Pair<String, Page>>(
-            "главная" to HomePage(),
-            "магазин" to ShopPage(),
-            "демо" to DemoPage(),
+            "home" to HomePage(),
+            "shop" to ShopPage(),
+            "demo" to DemoPage(),
         ).forEach { (name, page) ->
             repeat(50) { measure(page) }
             val runs = (1..200).map { measure(page) }
@@ -39,7 +39,7 @@ object PageBench {
                 level.flatMap { it.children() }.takeIf { it.isNotEmpty() }
             }.sumOf { it.size }
             println(
-                "%-9s %4d фигур, %6d символов, %5d кусков, %6d Б в пакете, %.2f мс (медиана), %.2f мс (худшая)".format(
+                "%-9s %4d shapes, %6d characters, %5d runs, %6d B on the wire, %.2f ms (median), %.2f ms (worst)".format(
                     name,
                     nodes.size,
                     length,
@@ -54,10 +54,12 @@ object PageBench {
         repeat(200) { cursorFrame() }
         val frames = (1..2000).map { cursorFrame() }.sorted()
         val median = frames[frames.size / 2] / 1_000_000.0
+        val rate = ru.voidrp.ui.page.PageManager.DEFAULT_FRAME_RATE
         println(
-            "кадр курсора: %.3f мс (медиана) — при 62 кадрах в секунду это %d игроков на ядро".format(
+            "cursor frame: %.3f ms (median) — at %d frames a second, %d players per core".format(
                 median,
-                (1000.0 / 62 / median).toInt(),
+                rate,
+                (1000.0 / rate / median).toInt(),
             ),
         )
     }

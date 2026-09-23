@@ -15,7 +15,7 @@ Clients from 1.21.6 to 26.1.2 are served too. Mojang renamed the text shader in 
 pack names its files outright, so one archive cannot cover both versions — the plugin
 builds two packs and hands each player the one their client can read.
 
-![The home page on a vanilla client, cursor and all](docs/home.png)
+![The home page on a vanilla client, cursor and all](docs/hero.png)
 
 That is a screenshot, not a mock-up and not a render: a vanilla client, the player's own
 skin, the game's own item textures, and the cursor sitting on the tile it is hovering.

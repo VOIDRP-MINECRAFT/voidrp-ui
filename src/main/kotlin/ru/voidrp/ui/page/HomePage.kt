@@ -705,9 +705,10 @@ open class HomePage : Page() {
                         align = Align.CENTER,
                         children = listOf(
                             Icon(icon, 16, Theme.VIOLET_SOFT),
-                            // «Блоков установлено» is eighteen letters in a tile a hundred
-                            // and fifty wide, so it sets small and without the tracking the
-                            // other labels carry. The site does the same.
+                            // A label like "Blocks placed" — eighteen letters in Russian —
+                            // has to fit a tile a hundred and fifty wide, so it sets small
+                            // and without the tracking the other labels carry. The site
+                            // does the same.
                             eyebrow(label, size = Theme.TEXT_MICRO, tracking = 0),
                             Text(value, Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                         ),
