@@ -270,7 +270,7 @@ Three files in `plugins/VoidRpUI/`, all optional — anything unset comes from t
 
 | File | What is in it |
 |---|---|
-| `config.yml` | where the pack is served from, cursor sensitivity, interface sounds, the screen the pages are laid out for |
+| `config.yml` | where the pack is served from, how the cursor moves (sensitivity, smoothing, frame rate), interface sounds, the screen the pages are laid out for |
 | `theme.yml` | colours, type sizes, rounding — the whole look, for your own brand ([four to start from](docs/theming.md)) |
 | `messages.yml` | every string a player is shown; MiniMessage is supported |
 
@@ -360,7 +360,7 @@ To look at the pages without joining the game, drawn by the code the client will
 | | |
 |---|---|
 | A page | 3 ms to lay out and encode, ~90 KB on the wire — only when something changed |
-| A cursor frame | 0.02 ms and a few dozen bytes, 62 times a second — hundreds of players per core |
+| A cursor frame | 0.02 ms and a few dozen bytes, 85 times a second — hundreds of players per core |
 | The pack | 1.2 MB, downloaded once on the first join |
 
 A page is sent again only when the page itself changed: hovering is drawn on the cursor's
