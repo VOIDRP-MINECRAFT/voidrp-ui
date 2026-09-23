@@ -18,7 +18,16 @@ import org.bukkit.entity.Player
  * A boss bar's title is a text component, and our glyphs are text, so a page is sent by
  * setting the title — no packets by hand and no version-specific plumbing.
  */
-class BossBarRenderer(private val log: Logger? = null) {
+class BossBarRenderer(
+    private val log: Logger? = null,
+    /**
+     * Told just before a bar of ours is created.
+     *
+     * Adventure never says what id it gave a bar, so whoever is watching the packets has
+     * to be told to expect the next one — see [ru.voidrp.ui.input.BossBarGuard].
+     */
+    private val announcing: (Player) -> Unit = {},
+) {
 
     companion object {
         /**
@@ -66,6 +75,7 @@ class BossBarRenderer(private val log: Logger? = null) {
 
     private fun bar(store: MutableMap<UUID, BossBar>, player: Player): BossBar =
         store.getOrPut(player.uniqueId) {
+            announcing(player)
             // Progress 0 keeps the bar itself invisible; only the title glyphs are drawn.
             BossBar.bossBar(Component.empty(), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS)
                 .also { player.showBossBar(it) }

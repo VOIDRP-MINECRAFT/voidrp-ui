@@ -79,6 +79,23 @@ object Layout {
         )
     }
 
+    /** The width this panel will actually have, when that is known before measuring. */
+    private fun Panel.declaredWidth(available: Int): Int = clampWidth(
+        when (width) {
+            is Size.Fixed -> (width as Size.Fixed).value
+            is Size.Percent -> resolve(width, available, available)
+            else -> available
+        },
+    )
+
+    private fun Panel.declaredHeight(available: Int): Int = clampHeight(
+        when (height) {
+            is Size.Fixed -> (height as Size.Fixed).value
+            is Size.Percent -> resolve(height, available, available)
+            else -> available
+        },
+    )
+
     /** Inside the panel's own limits: `max-width` and `min-width`, both optional. */
     private fun Panel.clampWidth(value: Int): Int =
         value.coerceAtMost(maxWidth ?: Int.MAX_VALUE).coerceAtLeast(minWidth ?: 0)
@@ -197,8 +214,13 @@ object Layout {
 
         is Panel -> {
             val frame = frame(view)
-            val innerWidth = (availableWidth - frame.width).coerceAtLeast(0)
-            val innerHeight = (availableHeight - frame.height).coerceAtLeast(0)
+            // A panel that was given a width of its own measures its children against
+            // *that*, not against whatever the parent could spare. It matters as soon as a
+            // child's size depends on the room it gets: a wrapping row in a 700-wide panel
+            // measured against 1130 reported one line where it draws two, and the row below
+            // it was laid on top of the second.
+            val innerWidth = (view.declaredWidth(availableWidth) - frame.width).coerceAtLeast(0)
+            val innerHeight = (view.declaredHeight(availableHeight) - frame.height).coerceAtLeast(0)
             val content = measureChildren(view, innerWidth, innerHeight)
             Extent(
                 view.clampWidth(resolve(view.width, content.width + frame.width, availableWidth)),

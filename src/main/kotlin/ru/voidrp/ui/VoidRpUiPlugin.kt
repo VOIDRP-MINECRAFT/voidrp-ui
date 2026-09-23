@@ -37,7 +37,10 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     val messages = Messages(this)
     val sounds = Sounds(this)
-    val renderer = BossBarRenderer(logger)
+    /** Watches boss bars so the page can stay on the first of them. */
+    val bars = ru.voidrp.ui.input.BossBarGuard()
+
+    val renderer = BossBarRenderer(logger, bars::expectOwn)
 
     /**
      * What shape each player's screen is — the one thing the game never tells the server.
@@ -59,6 +62,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         ::packReady,
         screens,
         { config.getBoolean("display.ask-screen", true) },
+        bars,
     )
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
@@ -189,6 +193,12 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         server.servicesManager.register(VoidRpUi::class.java, pages, this, ServicePriority.Normal)
         // The cursor follows the player's aim, so it is read every tick.
         server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
+        if (!pages.ordersBars) {
+            logger.info(
+                "No PacketEvents: if another plugin shows a boss bar, a page opened after it " +
+                    "sits 19 units lower. Hide that bar while pages are open, or install PacketEvents."
+            )
+        }
         logger.info(
             if (pages.readsPackets) {
                 "Aim is read straight off the packets — no extra lag on the cursor."
@@ -265,6 +275,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
+        pages.forget(event.player)
         hostnames.remove(event.player.uniqueId)
         packStatus.remove(event.player.uniqueId)
         sentHash.remove(event.player.uniqueId)

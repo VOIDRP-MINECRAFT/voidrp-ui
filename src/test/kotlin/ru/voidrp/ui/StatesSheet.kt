@@ -108,6 +108,52 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                             ).map { chip(it) },
                         ),
                     ),
+                    row(
+                        "длинный текст и прокрутка",
+                        Panel(
+                            style = Theme.card,
+                            width = Size.Fixed(300),
+                            children = listOf(
+                                Text(
+                                    "Строка, которая заведомо не помещается в свою карточку и обязана оборваться",
+                                    Theme.TEXT_BODY,
+                                    Theme.INK,
+                                    maxLines = 2,
+                                ),
+                            ),
+                        ),
+                        Panel(
+                            style = Theme.card,
+                            width = Size.Fixed(300),
+                            height = Size.Fixed(110),
+                            children = listOf(
+                                Scroll(
+                                    id = "list",
+                                    offset = 40,
+                                    height = Size.Fixed(84),
+                                    width = Size.Fill,
+                                    gap = 6,
+                                    children = (1..8).map {
+                                        Panel(
+                                            style = Theme.card.copy(padding = Insets.symmetric(6, 10)),
+                                            width = Size.Fill,
+                                            height = Size.Fixed(30),
+                                            justify = ru.voidrp.ui.layout.Justify.CENTER,
+                                            children = listOf(Text("Строка $it", Theme.TEXT_BODY, Theme.INK_SOFT)),
+                                        )
+                                    },
+                                ),
+                            ),
+                        ),
+                        Panel(
+                            style = Theme.cardAccent,
+                            width = Size.Fixed(300),
+                            height = Size.Fixed(110),
+                            justify = ru.voidrp.ui.layout.Justify.CENTER,
+                            align = Align.CENTER,
+                            children = listOf(Text("Акцентная карточка", Theme.TEXT_LEAD, Theme.INK)),
+                        ),
+                    ),
     )
 
     private fun second(): List<View> = listOf(
@@ -194,52 +240,6 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                         Panel(width = Size.Fixed(230), children = listOf(select("m1", MODES, 0, false))),
                         Panel(width = Size.Fixed(230), children = listOf(select("m2", MODES, 1, true))),
                         Panel(width = Size.Fixed(300), children = listOf(tooltipPanel("Алмаз", listOf("120 ₽", "12 шт")))),
-                    ),
-                    row(
-                        "длинный текст и прокрутка",
-                        Panel(
-                            style = Theme.card,
-                            width = Size.Fixed(300),
-                            children = listOf(
-                                Text(
-                                    "Строка, которая заведомо не помещается в свою карточку и обязана оборваться",
-                                    Theme.TEXT_BODY,
-                                    Theme.INK,
-                                    maxLines = 2,
-                                ),
-                            ),
-                        ),
-                        Panel(
-                            style = Theme.card,
-                            width = Size.Fixed(300),
-                            height = Size.Fixed(110),
-                            children = listOf(
-                                Scroll(
-                                    id = "list",
-                                    offset = 40,
-                                    height = Size.Fixed(84),
-                                    width = Size.Fill,
-                                    gap = 6,
-                                    children = (1..8).map {
-                                        Panel(
-                                            style = Theme.card.copy(padding = Insets.symmetric(6, 10)),
-                                            width = Size.Fill,
-                                            height = Size.Fixed(30),
-                                            justify = ru.voidrp.ui.layout.Justify.CENTER,
-                                            children = listOf(Text("Строка $it", Theme.TEXT_BODY, Theme.INK_SOFT)),
-                                        )
-                                    },
-                                ),
-                            ),
-                        ),
-                        Panel(
-                            style = Theme.cardAccent,
-                            width = Size.Fixed(300),
-                            height = Size.Fixed(110),
-                            justify = ru.voidrp.ui.layout.Justify.CENTER,
-                            align = Align.CENTER,
-                            children = listOf(Text("Акцентная карточка", Theme.TEXT_LEAD, Theme.INK)),
-                        ),
                     ),
     )
 

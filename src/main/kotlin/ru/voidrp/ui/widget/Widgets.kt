@@ -193,7 +193,7 @@ fun Page.select(
                 Overlay(
                     Panel(
                         style = Theme.menu,
-                        gap = 2,
+                        gap = 1,
                         width = Size.Fill,
                         children = options.mapIndexed { index, option ->
                             option(id, index, option, index == selected)
@@ -205,18 +205,39 @@ fun Page.select(
     },
 )
 
+/**
+ * One line of an open list.
+ *
+ * A row, not a card: options built out of the card style came with a border and a card's
+ * padding each, so an open list read as a stack of little panels rather than a menu. The
+ * panel around them is the surface; a row only lights up under the pointer and marks the
+ * one already chosen.
+ */
 private fun Page.option(id: String, index: Int, option: String, selected: Boolean): View {
     val optionId = "$id:option:$index"
+    val background = when {
+        hovered == optionId -> Paint(Theme.VIOLET, 0.28)
+        selected -> Paint(Theme.LINE, 0.10)
+        else -> null
+    }
     return Panel(
-        style = if (hovered == optionId) Theme.cardAccent else Theme.card,
+        style = Style(
+            background = background,
+            radius = Theme.R_SM,
+            padding = Insets.symmetric(0, Theme.SPACE_3),
+        ),
         width = Size.Fill,
-        height = Size.Fixed(34),
+        height = Size.Fixed(32),
         direction = Direction.ROW,
         align = Align.CENTER,
         id = optionId,
-        children = listOf(
-            Text(option, Theme.TEXT_BODY, if (selected) Theme.INK else Theme.INK_SOFT, wrap = false),
-        ),
+        children = buildList {
+            add(Text(option, Theme.TEXT_BODY, if (selected) Theme.INK else Theme.INK_SOFT, wrap = false))
+            if (selected) {
+                add(Panel(width = Size.Fill))
+                add(Icon("check", 14, Theme.VIOLET_SOFT))
+            }
+        },
     )
 }
 

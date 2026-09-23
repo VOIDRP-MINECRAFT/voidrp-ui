@@ -51,6 +51,12 @@ class PageManager(
      * takes a slice off both sides of every page they ever open.
      */
     private val asksScreen: () -> Boolean = { true },
+    /**
+     * Keeps the page on the first boss bar when another plugin is showing one of its own.
+     *
+     * Needs PacketEvents: a bar someone else owns is invisible to the server otherwise.
+     */
+    private val bars: ru.voidrp.ui.input.BossBarGuard = ru.voidrp.ui.input.BossBarGuard(),
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -72,6 +78,9 @@ class PageManager(
 
     /** Whether the look is coming from the wire. Logged once at startup. */
     val readsPackets: Boolean = runCatching { aim.install() }.getOrDefault(false)
+
+    /** Whether foreign bars can be pushed below the page. Logged once at startup. */
+    val ordersBars: Boolean = runCatching { bars.install() }.getOrDefault(false)
 
     /**
      * Frames are drawn off the server thread, because the server thread only runs twenty
@@ -120,6 +129,7 @@ class PageManager(
 
     fun shutdown() {
         frames.shutdownNow()
+        bars.uninstall()
         // Before the sessions, because a listener left registered outlives this plugin's
         // class loader and throws on every packet that arrives after it.
         aim.uninstall()
@@ -189,12 +199,20 @@ class PageManager(
         // is a line lower than it thinks, which shows as a gap along the top of the screen.
         session.open()
         sessions[player.uniqueId] = session
+        // Now that the page's own bars exist, anything another plugin was already showing
+        // is sent again so that it lands underneath them rather than pushing the page down.
+        if (plugin.config.getBoolean("input.bar-priority", true)) bars.demoteOthers(player)
         return true
     }
 
     override fun close(player: Player) {
         sessions.remove(player.uniqueId)?.close()
         aim.forget(player.uniqueId)
+    }
+
+    /** A player who left takes their bars with them. */
+    fun forget(player: Player) {
+        bars.forget(player.uniqueId)
     }
 
     override fun isOpen(player: Player): Boolean = session(player) != null

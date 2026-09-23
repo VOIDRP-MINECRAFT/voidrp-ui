@@ -77,6 +77,14 @@ input:
   # the cursor crosses a card is felt as the cursor stuttering. By default the highlight is
   # drawn on the cursor's own bar and the page stays as it is.
   redraw-on-hover: false
+  # Keep the page on the first boss bar.
+  #
+  # A page rides a boss bar, and bars stack in the order the client first saw them — so a
+  # bar another plugin was already showing puts the page a line lower, which shows as a
+  # strip of the world along the top. With PacketEvents installed the plugin sends those
+  # bars again when a page opens, and they land underneath it instead. Nothing is hidden:
+  # a bar keeps its id and its own plugin goes on updating it. It flickers once.
+  bar-priority: true
 
 # Interface sounds. An empty name means silence.
 sound:
