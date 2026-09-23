@@ -80,7 +80,7 @@ dependencies {
  */
 tasks.register<JavaExec>("preview") {
     group = "voidrp"
-    description = "Рисует демо-страницы в build/preview"
+    description = "Draws the demo pages into build/preview"
     mainClass.set("ru.voidrp.ui.Preview")
     classpath = sourceSets["test"].runtimeClasspath
     environment("VOIDRP_CLIENT_JAR", System.getenv("VOIDRP_CLIENT_JAR") ?: "")
@@ -91,14 +91,14 @@ tasks.register<JavaExec>("preview") {
 
 tasks.register<JavaExec>("bench") {
     group = "voidrp"
-    description = "Меряет, во что обходится отрисовка страницы"
+    description = "Measures what drawing a page costs"
     mainClass.set("ru.voidrp.ui.PageBench")
     classpath = sourceSets["test"].runtimeClasspath
 }
 
 tasks.register<JavaExec>("packWeight") {
     group = "voidrp"
-    description = "Собирает пак и печатает его вес"
+    description = "Builds the pack and prints what it weighs"
     mainClass.set("ru.voidrp.ui.PackWeight")
     classpath = sourceSets["test"].runtimeClasspath
 }

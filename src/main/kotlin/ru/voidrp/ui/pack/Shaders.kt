@@ -155,12 +155,12 @@ object Shaders {
                 "in vec2 texCoord0;",
                 "in vec2 texCoord0;\nin float voidrpShape;",
             )
-            check(declared != vanilla) { "Не нашёл texCoord0 в ванильном фрагментном шейдере" }
+            check(declared != vanilla) { "No texCoord0 in the vanilla fragment shader" }
             val patched = declared.replace(
                 "if (color.a < 0.1) {",
                 "if (color.a < (voidrpShape > 0.5 ? 0.004 : 0.1)) {",
             )
-            check(patched != declared) { "Не нашёл отсечение по альфе в ванильном фрагментном шейдере" }
+            check(patched != declared) { "No alpha cutoff in the vanilla fragment shader" }
             return patched
         }
 

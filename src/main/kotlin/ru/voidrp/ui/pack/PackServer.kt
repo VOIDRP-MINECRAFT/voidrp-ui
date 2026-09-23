@@ -44,12 +44,12 @@ class PackServer(
             http.executor = null
             http.start()
             server = http
-            log.info("Раздаю ресурспак на порту $port$PATH")
+            log.info("Serving the resource pack on port $port$PATH")
             true
         } catch (error: Exception) {
             log.warning(
-                "Не удалось занять порт $port для раздачи пака (${error.message}). " +
-                    "Укажите другой в pack.serve.port или выложите архив сами и пропишите pack.url."
+                "Could not take port $port to serve the pack (${error.message}). " +
+                    "Set another in pack.serve.port, or host the archive yourself and set pack.url."
             )
             false
         }

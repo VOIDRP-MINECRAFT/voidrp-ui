@@ -123,13 +123,13 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         val images = File(dataFolder, "images").apply { mkdirs() }
         ru.voidrp.ui.pack.ServerImages.load(images)
         if (ru.voidrp.ui.pack.ServerImages.names.isNotEmpty()) {
-            logger.info("Свои картинки: ${ru.voidrp.ui.pack.ServerImages.names.joinToString(", ")}")
+            logger.info("Server pictures: ${ru.voidrp.ui.pack.ServerImages.names.joinToString(", ")}")
         }
 
         val skins = File(dataFolder, "heads").apply { mkdirs() }
         ru.voidrp.ui.pack.PlayerHeads.load(skins)
         if (ru.voidrp.ui.pack.PlayerHeads.names.isNotEmpty()) {
-            logger.info("Головы: ${ru.voidrp.ui.pack.PlayerHeads.names.joinToString(", ")}")
+            logger.info("Faces: ${ru.voidrp.ui.pack.PlayerHeads.names.joinToString(", ")}")
         }
 
         // What to lay out for until a player says what their own screen looks like.
@@ -138,8 +138,8 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             ?: ru.voidrp.ui.layout.Viewport.DEFAULT
         screens.load()
         logger.info(
-            "Холст по умолчанию: ${ru.voidrp.ui.layout.Viewport.name(serverScreen)} " +
-                "(${serverScreen.width}×${serverScreen.height}). Игрок меняет своим /vui screen."
+            "Assumed screen: ${ru.voidrp.ui.layout.Viewport.name(serverScreen)} " +
+                "(${serverScreen.width}×${serverScreen.height}). A player sets their own with /vui screen."
         )
 
         packFile = File(dataFolder, "voidrp-ui.zip")
@@ -147,7 +147,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             shaderMode = config.getString("pack.shader-mode", "patched")!!,
             withOverlay = config.getBoolean("pack.legacy-overlay", false),
         ).build(packFile)
-        logger.info("Ресурспак собран: ${packFile.name}, ${packFile.length() / 1024} КБ, sha1 $packHash")
+        logger.info("Pack built: ${packFile.name}, ${packFile.length() / 1024} KB, sha1 $packHash")
 
         if (config.getBoolean("pack.legacy", true)) {
             val older = File(dataFolder, "voidrp-ui-legacy.zip")
@@ -157,15 +157,15 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             ).build(older)
             legacyFile = older
             logger.info(
-                "Пак для клиентов до 26.2 собран: ${older.name}, ${older.length() / 1024} КБ, sha1 $legacyHash"
+                "Pack for clients older than 26.2 built: ${older.name}, ${older.length() / 1024} KB, sha1 $legacyHash"
             )
             if (!config.getString("pack.url").isNullOrBlank() &&
                 config.getString("pack.legacy-url").isNullOrBlank()
             ) {
                 logger.warning(
-                    "Пак раздаётся по pack.url, а адреса для сборки под клиенты до 26.2 нет: " +
-                        "выложите ${older.name} рядом и укажите pack.legacy-url, иначе такие игроки " +
-                        "останутся без интерфейса."
+                    "The pack is served from pack.url but there is no address for the build for clients " +
+                        "older than 26.2: host ${older.name} beside it and set pack.legacy-url, or " +
+                        "those players get no interface at all."
                 )
             }
         }
@@ -191,9 +191,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         server.scheduler.runTaskTimer(this, Runnable { pages.tick() }, 1L, 1L)
         logger.info(
             if (pages.readsPackets) {
-                "Поворот игрока читается прямо из пакетов — курсор без лишней задержки."
+                "Aim is read straight off the packets — no extra lag on the cursor."
             } else {
-                "PacketEvents не найден: поворот читается раз в тик, курсор отстаёт до 50 мс."
+                "No PacketEvents: aim is read once a tick, so the cursor lags by up to 50 ms."
             },
         )
         pages.start()
@@ -232,7 +232,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     fun onPackStatus(event: PlayerResourcePackStatusEvent) {
         if (event.id != PACK_ID) return
         packStatus[event.player.uniqueId] = event.status
-        logger.info("Ресурспак у ${event.player.name}: ${event.status}")
+        logger.info("Pack for ${event.player.name}: ${event.status}")
 
         // A client that downloaded the pack and then could not load it is usually one that
         // reads the old shader names — which is exactly what the other pack is for. Only
@@ -246,7 +246,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         if (!canSendLegacy(player)) return
         if (sentHash[player.uniqueId] == legacyHash) return
         if (!retried.add(player.uniqueId)) return
-        logger.info("Пак не встал у ${player.name} — отправляю сборку для клиентов до 26.2.")
+        logger.info("The pack would not load for ${player.name} — sending the build for clients older than 26.2.")
         sendPack(player, older = true)
     }
 
@@ -309,9 +309,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
                     val bytes = java.net.URI.create(url).toURL().openStream().use { it.readBytes() }
                     folder.mkdirs()
                     file.writeBytes(bytes)
-                    logger.info("Скин ${player.name} сохранён — лицо появится в паке после следующей сборки.")
+                    logger.info("Saved ${player.name}'s skin — the face enters the pack the next time it is built.")
                 }.onFailure {
-                    logger.fine("Скин ${player.name} забрать не удалось: ${it.message}")
+                    logger.fine("Could not fetch ${player.name}'s skin: ${it.message}")
                 }
             },
         )
@@ -338,7 +338,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
     private fun sendPack(player: Player, older: Boolean) {
         val url = packUrl(player, older)
         if (url.isBlank()) {
-            logger.warning("Пак негде взять: укажите pack.url или включите pack.serve.enabled.")
+            logger.warning("Nowhere to fetch the pack from: set pack.url or enable pack.serve.enabled.")
             player.sendMessage(messages.get("pack.unavailable"))
             return
         }

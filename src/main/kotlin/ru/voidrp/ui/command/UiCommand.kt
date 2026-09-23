@@ -49,7 +49,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
 
             // The one thing the game never tells the server: what shape the window is.
             // Asked for here rather than guessed, and remembered for good.
-            "screen", "экран" -> withPlayer(sender) { player -> screen(player, args.getOrNull(1)) }
+            "screen" -> withPlayer(sender) { player -> screen(player, args.getOrNull(1)) }
 
             "help", null -> sender.sendMessage(plugin.messages.get("command.usage"))
 
@@ -63,14 +63,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         if (choice == null) {
             // Shown rather than described: the page draws a frame at the width the server
             // believes in, and the player picks until it sits on the edges of their screen.
-            val opened = plugin.pages.open(
-                player,
-                ru.voidrp.ui.page.ScreenPage(
-                    choose = { chosen ->
-                        if (chosen == null) screens.clear(player) else screens.set(player, chosen)
-                    },
-                ),
-            )
+            val opened = plugin.pages.askScreen(player)
             if (!opened) {
                 player.sendMessage(
                     plugin.messages.get("screen.current", "screen" to Viewport.name(screens.of(player))),
@@ -81,7 +74,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             }
             return
         }
-        if (choice.equals("auto", ignoreCase = true) || choice.equals("сброс", ignoreCase = true)) {
+        if (choice.equals("auto", ignoreCase = true) || choice.equals("server", ignoreCase = true)) {
             screens.clear(player)
             player.sendMessage(
                 plugin.messages.get("screen.auto", "screen" to Viewport.name(screens.of(player))),

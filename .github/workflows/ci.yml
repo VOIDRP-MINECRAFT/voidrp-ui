@@ -1,7 +1,7 @@
-name: Сборка и тесты
+name: Build and tests
 
-# Инвариант проекта — сервер обязан предсказывать перо клиента до пикселя, и
-# проверяют это тесты, а не глаза игрока. Поэтому они гоняются на каждый пуш.
+# The invariant of the project: the server must predict the client's pen to the pixel, and
+# what checks that is the tests, not a player's eyes. So they run on every push.
 on:
   push:
     branches: [main]
@@ -13,8 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Paper 26.2 требует 25-й JDK для компиляции; Gradle скачает его сам
-      # (foojay-resolver в settings.gradle.kts), а здесь нужен любой современный.
+      # Compiling against Paper 26.2 needs JDK 25; Gradle fetches it itself
+      # (foojay-resolver in settings.gradle.kts), so any recent one will do here.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -22,11 +22,11 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Тесты
+      - name: Tests
         run: ./gradlew test
 
-      # Проверка ширин иконок пропускается: клиентский jar распространять нельзя.
-      - name: Сборка
+      # The icon-width check is skipped: we have no right to distribute a client jar.
+      - name: Build
         run: ./gradlew shadowJar
 
       - uses: actions/upload-artifact@v4

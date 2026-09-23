@@ -48,34 +48,34 @@ open class HomePage : Page() {
     )
 
     private val tiles = listOf(
-        "tech" to "Технологии",
-        "treasury" to "Казна",
-        "quest" to "Квесты",
-        "alliance" to "Альянс",
-        "market" to "Рынок",
-        "battlepass" to "Пропуск",
+        "tech" to "Research",
+        "treasury" to "Treasury",
+        "quest" to "Quests",
+        "alliance" to "Alliance",
+        "market" to "Market",
+        "battlepass" to "Pass",
     )
 
     private val stats = listOf(
         Triple("target", "K/D", "3.86"),
-        Triple("flame", "Лучший стрик", "14"),
-        Triple("skull", "Мобов убито", "3 820"),
-        Triple("quest", "Квестов", "57"),
-        Triple("pickaxe", "Блоков добыто", "128 407"),
-        Triple("package", "Блоков установлено", "96 233"),
+        Triple("flame", "Best streak", "14"),
+        Triple("skull", "Mobs killed", "3 820"),
+        Triple("quest", "Quests done", "57"),
+        Triple("pickaxe", "Blocks mined", "128 407"),
+        Triple("package", "Blocks placed", "96 233"),
     )
 
     private val achievements = listOf(
-        "Первый алмаз" to true,
-        "Сто убийств" to true,
-        "Основатель" to true,
-        "Ночь в аду" to true,
-        "Древний страж" to true,
-        "Золотая лихорадка" to true,
-        "Сотня квестов" to false,
-        "Мастер торговли" to false,
-        "Повелитель бездны" to false,
-        "Легенда сервера" to false,
+        "First diamond" to true,
+        "A hundred kills" to true,
+        "Founder" to true,
+        "A night in the Nether" to true,
+        "Ancient guardian" to true,
+        "Gold rush" to true,
+        "A hundred quests" to false,
+        "Master trader" to false,
+        "Lord of the void" to false,
+        "Server legend" to false,
     )
 
     /** Where the stars sit, as fractions of the canvas, so they scatter the same each time. */
@@ -250,7 +250,7 @@ open class HomePage : Page() {
                 size = Theme.TEXT_LEAD,
             ),
             Text("/", Theme.TEXT_LEAD, Theme.INK_DIM, wrap = false),
-            eyebrow("Главная"),
+            eyebrow("Home"),
             Panel(width = Size.Fill),
             balanceChip("voidcoin", "120", Theme.VIOLET_SOFT),
             balanceChip("coins", "184 200", Theme.GOLD),
@@ -365,7 +365,7 @@ open class HomePage : Page() {
                 align = Align.CENTER,
                 children = listOf(
                     Icon("shield", 12, Theme.INK_DIM),
-                    Text("Глава · Валдария", Theme.TEXT_BODY, Theme.INK_SOFT, wrap = false),
+                    Text("Leader · Valdaria", Theme.TEXT_BODY, Theme.INK_SOFT, wrap = false),
                 ),
             ),
             Panel(
@@ -386,7 +386,7 @@ open class HomePage : Page() {
                         children = listOf(
                             Icon("battlepass", 14, Theme.INK_SOFT),
                             Text(
-                                "Уровень 37",
+                                "Level 37",
                                 Theme.TEXT_BODY,
                                 Theme.VIOLET_SOFT,
                                 TextFonts.Weight.SEMIBOLD,
@@ -427,7 +427,7 @@ open class HomePage : Page() {
                     ),
                 ),
             ),
-            Text("с 12 мар. 2026 г.", Theme.TEXT_CAPTION, Theme.INK_DIM, wrap = false),
+            Text("since 12 Mar 2026", Theme.TEXT_CAPTION, Theme.INK_DIM, wrap = false),
         ),
     )
 
@@ -489,10 +489,10 @@ open class HomePage : Page() {
                 width = Size.Fill,
                 gap = Theme.SPACE_2,
                 children = listOf(
-                    eyebrow("VoidRP · Главная", Theme.VIOLET_SOFT),
+                    eyebrow("VoidRP · Home", Theme.VIOLET_SOFT),
                     RichText(
                         spans = listOf(
-                            Span("Добро пожаловать в ", Theme.INK),
+                            Span("Welcome to ", Theme.INK),
                             Span("VOID", Theme.INK, TextFonts.Weight.BOLD),
                             Span("RP", Theme.VIOLET_SOFT, TextFonts.Weight.BOLD),
                         ),
@@ -505,8 +505,8 @@ open class HomePage : Page() {
                         width = Size.Fixed(540),
                         children = listOf(
                             Text(
-                                "Развивайся, сражайся и стань легендой своей империи. " +
-                                    "Лучший Minecraft RPG-сервер с уникальными возможностями.",
+                                "Build, fight and become the legend of your own empire. " +
+                                    "A Minecraft RPG server with a world of its own.",
                                 Theme.TEXT_BODY,
                                 Theme.INK_SOFT,
                             ),
@@ -539,7 +539,7 @@ open class HomePage : Page() {
                             // on an accent this bright, the letters are thin enough that the
                             // difference shows.
                             Icon("play", 16, 0xFFFFFF),
-                            Text("Начать игру", Theme.TEXT_BODY, 0xFFFFFF, TextFonts.Weight.SEMIBOLD, wrap = false),
+                            Text("Play", Theme.TEXT_BODY, 0xFFFFFF, TextFonts.Weight.SEMIBOLD, wrap = false),
                         ),
                     ),
                 ),
@@ -589,10 +589,10 @@ open class HomePage : Page() {
         gap = Theme.SPACE_3,
         width = Size.Fill,
         children = listOf(
-            kpi("wallet", "Баланс", "184 200", Theme.GOLD),
-            kpi("swords", "PVP убийств", "1 204", Theme.INK),
-            kpi("skull", "Смертей", "312", Theme.INK),
-            kpi("clock", "Наиграно", "11д 4ч", Theme.INK),
+            kpi("wallet", "Balance", "184 200", Theme.GOLD),
+            kpi("swords", "PvP kills", "1 204", Theme.INK),
+            kpi("skull", "Deaths", "312", Theme.INK),
+            kpi("clock", "Played", "11d 4h", Theme.INK),
         ),
     )
 
@@ -670,7 +670,7 @@ open class HomePage : Page() {
         width = Size.Fill,
         gap = Theme.SPACE_3,
         children = listOf(
-            panelHead("activity", "Статистика"),
+            panelHead("activity", "Statistics"),
             Grid(
                 columns = 3,
                 gap = Theme.SPACE_2,
@@ -707,7 +707,7 @@ open class HomePage : Page() {
         width = Size.Fixed(420),
         gap = Theme.SPACE_3,
         children = listOf(
-            panelHead("grid", "Быстрый доступ"),
+            panelHead("grid", "Quick access"),
             Grid(
                 columns = 3,
                 gap = Theme.SPACE_2,
@@ -760,7 +760,7 @@ open class HomePage : Page() {
                 gap = Theme.SPACE_2,
                 children = listOf(
                     Icon("trophy", 16, Theme.INK_SOFT),
-                    eyebrow("Достижения", Theme.INK),
+                    eyebrow("Achievements", Theme.INK),
                     Panel(width = Size.Fill),
                     Text("12/40", Theme.TEXT_CAPTION, Theme.GOLD, TextFonts.Weight.BOLD, wrap = false),
                 ),
@@ -796,7 +796,7 @@ open class HomePage : Page() {
                             ),
                             Text(name, Theme.TEXT_BODY, if (unlocked) Theme.INK else Theme.INK_DIM, wrap = false),
                             Panel(width = Size.Fill),
-                            eyebrow(if (unlocked) "получено" else "закрыто", if (unlocked) Theme.GREEN else Theme.INK_DIM),
+                            eyebrow(if (unlocked) "unlocked" else "locked", if (unlocked) Theme.GREEN else Theme.INK_DIM),
                         ),
                     )
                 },

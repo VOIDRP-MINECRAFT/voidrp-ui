@@ -1,63 +1,65 @@
 # VoidRP UI
 
-[![Сборка и тесты](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml)
-[![Релиз](https://img.shields.io/github/v/release/VOIDRP-MINECRAFT/voidrp-ui?label=релиз)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest)
-[![Лицензия MIT](https://img.shields.io/badge/лицензия-MIT-blue)](LICENSE)
+[![Build and tests](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/VOIDRP-MINECRAFT/voidrp-ui?label=release)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest)
+[![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 
-Настоящие интерфейсы на **ванильном клиенте Minecraft**. Без модов, без форджа, без
-клиентских установок: игрок заходит обычным клиентом, принимает ресурспак — и видит окна
-со скруглениями, прозрачностью, шрифтом Inter, иконками предметов и курсором, который
-слушается мыши.
+Real interfaces on a **vanilla Minecraft client**. No mods, no Forge, nothing for the
+player to install: they join with the client they already have, accept the server's
+resource pack, and see panels with rounded corners, opacity, the Inter typeface, item
+icons and a cursor that answers the mouse.
 
-Плагин под Paper 26.2. Открытый код, лицензия MIT.
+A Paper plugin, MIT licensed.
 
-Клиенты 1.21.6–26.1.2 тоже обслуживаются: в 26.2 шейдер текста переименовали, а пак
-называет свои файлы прямо, поэтому одним архивом обе версии не накрыть. Плагин собирает
-два пака и выдаёт каждому игроку свой.
+Clients from 1.21.6 to 26.1.2 are served too. Mojang renamed the text shader in 26.2 and a
+pack names its files outright, so one archive cannot cover both versions — the plugin
+builds two packs and hands each player the one their client can read.
 
-![Главная страница, нарисованная на ванильном клиенте](docs/home.png)
+![The home page, drawn by a vanilla client](docs/home.png)
 
-Это не мокап: страница выше нарисована тем же кодом, который отправляет её игроку —
-каждый прямоугольник, буква и иконка здесь едут одной строкой текста в невидимом
-босс-баре. Снимок делается командой `./gradlew preview`, без запуска игры.
+This is not a mock-up: the page above was drawn by the same code that sends it to a player.
+Every rectangle, letter and icon in it travels as one line of text in an invisible boss
+bar. The picture is taken with `./gradlew preview`, without starting the game.
 
-## Зачем
+## Why
 
-В Minecraft интерфейс сервера — это сундук с предметами. Всё, что сложнее, требует мода на
-клиенте, а мод ставят единицы. Платные решения вроде LocoUI рисуют интерфейс на ванильном
-клиенте, но страницы в них собирают мышкой в редакторе и запекают в ресурспак: данные,
-которых не было на момент сборки, показать нечем.
+A server interface in Minecraft is a chest full of items. Anything richer needs a client
+mod, and hardly anyone installs one. Paid products like LocoUI do draw interfaces on a
+vanilla client, but their pages are assembled by mouse in an editor and baked into a
+resource pack: data that did not exist when the pack was built cannot be shown.
 
-Здесь страница — это **код**, а всё содержимое едет с сервера в момент показа. Никакой
-пересборки пака ради новой кнопки.
+Here a page is **code**, and everything in it travels from the server at the moment it is
+shown. No repacking to add a button.
 
-## Документация
+## Documentation
 
 | | |
 |---|---|
-| [Вёрстка](docs/вёрстка.md) | панели, размеры, сетки, прокрутка, области — из чего собирается страница |
-| [Страница](docs/страница.md) | состояние, события, переходы, подсказки, ввод текста, API для своего плагина |
-| [Готовые элементы](docs/компоненты.md) | кнопки, вкладки, переключатели, плитки, сообщения, диалоги — и как написать свой |
-| [Пример плагина](example/) | рабочий минимум: команда, страница, одна зависимость — папку можно скопировать и собрать |
-| [Что менялось](CHANGELOG.md) | версии и что в них приехало |
-| [Адаптивность](docs/адаптивность.md) | холст под экран игрока, брейкпоинты, безопасная полоса, настройка формата |
+| [Layout](docs/layout.md) | panels, sizes, grids, scrolling, regions — what a page is built from |
+| [Pages](docs/page.md) | state, events, navigation, tooltips, text input, the API for your own plugin |
+| [Components](docs/components.md) | buttons, tabs, switches, tiles, notices, dialogs — and how to write your own |
+| [Responsive](docs/responsive.md) | a canvas shaped like the player's screen, breakpoints, the safe band, screen setup |
+| [Example plugin](example/) | the working minimum: a command, a page, one dependency — copy the folder and build it |
+| [Internals](docs/internals.md) | how the trick works, and every rake it stepped on |
+| [Changelog](CHANGELOG.md) | versions, and what arrived in them |
 
-## Установка
+## Installing
 
-1. Скачайте jar из [релизов](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest).
-2. Положите его в `plugins/` и перезапустите сервер.
-3. Всё.
+1. Download the jar from [releases](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest).
+2. Drop it into `plugins/` and restart the server.
+3. That is all.
 
-Первому зашедшему игроку плагин покажет настройку формата экрана — рамку по краям, которую
-он подгоняет под свой монитор. Это пять секунд и один раз в жизни; зачем оно нужно, написано
-в [адаптивности](docs/адаптивность.md), а выключается через `display.ask-screen: false`.
+The first page a player opens starts with screen setup — a frame on the edge of the canvas
+that they line up with their own monitor. Five seconds, once in their life; why it is
+needed at all is in [responsive](docs/responsive.md), and it is turned off with
+`display.ask-screen: false`.
 
-Плагин собирает ресурспак сам и сам же его раздаёт: поднимает маленький HTTP-сервер (порт
-`8123` по умолчанию) и даёт игроку ссылку на тот адрес, который игрок ввёл при подключении.
-Если порт закрыт фаерволом или сервер стоит за прокси — выложите
-`plugins/VoidRpUI/voidrp-ui.zip` куда угодно и укажите `pack.url` в конфиге.
+The plugin builds the resource pack itself and serves it itself: a small HTTP server (port
+`8123` by default) hands each player a link to the address they typed to get here. If the
+port is closed or the server sits behind a proxy, put `plugins/VoidRpUI/voidrp-ui.zip`
+anywhere you like and set `pack.url` in the config.
 
-## Страница за пятнадцать строк
+## A page in fifteen lines
 
 ```kotlin
 class ShopPage(private val balance: Int) : Page() {
@@ -67,15 +69,15 @@ class ShopPage(private val balance: Int) : Page() {
         width = Size.Fixed(600),
         gap = Theme.SPACE_4,
         children = listOf(
-            Text("Магазин", Theme.TEXT_H2, Theme.INK, Weight.SEMIBOLD),
-            Text("На счету: $balance", Theme.TEXT_BODY, Theme.INK_SOFT),
+            Text("Shop", Theme.TEXT_H2, Theme.INK, Weight.SEMIBOLD),
+            Text("Balance: $balance", Theme.TEXT_BODY, Theme.INK_SOFT),
             Panel(
                 direction = Direction.ROW,
                 gap = Theme.SPACE_3,
                 align = Align.CENTER,
-                children = listOf(Image("diamond", 32), Text("Алмаз — 100")),
+                children = listOf(Image("diamond", 32), Text("Diamond — 100")),
             ),
-            button("Купить", id = "buy"),
+            button("Buy", id = "buy"),
         ),
     )
 
@@ -87,26 +89,26 @@ class ShopPage(private val balance: Int) : Page() {
 plugin.pages.open(player, ShopPage(balance))
 ```
 
-Страница — функция своего состояния: поменяли поле, позвали `refresh()`, и нарисовалось
-новое. Никакого ручного обновления элементов.
+A page is a function of its own state: change a field, call `refresh()`, and the new page
+is drawn. Nothing is updated element by element.
 
-## Подключение из своего плагина
+## From your own plugin
 
-Интерфейс зарегистрирован сервисом Bukkit, так что приводить ничего ни к каким классам не
-надо и перезагрузка плагина под вами ничего не ломает.
+The interface is registered as a Bukkit service, so nothing has to be cast to anything and
+reloading the plugin underneath you breaks nothing.
 
 ```kotlin
-val ui = VoidRpUi.get() ?: return   // плагин не установлен — теряются экраны, а не ваш плагин
+val ui = VoidRpUi.get() ?: return   // not installed: you lose screens, not your plugin
 ui.open(player, MyShopPage())
 ```
 
-В `plugin.yml` — мягкая зависимость, чтобы ваш плагин работал и без интерфейсов:
+A soft dependency in `plugin.yml`, so your plugin still runs without interfaces:
 
 ```yaml
 softdepend: [VoidRpUI]
 ```
 
-Сборка через [JitPack](https://jitpack.io):
+Building against it through [JitPack](https://jitpack.io):
 
 ```kotlin
 repositories { maven("https://jitpack.io") }
@@ -116,324 +118,312 @@ dependencies {
 }
 ```
 
-Jar собирается под **Java 21**, хотя компилируется против API Paper 26.2, — чтобы он
-загружался и на сервере 1.21.6, который обычно работает на 21-й.
+The jar targets **Java 21** even though it compiles against the Paper 26.2 API, so that it
+loads on a 1.21.6 server, which usually runs on 21.
 
-## Что есть
+## What there is
 
 | | |
 |---|---|
-| **Раскладка** | строки и колонки, `gap`, выравнивание по обеим осям, `Size.Auto / Fill / Fixed / Percent`, сетка, прокрутка с ползунком |
-| **Стили** | фон, прозрачность (16 ступеней), скругления, рамки, отступы, мягкие тени и свечения, блик по верхней кромке — всё через токены темы |
-| **Текст** | Inter семи кеглей в трёх начертаниях, перенос по ширине с многоточием, выравнивание, разрядка, разноцветные куски внутри одной строки, свечение под буквами |
-| **Головы** | лица игроков из скинов в `heads/` — запекаются в пак, список фиксирован |
-| **Картинки** | свои PNG сервера — логотип, баннеры — из `images/`, в своих цветах и пропорциях |
-| **Иконки** | 788 ванильных предметов и блоков — текстуры берутся из клиента, паку это ничего не стоит; плюс свой набор интерфейсных иконок |
-| **Элементы** | кнопки, флажки, счётчики, выпадающие списки, ползунки, полосы прогресса, чипы, подсказки при наведении |
-| **Ввод** | курсор из направления взгляда, наведение и клики (считаются на сервере), колесо мыши, цифры-горячие клавиши, перетаскивание ползунка, ввод текста через родные диалоги |
-| **Холст** | 1024 единицы в высоту — вся высота окна при любом разрешении и масштабе; ширина по форме экрана, единица всегда квадратная |
-| **Адаптивность** | страница верстается под экран игрока: брейкпоинты, `max-width` с автоцентрированием, безопасная полоса — см. [docs/адаптивность.md](docs/адаптивность.md) |
+| **Layout** | rows and columns, `gap`, alignment on both axes, `Size.Auto / Fill / Fixed / Percent`, grids, scrolling with a bar |
+| **Style** | background, opacity (16 steps), rounding, borders, padding, soft shadows and glows, a lit top edge — all through theme tokens |
+| **Text** | Inter at seven sizes in three weights, wrapping with an ellipsis, alignment, tracking, differently coloured runs inside one line, a glow behind the letters |
+| **Heads** | players' faces from the skins in `heads/` — baked into the pack, so the list is fixed |
+| **Pictures** | the server's own PNGs — a logo, a banner — from `images/`, in their own colours and proportions |
+| **Icons** | 788 vanilla items and blocks, with the textures read from the client so the pack pays nothing for them, plus a set of interface icons |
+| **Components** | buttons, tick boxes, steppers, dropdowns, sliders, progress bars, chips, tooltips |
+| **Input** | a cursor driven by where the player looks, hovering and clicks resolved on the server, the scroll wheel, number keys, dragging a slider, text typed into the game's own field |
+| **Canvas** | 1024 units tall — the whole height of the window at any resolution and GUI scale; as wide as the shape of the screen, with a unit that is always square |
+| **Responsive** | a page is laid out for the player's screen: breakpoints, `max-width` with automatic centring, a safe band — see [docs/responsive.md](docs/responsive.md) |
 
-## Готовые элементы
+## Components
 
-![Все элементы во всех состояниях](docs/states.png)
+![Every control in every state](docs/states.png)
 
-
-Собирать кнопку из панели и текста каждый раз не надо — в `ru.voidrp.ui.widget` лежат
-готовые, и все они живут по одному правилу: функция возвращает `View`, а нажатие приходит
-в `onClick` с тем `id`, который вы задали.
+There is no need to build a button out of a panel and a label every time —
+`ru.voidrp.ui.widget` has them, and they all follow one rule: a function returns a `View`,
+and pressing it arrives in `onClick` with the `id` you gave it.
 
 ```kotlin
-button("Купить", id = "buy")                       // кнопка, три вида: основная, тихая, опасная
-checkbox("Звуки", id = "sound", checked = sound)   // флажок
-stepper("Количество", id = "qty", value = qty)     // − 5 +
-select("Сложность", id = "diff", options, index)   // выпадающий список
-slider("Громкость", id = "vol", value = 0.35)      // ползунок, тянется мышью
-progress(0.7)                                       // полоса прогресса
-chip("Новое")                                       // метка
+button("Buy", id = "buy")                          // three kinds: primary, quiet, dangerous
+checkbox("Sounds", id = "sound", checked = sound)  // tick box
+stepper("Amount", id = "qty", value = qty)         // − 5 +
+select("Difficulty", id = "diff", options, index)  // dropdown
+slider("Volume", id = "vol", value = 0.35)         // slider, draggable
+progress(0.7)                                       // progress bar
+chip("New")                                         // label
 ```
 
-Подсказка при наведении — это `tooltip()` у страницы: верните `View`, и он нарисуется у
-курсора, пока игрок держит указатель на нужной области.
+A tooltip is the page's `tooltip()`: return a `View` and it is drawn beside the cursor for
+as long as the player keeps pointing at the region.
 
 ```kotlin
 override fun tooltip(): View? =
-    if (hovered == "buy") tooltipPanel("Алмаз", listOf("Цена: 100", "В наличии: 12")) else null
+    if (hovered == "buy") tooltipPanel("Diamond", listOf("Price: 100", "In stock: 12")) else null
 ```
 
-## Если на сервере есть PacketEvents
+## If the server has PacketEvents
 
-Плагин подхватит его сам и станет читать поворот игрока **прямо из пакета**, а не раз в
-тик. Это снимает с курсора до 50 мс задержки — половину всей, что у него есть. Зависимость
-мягкая: без PacketEvents всё работает, просто чуть менее отзывчиво. В логе при старте
-написано, какой из двух путей выбран.
+The plugin picks it up by itself and starts reading the player's aim **straight off the
+packet** instead of once a tick. That takes up to 50 ms off the cursor — about half of all
+the lag it has. The dependency is soft: without PacketEvents everything works, just a
+little less immediately. The log says at startup which of the two paths was taken.
 
-Ещё он подсказывает **версию клиента**, по которой выбирается пак: до 26.2 шейдер текста
-назывался иначе. Без PacketEvents версия неизвестна, и плагин сначала пробует новый пак —
-клиент, который не смог его применить, сам об этом сообщает, и ему тут же уходит старый.
-Игрок в худшем случае видит вторую полоску загрузки.
+It also tells us the **client's version**, which decides the pack: before 26.2 the text
+shader had a different name. Without PacketEvents the version is unknown, so the modern
+pack is tried first — a client that cannot apply it says so, and the older one follows at
+once. The worst a player sees is a second loading bar.
 
-## Две версии клиента
+## Two client versions
 
-| Клиент | Что уезжает |
+| Client | What it gets |
 |---|---|
-| 26.2 и новее | `voidrp-ui.zip` — шейдер `text.vsh` |
-| 1.21.6 – 26.1.2 | `voidrp-ui-legacy.zip` — шейдер `rendertype_text.vsh` |
+| 26.2 and newer | `voidrp-ui.zip` — the `text.vsh` shader |
+| 1.21.6 – 26.1.2 | `voidrp-ui-legacy.zip` — the `rendertype_text.vsh` shader |
 
-Пак для старых клиентов отличается ровно одним файлом — вершинным шейдером под старым
-именем. Фрагментного в нём нет: патченный у нас есть только под 26.2, а без него клиент
-выбрасывает всё слабее 0.1 прозрачности. Поэтому самый слабый уровень палитры у нас и так
-1/8 — на обеих версиях рисуется одно и то же.
+The pack for older clients differs by exactly one file: the vertex shader under its old
+name. It carries no fragment shader — the patched one only exists for 26.2, and without it
+a client throws away anything under a tenth of opacity. Which is why the faintest level of
+the palette is an eighth anyway, and both versions draw the same page.
 
-Оба собираются при старте, отдаются со встроенного сервера и настройки не требуют. Если
-второй не нужен (все на одной версии) — `pack.legacy: false`, это секунда старта и лишний
-мегабайт на диске. Если архивы вы выкладываете сами, адрес второго — `pack.legacy-url`.
+Both are built at startup, served from the built-in server, and need no configuration. If
+the second one is not needed because everybody is on one version, `pack.legacy: false`
+saves a second of startup and a megabyte of disk. If you host the archives yourself, the
+second address is `pack.legacy-url`.
 
-## Адаптивность
+## Responsive
 
-Холст — 1024 единицы в высоту (вся высота окна) и столько единиц в ширину, сколько их
-помещается при квадратной единице: 1280 на 5:4, 1820 на 16:9, 2389 на 21:9. Ничего не
-сплющивается, страница верстается под ширину экрана.
+The canvas is 1024 units tall — the whole height of the window — and as many units across
+as fit while a unit stays square: 1280 on 5:4, 1820 on 16:9, 2389 on 21:9. Nothing is ever
+squashed; the page is laid out for the width of the screen.
 
 ```kotlin
 Panel(
-    width = Size.Fill, maxWidth = 1278,                 // как max-width + margin: 0 auto
+    width = Size.Fill, maxWidth = 1278,                 // max-width plus margin: 0 auto
     children = listOf(Grid(columns = viewport.by(compact = 2, regular = 3), children = tiles)),
 )
 ```
 
-Форму экрана игра серверу не сообщает — такого пакета нет. Поэтому игрок задаёт её сам
-командой `/vui screen`: открывается рамка по краям холста, он жмёт форматы, пока она не
-сядет по краям экрана. Выбор запоминается навсегда; до него берётся `display.screen` из
-конфига. Ошибка в формате стоит только украшений — важное держится в безопасной полосе 4:3.
+The game never tells the server what shape the window is — there is no such packet. So the
+player says, once, on the screen setup page: a frame on the edge of the canvas, and they
+pick until it sits on the edges of their screen. The answer is remembered for good; until
+then `display.screen` from the config is assumed. Getting it wrong costs decoration only —
+everything that matters stays inside the 4:3 safe band.
 
-Подробно: **[docs/адаптивность.md](docs/адаптивность.md)**.
+In full: **[docs/responsive.md](docs/responsive.md)**.
 
-## Свои картинки
+## Your own pictures
 
-Положите PNG в `plugins/VoidRpUI/images/` — и страница нарисует их по имени файла:
+Drop a PNG into `plugins/VoidRpUI/images/` and a page can draw it by the name of the file:
 
 ```kotlin
 Picture("logo", height = 64)   // images/logo.png
 ```
 
-Высота задаётся, ширина берётся из пропорций самой картинки, так что широкий баннер
-останется широким. В отличие от иконок интерфейса картинка идёт в своих цветах — за этим
-логотип и нужен. Пак пересобирается при перезагрузке плагина, и игроки скачают его заново.
+You give the height; the width follows the picture's own proportions, so a wide banner
+stays wide. Unlike an interface icon, a picture keeps its own colours — which is what a
+logo is for. The pack is rebuilt when the plugin reloads, and players download it again.
 
-## Головы игроков
+## Players' faces
 
-Положите скин в `plugins/VoidRpUI/heads/<ник>.png` — и страница нарисует лицо:
+Put a skin at `plugins/VoidRpUI/heads/<name>.png` and a page can draw the face:
 
 ```kotlin
 Head("mironoouv", size = 128)
 ```
 
-Берётся квадрат 8×8 из скина вместе со слоем шапки, подходит и старый формат 64×32, и
-современный 64×64.
+The 8×8 square is taken from the skin together with the hat layer; both the old 64×32
+format and the modern 64×64 one work.
 
-**Откуда берутся скины.** Никуда наружу плагин не ходит: скин уже есть у самого игрока.
-Каждый несёт на профиле подписанное свойство `textures` с адресом своего скина — у Mojang
-на онлайн-сервере, у вашего скин-плагина на любом другом, — и читается именно он. Поэтому
-это работает и на сервере со своими скинами, и не зависит от сторонних сервисов.
+**Where the skins come from.** The plugin never calls anything outside: the skin is already
+on the player. Each one carries a signed `textures` property on their profile with the
+address of their skin — Mojang's on an online-mode server, your skin plugin's on any
+other — and that is what is read. So this works on a server with its own skins, and depends
+on no third-party service.
 
-При входе игрока плагин сохраняет его скин в `heads/` (выключается через
-`heads.collect: false`), а положить файл туда руками можно всегда — имя файла и есть ник.
+When a player joins, their skin is saved into `heads/` (turn it off with
+`heads.collect: false`), and you can always drop a file in by hand — the file name is the
+player's name.
 
-Честное ограничение: голова должна быть в паке **до** того, как страница её попросит, а пак
-собирается при старте плагина. То есть это для списка, который стоит на месте — команда
-сервера, победители сезона, — а не для случайного игрока онлайн. На ванильном клиенте
-иначе не выйдет: пак не умеет подтягивать картинки на лету.
+An honest limit: a face has to be in the pack **before** a page asks for it, and the pack is
+built when the plugin starts. So this is for a list that stays put — the server's staff, a
+season's winners — not for whichever player happens to be online. On a vanilla client there
+is no way around it: a pack cannot fetch pictures as it goes.
 
-## Настройка
+## Configuration
 
-Три файла в `plugins/VoidRpUI/`, все необязательные — что не указано, берётся из
-умолчаний.
+Three files in `plugins/VoidRpUI/`, all optional — anything unset comes from the defaults.
 
-| Файл | Зачем |
+| File | What is in it |
 |---|---|
-| `config.yml` | откуда раздаётся пак, чувствительность курсора, звуки интерфейса, как страница ложится на окно |
-| `theme.yml` | цвета, кегли, скругления, отступы — весь внешний вид под свой бренд |
-| `messages.yml` | все строки, которые видит игрок; поддерживается MiniMessage |
+| `config.yml` | where the pack is served from, cursor sensitivity, interface sounds, the screen the pages are laid out for |
+| `theme.yml` | colours, type sizes, rounding, spacing — the whole look, for your own brand |
+| `messages.yml` | every string a player is shown; MiniMessage is supported |
 
-Тема перечитывается вместе с конфигом, без перезапуска сервера.
+`language: en` or `ru` in the config decides which set of words is written into
+`messages.yml` on the first run. After that the file is yours and changing the setting will
+not overwrite it. The theme is re-read along with the config, without restarting the server.
 
-**Наведение.** Подсветка того, на чём стоит курсор, рисуется на полосе самого курсора — это
-несколько глифов с частотой кадров. Страница при этом не перерисовывается: она едет целиком
-(около 13 КБ), и делать это на каждое пересечение карточки означало бы спотыкающийся курсор.
-Поэтому стили наведения внутри страницы (`hovered == id`) по умолчанию не видны; странице,
-которой они правда нужны, включите `input.redraw-on-hover: true`.
+**Hovering.** The highlight under the cursor is drawn on the cursor's own boss bar — a few
+glyphs at frame rate. The page itself is not redrawn: it travels whole (about 90 KB), and
+doing that every time the cursor crosses a card would be felt as the cursor stuttering. So
+hover styles inside a page (`hovered == id`) are not visible by default; a page that really
+needs them turns on `input.redraw-on-hover: true`.
 
-## Команды
+## Commands
 
-| Команда | Кому | Что делает |
+| Command | Who | What it does |
 |---|---|---|
-| `/vui open` | всем | открыть главную страницу |
-| `/vui demo` | всем | демо со всеми элементами сразу |
-| `/vui pack` | всем | прислать ресурспак ещё раз |
-| `/vui close` | всем | закрыть страницу |
-| `/vui screen` | всем | настроить формат экрана (рамка по краям + выбор в один клик) |
-| `/vui debug …` | `voidrp.ui.debug` | замеры кодировщика, разбор раскладки, отладка курсора и нажатий |
+| `/vui open` | everyone | opens the home page |
+| `/vui demo` | everyone | the demo, with every component at once |
+| `/vui pack` | everyone | sends the resource pack again |
+| `/vui close` | everyone | closes the page |
+| `/vui screen` | everyone | screen setup: a frame on the edges, one click per shape |
+| `/vui debug …` | `voidrp.ui.debug` | encoder measurements, layout dumps, cursor and click debugging |
 
-## Рисовать страницу без игры
+## Drawing a page without the game
 
-Сверстали страницу — посмотрите на неё, не заходя в Minecraft:
+Laid a page out — look at it without starting Minecraft:
 
 ```kotlin
 import ru.voidrp.ui.preview.Preview
 
 Preview.render(MyPage(), File("my-page.png"))                         // 16:9
-Preview.render(MyPage(), File("narrow.png"), Viewport.parse("4:3")!!) // и на узком экране
+Preview.render(MyPage(), File("narrow.png"), Viewport.parse("4:3")!!) // and on a narrow screen
 ```
 
-Рисует тот же движок, что отправляет страницу игроку: цвета квантуются в те же десять бит,
-прозрачность в те же шестнадцать ступеней, буквы блитятся из тех же листов, что уезжают в
-паке. Рядом с PNG кладётся `.txt` с точной геометрией — что где оказалось и какого размера.
+It is drawn by the same engine that sends a page to a player: colours quantised to the same
+ten bits, opacity to the same sixteen steps, letters blitted out of the very sheets that
+travel in the pack. A `.txt` with the exact geometry is written beside the PNG — what ended
+up where, and how big.
 
-Прямо из игры: **`/vui debug shot`** рисует ту страницу, которая сейчас открыта, в
-`plugins/VoidRpUI/preview/`. Можно сразу в нескольких форматах: `/vui debug shot 4:3 16:9 21:9`.
+From inside the game: **`/vui debug shot`** draws whatever page is open into
+`plugins/VoidRpUI/preview/`, in as many shapes as you name:
+`/vui debug shot 4:3 16:9 21:9`.
 
-Единственное, чего у сервера нет, — текстуры предметов: они живут в клиенте и в пак не
-попадают. Укажите `VOIDRP_CLIENT_JAR=~/.minecraft/versions/26.2/26.2.jar`, и они тоже
-нарисуются.
+The one thing the server does not have is item textures: they live in the client and never
+enter the pack. Point `VOIDRP_CLIENT_JAR=~/.minecraft/versions/26.2/26.2.jar` at a client
+jar and those are drawn too.
 
-## Тесты
+## Tests
 
 ```bash
 ./gradlew test
 ```
 
-Главный инвариант всего проекта: сервер обязан предсказывать перо клиента **точно**. Строка
-сводится к нулевой ширине, босс-бар центрирует её — ошибка в пару пикселей сдвигает всю
-страницу на половину этой ошибки. Три худших бага были именно этим, в трёх разных обличьях.
+The invariant the whole project rests on: the server must predict the client's pen
+**exactly**. The line is brought back to zero width and the boss bar centres it, so an
+error of a couple of pixels moves the whole page by half of it. The three worst bugs here
+were that, in three different disguises.
 
-Поэтому тесты собирают настоящий пак, меряют чернила каждого глифа **по самим PNG** и
-складывают строку по правилам клиента: прямоугольники всех размеров, текст всех кеглей,
-иконки, курсор, целая страница, список при разных прокрутках. Расхождение — падение теста,
-а не скриншот от игрока.
+So the tests build a real pack, measure the ink of every glyph **from the PNGs themselves**
+and assemble the line by the client's own rules: rectangles of every size, text at every
+size, icons, the cursor, a whole page, a list at every scroll offset. A disagreement is a
+failing test rather than a screenshot from a player.
 
-Отдельная проверка сверяет зашитые ширины иконок с текстурами клиента; ей нужен клиентский
-jar, которого у нас нет права распространять:
+A separate check compares the baked icon widths against the client's textures; it needs a
+client jar, which we have no right to distribute:
 
 ```bash
 VOIDRP_CLIENT_JAR=~/.minecraft/versions/26.2/26.2.jar ./gradlew test
 ```
 
-Без переменной она пропускается.
+Without the variable it is skipped.
 
-Посмотреть на страницы, не заходя в игру, — тем же кодом, которым их увидит клиент:
+To look at the pages without joining the game, drawn by the code the client will run:
 
 ```bash
-./gradlew preview        # PNG со страницами в build/preview
+./gradlew preview        # PNGs of the pages in build/preview
 ```
 
-## Сколько это стоит
+## What it costs
 
 ```bash
-./gradlew bench        # во что обходится отрисовка страницы
-./gradlew packWeight   # сколько весит пак
+./gradlew bench        # what drawing a page costs
+./gradlew packWeight   # what the pack weighs
 ```
 
 | | |
 |---|---|
-| Страница | 3 мс на раскладку и кодирование, ~90 КБ в пакете — только когда что-то изменилось |
-| Кадр курсора | 0.02 мс и несколько десятков байт, 62 раза в секунду — сотни игроков на ядро |
-| Пак | 1.2 МБ, скачивается один раз при первом входе |
+| A page | 3 ms to lay out and encode, ~90 KB on the wire — only when something changed |
+| A cursor frame | 0.02 ms and a few dozen bytes, 62 times a second — hundreds of players per core |
+| The pack | 1.2 MB, downloaded once on the first join |
 
-Страница едет заново только тогда, когда сама изменилась: наведение рисуется на полосе
-курсора и страницу не трогает.
+A page is sent again only when the page itself changed: hovering is drawn on the cursor's
+bar and never touches it.
 
-## Как это устроено
+## How it works
 
-Коротко — потому что приём неочевидный.
+Briefly, because the trick is not obvious.
 
-Страница едет игроку как **одна строка текста в заголовке невидимого босс-бара**. В
-ресурспаке лежит подменённый шейдер текста, который узнаёт наши символы по цвету и ставит
-их куда надо:
+A page travels to the player as **one line of text in the title of an invisible boss bar**.
+The resource pack carries a replaced text shader that recognises our glyphs by their colour
+and puts them where they belong:
 
-- **по горизонтали** элемент ставит сам клиент — в шрифте есть невидимые символы-распорки
-  шириной ±1…±512, ими двигают перо до пикселя;
-- **по вертикали и цвет заливки** едут в цвете символа: 4 бита метки, 10 бит высоты,
-  10 бит цвета (RGB 3-4-3);
-- **форму рисует клиент**: в шрифте запечены прямоугольники со сторонами степеней двойки и
-  скруглённые уголки, любая панель — это несколько таких кусков;
-- **прозрачность** передать негде (в компоненте текста нет альфы), поэтому алфавит запечён
-  16 раз, по шрифту на ступень, и кодировщик просто выбирает шрифт.
+- **horizontal position** is done by the client — the font has invisible spacer glyphs
+  ±1…±512 wide, and the pen is moved with them to the pixel;
+- **vertical position and fill colour** ride in the glyph's colour: a 4-bit marker, 10 bits
+  of height, 10 bits of colour (RGB 3-4-3);
+- **the shape is drawn by the client**: rectangles with power-of-two sides and rounded
+  corners are baked into the font, and any panel is a few of those;
+- **opacity** has nowhere to travel (a text component has no alpha), so the alphabet is
+  baked sixteen times, one font per step, and the encoder simply picks a font.
 
-Строка сводится к нулевой ширине, чтобы центрирование босс-бара не сдвигало страницу.
-Курсор — это направление взгляда игрока, пересчитанное в координаты холста; наведение и
-клики проверяются на сервере по готовой раскладке, так что клиенту доверять не нужно.
+The line is brought back to zero width so that the boss bar's centring does not move the
+page. The cursor is the player's aim converted into canvas coordinates; hovering and clicks
+are resolved on the server against the layout it just produced, so the client is never
+trusted and never asked.
 
-Подробности и грабли — в [docs/internals.md](docs/internals.md).
+The details, and the rakes — in [docs/internals.md](docs/internals.md).
 
-## Ограничения, о которых честно
+## Limits, honestly
 
-- Клиент сообщает направление взгляда **20 раз в секунду**; чаще узнать, куда смотрит
-  игрок, нельзя. Курсор дорисовывается между тиками со сглаживанием, но входные данные
-  приходят с этой частотой.
-- Пока страница открыта, **голова игрока действительно поворачивается** — вернуть её силой
-  можно только пакетом, а клиент тут же пришлёт свой, и экран затрясёт. Поэтому у модальных
-  страниц фон делают непрозрачным: за ним поворота не видно.
-- Цвет едет в десяти битах — RGB 3-4-3, — и в тёмной части шкалы шаг крупнее самих
-  оттенков: `#060711` и `#090b16` садятся на одну запись, то есть фон страницы и карточка
-  становятся неразличимы. Поэтому цвет выбирается **вместе с прозрачностью**: что видит
-  глаз — это их смесь с тем, что лежит ниже. Скажите, что под вами, и вы получите ровно
-  тот цвет, который назвали:
+- The client reports where it is looking **20 times a second**; there is no way to know
+  more often. The cursor is interpolated between ticks, but that is the rate the input
+  arrives at.
+- While a page is open **the player's head really does turn** — forcing it back takes a
+  packet, the client immediately sends its own, and the screen shakes. Which is why modal
+  pages get an opaque background: behind it the turning is not visible.
+- Colour travels in ten bits — RGB 3-4-3 — and at the dark end the step is bigger than the
+  shades themselves: `#060711` and `#090b16` land on the same entry, so a page and a card
+  on it become indistinguishable. So a colour is chosen **together with its opacity**: what
+  the eye sees is their mix with whatever is underneath. Say what is underneath and you get
+  exactly the colour you named:
 
   ```kotlin
   Style(background = Palette.express(0x090B16, over = 0x060711))
   ```
 
-- **Градиент** по той же причине: назвать оттенки в лоб — между фиолетовым и фоном их
-  найдётся три-четыре, и заливка выйдет плитами. Укажите `over`, и каждая полоса
-  подбирается поверх подложки — вдоль той же линии оттенков становится около сорока, шаг
-  падает до одной-двух единиц:
+- **Gradients** for the same reason: name the shades outright and there are three or four
+  of them between violet and the background, so the wash comes out in slabs. Give `over`
+  and each stripe is chosen over that backdrop — about forty shades along the same line,
+  with a step of one or two units:
 
   ```kotlin
   Gradient(Paint(0x32295F), Paint(0x16112C), over = Theme.BG, stop = 0.45)
   ```
 
-  Без `over` градиент по-прежнему полосит — это не небрежность, а предел носителя.
-- Форму экрана игрока сервер **узнать не может** — ванильный клиент её не отправляет, и
-  пакета, которым её спросить, не существует. Поэтому её задаёт сам игрок (`/vui screen`,
-  один раз), а до этого берётся серверное значение. Искажений при этом нет никогда:
-  единица квадратная, а неверный формат стоит только полей по краям или обрезанных
-  украшений — важное держится в безопасной полосе 4:3.
-- Страница едет в **босс-баре**, а бары складываются стопкой в том порядке, в каком их
-  получил клиент. Если к моменту открытия страницы игроку уже показывает свой бар другой
-  плагин, наш окажется вторым — и вся страница уедет на 19 единиц вниз. Свои забытые бары
-  плагин убирает сам при открытии; чужие убрать нельзя, и узнать о них тоже: сервер не
-  видит, что у клиента на экране. На сервере с постоянным баром (TPS, ивенты) такой бар
-  стоит гасить на время открытой страницы.
-- Клиентские шейдерпаки (Iris, OptiFine) заменяют рендер мира, но интерфейс оставляют
-  ванильным, так что страницы переживают их. Моды, которые сами лезут в шейдеры текста, —
-  нет.
+  Without `over` a gradient still bands, and that is the limit of the medium rather than
+  carelessness.
+- The server **cannot know** the shape of the player's screen — a vanilla client does not
+  send it and there is no packet to ask with. So the player sets it (`/vui screen`, once),
+  and until they do the server's own setting is used. Nothing is ever distorted by this:
+  the unit is square, and a wrong shape costs margins at the edges or clipped decoration —
+  what matters stays inside the 4:3 safe band.
+- A page rides a **boss bar**, and bars stack in the order the client received them. If
+  another plugin is already showing one when the page opens, ours is second and the whole
+  page moves 19 units down. The plugin clears its own leftovers; other people's it can
+  neither see nor remove — the server has no idea what is on the client's screen. On a
+  server with a permanent bar (TPS, events) that bar is worth hiding while a page is open.
+- Client shader packs (Iris, OptiFine) replace world rendering and leave the interface
+  vanilla, so pages survive them. Mods that touch the text shaders themselves do not.
 
-## Лицензия
+## Licence
 
-MIT — делайте что хотите, в том числе на коммерческих серверах.
+MIT — do what you like, including on commercial servers.
 
-Внутри лежит шрифт [Inter](https://rsms.me/inter/) под SIL Open Font License (текст лицензии
-в jar, `font/Inter-OFL.txt`). Текстуры предметов не входят в пак — они берутся из клиента.
+It bundles the [Inter](https://rsms.me/inter/) typeface under the SIL Open Font License
+(the licence text is in the jar, `font/Inter-OFL.txt`). Item textures are not in the pack —
+they are read from the client.
 
-Сделано для [void-rp.ru](https://void-rp.ru). Если пригодилось — упоминание не обязательно,
-но приятно.
-
----
-
-## English
-
-Real interfaces on a **vanilla Minecraft client** — no mods, nothing to install. A page is
-written in code and rendered by the client itself: rounded panels, opacity, the Inter
-typeface, item icons and a cursor driven by where the player is looking.
-
-A page travels as one line of text in an invisible boss bar's title. A replaced text shader
-recognises our glyphs by their colour and moves them: horizontal position is done by the
-client through invisible spacer glyphs, vertical position and fill colour ride in the
-glyph's colour, shapes are power-of-two rectangles and rounded corners baked into the font,
-and opacity is a choice of font because a text component has no alpha to carry it.
-
-Hovering and clicks are resolved on the server against the layout it just produced, so the
-client is never trusted and never asked.
-
-Paper 1.21.6+, Kotlin, MIT.
+Made for [void-rp.ru](https://void-rp.ru). A mention is not required, but it is nice.

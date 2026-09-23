@@ -35,22 +35,22 @@ open class ShopPage : Page() {
     private data class Offer(val item: String, val name: String, val price: Int, val about: String)
 
     private val offers = listOf(
-        Offer("diamond", "Алмаз", 120, "Годится на инструменты, броню и стол зачарования."),
-        Offer("emerald", "Изумруд", 90, "Валюта жителей. Берут охотно, дают неохотно."),
-        Offer("netherite_ingot", "Незеритовый слиток", 2400, "Не горит в лаве и не ломается об обиду."),
-        Offer("golden_apple", "Золотое яблоко", 260, "Регенерация на две минуты и щит на пять сердец."),
-        Offer("enchanted_book", "Зачарованная книга", 540, "Случайное зачарование. Удача решает."),
-        Offer("totem_of_undying", "Тотем бессмертия", 1800, "Одна смерть в кармане. Держите во второй руке."),
-        Offer("elytra", "Элитры", 3600, "Полёт с фейерверками. Ломаются тихо и не вовремя."),
-        Offer("shulker_shell", "Панцирь шалкера", 420, "Два на ящик, который переживает взрыв."),
-        Offer("nether_star", "Звезда Ада", 5200, "Сердце маяка. Выпадает из того, кто не хочет отдавать."),
-        Offer("trident", "Трезубец", 2100, "С Верностью возвращается. Без неё — остаётся в океане."),
-        Offer("heart_of_the_sea", "Сердце моря", 1500, "Проводник, если найдёте восемь панцирей наутилуса."),
-        Offer("ancient_debris", "Древние обломки", 980, "Ищите на глубине 15. Взрывчаткой быстрее."),
-        Offer("blaze_rod", "Огненный стержень", 75, "Порошок для зелий и глаз Эндера."),
-        Offer("ender_pearl", "Жемчуг Эндера", 110, "Телепорт ценой трёх сердец."),
-        Offer("experience_bottle", "Пузырёк опыта", 60, "Быстрые уровни без шахты."),
-        Offer("beacon", "Маяк", 4800, "Скорость и сила всем в округе — если есть чем застроить пирамиду."),
+        Offer("diamond", "Diamond", 120, "Good for tools, armour and an enchanting table."),
+        Offer("emerald", "Emerald", 90, "Villager currency. Taken gladly, given reluctantly."),
+        Offer("netherite_ingot", "Netherite ingot", 2400, "Does not burn in lava and does not break out of spite."),
+        Offer("golden_apple", "Golden apple", 260, "Two minutes of regeneration and five hearts of shield."),
+        Offer("enchanted_book", "Enchanted book", 540, "A random enchantment. Luck decides."),
+        Offer("totem_of_undying", "Totem of undying", 1800, "One death in your pocket. Hold it in your off hand."),
+        Offer("elytra", "Elytra", 3600, "Flight, with rockets. They break quietly and at the wrong moment."),
+        Offer("shulker_shell", "Shulker shell", 420, "Two make a box that survives an explosion."),
+        Offer("nether_star", "Nether star", 5200, "The heart of a beacon. Dropped by something unwilling to part with it."),
+        Offer("trident", "Trident", 2100, "With Loyalty it comes back. Without it, it stays in the ocean."),
+        Offer("heart_of_the_sea", "Heart of the sea", 1500, "A conduit, once you find eight nautilus shells."),
+        Offer("ancient_debris", "Ancient debris", 980, "Look at depth 15. Explosives are quicker."),
+        Offer("blaze_rod", "Blaze rod", 75, "Powder for potions and eyes of ender."),
+        Offer("ender_pearl", "Ender pearl", 110, "A teleport for three hearts."),
+        Offer("experience_bottle", "Bottle o' enchanting", 60, "Quick levels without the mine."),
+        Offer("beacon", "Beacon", 4800, "Speed and strength for everyone nearby — if you can build the pyramid."),
     )
 
     private val width = 760
@@ -90,7 +90,7 @@ open class ShopPage : Page() {
                             gap = 2,
                             children = listOf(
                                 eyebrow("VoidRP"),
-                                Text("Магазин", Theme.TEXT_H1, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
+                                Text("Shop", Theme.TEXT_H1, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                             ),
                         ),
                         Panel(width = Size.Fill),
@@ -98,7 +98,7 @@ open class ShopPage : Page() {
                             style = Theme.cardSelected,
                             gap = 2,
                             children = listOf(
-                                eyebrow("Баланс"),
+                                eyebrow("Balance"),
                                 RichText(
                                     spans = listOf(
                                         Span(balance.toString(), Theme.INK, TextFonts.Weight.SEMIBOLD),
@@ -118,10 +118,10 @@ open class ShopPage : Page() {
                     gap = Theme.SPACE_3,
                     align = Align.CENTER,
                     children = listOf(
-                        eyebrow("Количество"),
+                        eyebrow("Amount"),
                         stepper("amount", amount.toString()),
                         Panel(width = Size.Fill),
-                        button("Назад", "back", Theme.buttonGhost, Size.Fixed(150)),
+                        button("Back", "back", Theme.buttonGhost, Size.Fixed(150)),
                     ),
                 ),
             ),
@@ -142,7 +142,7 @@ open class ShopPage : Page() {
             offer.name,
             listOf(
                 offer.about,
-                "Цена: ${offer.price} ₽ · за ${amount} шт.: ${offer.price * amount} ₽",
+                "Price: ${offer.price} · for ${amount}: ${offer.price * amount}",
             ),
         )
     }
@@ -205,9 +205,9 @@ open class ShopPage : Page() {
                 val total = offer.price * amount
                 if (balance >= total) {
                     balance -= total
-                    player.sendMessage("Куплено: ${offer.name} ×$amount за $total ₽")
+                    player.sendMessage("Bought ${offer.name} ×$amount for $total")
                 } else {
-                    player.sendMessage("Не хватает ${total - balance} ₽")
+                    player.sendMessage("Short by ${total - balance}")
                 }
             }
         }

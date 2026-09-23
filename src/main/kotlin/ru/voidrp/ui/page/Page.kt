@@ -24,7 +24,7 @@ abstract class Page {
     internal var session: PageSession? = null
 
     /** The player this page is open for. */
-    val player: Player get() = session?.player ?: error("Страница ещё не открыта")
+    val player: Player get() = session?.player ?: error("This page is not open yet")
 
     /**
      * What the page is being drawn on: 1024 units tall, as wide as this player's screen.

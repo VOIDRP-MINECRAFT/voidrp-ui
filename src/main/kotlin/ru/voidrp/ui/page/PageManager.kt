@@ -154,6 +154,7 @@ class PageManager(
                 if (!store.isSet(player)) store.set(player, viewportOf(player))
                 then?.let { open(player, it) }
             },
+            say = { key -> messages.text(key) },
         ).also { it.isFollowed = then != null }
         return open(player, ask)
     }
@@ -180,6 +181,7 @@ class PageManager(
                 { redrawOnHover },
                 aim,
                 { viewportOf(player) },
+                { key -> messages.text(key) },
             ) { over -> sessions.remove(over.player.uniqueId, over) }
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
@@ -227,7 +229,7 @@ class PageManager(
         event.isCancelled = true
         if (traceClicks) {
             val now = System.currentTimeMillis()
-            plugin.logger.info("взмах ${event.player.name}: +${now - lastTrace} мс")
+            plugin.logger.info("swing ${event.player.name}: +${now - lastTrace} ms")
             lastTrace = now
         }
         session.click(Button.LEFT)
@@ -256,7 +258,7 @@ class PageManager(
             raw < -4 -> raw + 9
             else -> raw
         }
-        if (traceClicks) plugin.logger.info("слот ${event.player.name}: ${event.previousSlot} → ${event.newSlot}")
+        if (traceClicks) plugin.logger.info("slot ${event.player.name}: ${event.previousSlot} → ${event.newSlot}")
         when {
             step == 1 || step == -1 -> session.scroll(step)
             session.page.usesKeys -> session.key(event.newSlot + 1)

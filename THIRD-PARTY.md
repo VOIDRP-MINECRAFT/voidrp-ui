@@ -1,14 +1,15 @@
-# Сторонние материалы
+# Third-party material
 
 ## Inter
 
-Шрифт [Inter](https://rsms.me/inter/) Расмуса Андерссона, лицензия SIL Open Font License 1.1.
-Файлы `Inter-Regular.ttf` и `Inter-SemiBold.ttf` лежат в ресурсах плагина и запекаются в
-ресурспак растровыми листами; текст лицензии едет вместе с ними — `font/Inter-OFL.txt`
-внутри jar.
+The [Inter](https://rsms.me/inter/) typeface by Rasmus Andersson, under the SIL Open Font
+License 1.1. `Inter-Regular.ttf` and `Inter-SemiBold.ttf` live in the plugin's resources
+and are baked into the resource pack as bitmap sheets; the licence text travels with them —
+`font/Inter-OFL.txt` inside the jar.
 
-## Текстуры Minecraft
+## Minecraft textures
 
-В пак **не входят**. Иконки предметов и буквы стандартного шрифта объявляются ссылками на
-текстуры, которые уже есть у клиента (`minecraft:item/diamond.png` и подобные), — рисует их
-сам клиент своими файлами. С плагином едут только измеренные ширины: числа, не изображения.
+**Not** in the pack. Item icons and the letters of the standard font are declared as
+references to textures the client already has (`minecraft:item/diamond.png` and the like),
+and the client draws them from its own files. All that ships with the plugin are the
+measured widths: numbers, not images.

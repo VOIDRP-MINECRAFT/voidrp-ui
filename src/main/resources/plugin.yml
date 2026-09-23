@@ -4,15 +4,15 @@ main: ru.voidrp.ui.VoidRpUiPlugin
 api-version: '1.21'
 author: VoidRP
 website: https://void-rp.ru
-description: Настоящие интерфейсы на ванильном клиенте. Открытый код, MIT.
+description: Real interfaces on a vanilla client. Open source, MIT.
 commands:
   vui:
-    description: Интерфейсы VoidRP UI
-    usage: /vui open | /vui pack | /vui help
+    description: VoidRP UI interfaces
+    usage: /vui open | /vui screen | /vui pack | /vui help
 permissions:
   voidrp.ui.use:
-    description: Открывать демонстрационную страницу
+    description: Open the demo page
     default: true
   voidrp.ui.debug:
-    description: Инструменты отладки интерфейса
+    description: Interface debugging tools
     default: op

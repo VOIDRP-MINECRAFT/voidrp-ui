@@ -36,6 +36,13 @@ class ScreenPage(
     private val choose: (Viewport?) -> Unit,
     /** Where the player goes when they are done — the page they actually asked for. */
     private val done: () -> Unit = {},
+    /**
+     * The words, from the server's own `messages.yml`.
+     *
+     * This is the one page of ours that every player on every server will see, so none of
+     * it is written in the code: a server that speaks another language edits a file.
+     */
+    private val say: (String) -> String = { it },
 ) : Page() {
 
     /** Whether [done] takes the player somewhere, or this page has to close itself. */
@@ -104,17 +111,16 @@ class ScreenPage(
         gap = Theme.SPACE_3,
         align = Align.CENTER,
         children = listOf(
-            eyebrow("Шаг 1 из 1 · настройка экрана"),
+            eyebrow(say("screen-page.eyebrow")),
             Text(
-                "Подгоните рамку под края экрана",
+                say("screen-page.title"),
                 Theme.TEXT_H3,
                 Theme.INK,
                 TextFonts.Weight.BOLD,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
             ),
             Text(
-                "Размер окна игра серверу не сообщает, поэтому формат задаёте вы — один раз. " +
-                    "Уголки должны сойтись с углами экрана.",
+                say("screen-page.text"),
                 Theme.TEXT_BODY,
                 Theme.INK_SOFT,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
@@ -143,7 +149,7 @@ class ScreenPage(
                 align = Align.CENTER,
                 width = Size.Fill,
                 children = listOf(
-                    button("←  уже", "screen:narrower", Theme.buttonGhost, Size.Fixed(120), height = 40),
+                    button(say("screen-page.narrower"), "screen:narrower", Theme.buttonGhost, Size.Fixed(120), height = 40),
                     Panel(
                         width = Size.Fixed(190),
                         align = Align.CENTER,
@@ -166,11 +172,11 @@ class ScreenPage(
                             ),
                         ),
                     ),
-                    button("шире  →", "screen:wider", Theme.buttonGhost, Size.Fixed(120), height = 40),
+                    button(say("screen-page.wider"), "screen:wider", Theme.buttonGhost, Size.Fixed(120), height = 40),
                 ),
             ),
             Text(
-                "Рамки не видно? Значит экран уже, чем думает сервер — жмите «уже».",
+                say("screen-page.invisible"),
                 Theme.TEXT_CAPTION,
                 Theme.INK_DIM,
                 align = ru.voidrp.ui.layout.TextAlign.CENTER,
@@ -181,8 +187,8 @@ class ScreenPage(
                 justify = Justify.CENTER,
                 width = Size.Fill,
                 children = listOf(
-                    button("Готово", "screen:done", Theme.buttonPrimary, Size.Fixed(200)),
-                    button("Как на сервере", "screen:auto", Theme.buttonGhost),
+                    button(say("screen-page.done"), "screen:done", Theme.buttonPrimary, Size.Fixed(200)),
+                    button(say("screen-page.server"), "screen:auto", Theme.buttonGhost),
                 ),
             ),
         ),

@@ -155,7 +155,7 @@ object TextFonts {
         val base = Font.createFont(
             Font.TRUETYPE_FONT,
             TextFonts::class.java.getResourceAsStream("/font/${weight.resource}")
-                ?: error("В плагине нет шрифта ${weight.resource}"),
+                ?: error("The plugin has no font ${weight.resource}"),
         )
         val font = base.deriveFont(size.toFloat())
 

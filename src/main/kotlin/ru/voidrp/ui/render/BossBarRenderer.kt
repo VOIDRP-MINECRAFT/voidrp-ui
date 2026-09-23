@@ -44,7 +44,7 @@ class BossBarRenderer(private val log: Logger? = null) {
     fun render(player: Player, title: net.kyori.adventure.text.Component) {
         val length = PlainTextComponentSerializer.plainText().serialize(title).length
         if (length > BUSY_PAGE) {
-            log?.warning("Страница для ${player.name} — $length символов; это близко к пределу пакета.")
+            log?.warning("The page for ${player.name} is $length characters, which is near the packet limit.")
         }
         bar(pages, player).name(title)
     }

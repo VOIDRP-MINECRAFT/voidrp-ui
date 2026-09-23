@@ -1,5 +1,5 @@
-# JitPack собирает проект своим JDK, а Paper 26.2 требует 25-й для компиляции.
-# Gradle скачает нужный сам — за это отвечает foojay-resolver в settings.gradle.kts.
+# JitPack builds with its own JDK, and compiling against Paper 26.2 needs 25. Gradle
+# fetches the right one itself — that is what foojay-resolver in settings.gradle.kts is for.
 jdk:
   - openjdk21
 before_install:

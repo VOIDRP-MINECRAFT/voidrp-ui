@@ -36,6 +36,9 @@ object Prompt {
         initial: String,
         hint: String?,
         maxLength: Int,
+        /** The dialog's own two buttons, from the server's messages.yml. */
+        submitLabel: String,
+        cancelLabel: String,
         onSubmit: (String) -> Unit,
     ) {
         val input = DialogInput.text(FIELD, Component.text(label))
@@ -44,7 +47,7 @@ object Prompt {
             .initial(initial)
             .build()
 
-        val submit = ActionButton.builder(Component.text("Готово"))
+        val submit = ActionButton.builder(Component.text(submitLabel))
             .width(150)
             .action(
                 DialogAction.customClick(
@@ -59,7 +62,7 @@ object Prompt {
             )
             .build()
 
-        val cancel = ActionButton.builder(Component.text("Отмена")).width(150).build()
+        val cancel = ActionButton.builder(Component.text(cancelLabel)).width(150).build()
 
         val dialog = Dialog.create { builder ->
             builder.empty()

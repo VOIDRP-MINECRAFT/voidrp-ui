@@ -59,6 +59,8 @@ class PageSession(
      * against the width of the browser window.
      */
     private val screen: () -> ru.voidrp.ui.layout.Viewport = { ru.voidrp.ui.layout.Viewport.DEFAULT },
+    /** The server's own wording, for the few strings the engine itself puts on screen. */
+    private val say: (String) -> String = { it },
     /**
      * Told when this session is over.
      *
@@ -347,7 +349,18 @@ class PageSession(
         onSubmit: (String) -> Unit,
     ) {
         if (closed) return
-        Prompt.show(plugin, player, title, label, initial, hint, maxLength, onSubmit)
+        Prompt.show(
+            plugin,
+            player,
+            title,
+            label,
+            initial,
+            hint,
+            maxLength,
+            say("prompt.submit"),
+            say("prompt.cancel"),
+            onSubmit,
+        )
     }
 
     fun scroll(direction: Int) {

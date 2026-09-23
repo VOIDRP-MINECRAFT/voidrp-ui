@@ -1,5 +1,8 @@
 # Все строки, которые видит игрок. Меняйте под свой сервер — поддерживается
 # форматирование MiniMessage (<gray>, <#8b7bff>, <bold> и прочее).
+#
+# Это русский набор по умолчанию. Какой из них попадёт в messages.yml при первом запуске,
+# решает language в config.yml.
 
 pack:
   # Подпись в окне запроса ресурспака.
@@ -15,6 +18,18 @@ page:
   opened: "<gray>Прицел — курсор, ЛКМ — нажать, Shift — назад.</gray>"
   closed: "<gray>Закрыто.</gray>"
 
+# Страница настройки экрана — единственная, которую видит каждый игрок.
+screen-page:
+  eyebrow: "Шаг 1 из 1 · настройка экрана"
+  title: "Подгоните рамку под края экрана"
+  text: "Размер окна игра серверу не сообщает, поэтому формат задаёте вы — один раз. Уголки должны сойтись с углами экрана."
+  narrower: "←  уже"
+  wider: "шире  →"
+  fine: "Точная подгонка — по 8 единиц за нажатие"
+  invisible: "Рамки не видно? Значит экран уже, чем думает сервер — жмите «уже»."
+  done: "Готово"
+  server: "Как на сервере"
+
 screen:
   # /vui screen — игрок сообщает, какой формы у него экран.
   current: "<gray>Ваш экран: <white><screen></white>. Сменить: <white>/vui screen 16:9</white> · список: <white>/vui screen</white></gray>"
@@ -22,6 +37,11 @@ screen:
   set: "<green>Экран: <white><screen></white>.</green> <gray>Страница перерисована под него.</gray>"
   auto: "<green>Формат экрана сброшен на серверный (<white><screen></white>).</green>"
   unknown: "<red>Не понял формат.</red> <gray>Примеры: <white>16:9</white>, <white>4:3</white>, <white>1920x1080</white>, <white>auto</white>.</gray>"
+
+# The game's own text dialog, which a page borrows to take typing.
+prompt:
+  submit: "Готово"
+  cancel: "Отмена"
 
 command:
   players-only: "<red>Команда только для игроков.</red>"

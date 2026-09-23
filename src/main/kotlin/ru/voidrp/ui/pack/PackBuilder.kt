@@ -117,7 +117,7 @@ class PackBuilder(
                         "gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);",
                         "gl_Position = ProjMat * ModelViewMat * vec4(Position + vec3(0.0, 20.0, 0.0), 1.0);",
                     )
-                    check(shifted != vanilla) { "Не нашёл строку gl_Position в ванильном шейдере" }
+                    check(shifted != vanilla) { "No gl_Position line in the vanilla shader" }
                     zip.put("assets/minecraft/shaders/core/text.vsh", shifted)
                 }
             }
@@ -194,7 +194,7 @@ class PackBuilder(
             "supported_formats": { "min_inclusive": ${
         if (legacy) FORMAT_OLDEST else if (withOverlay) FORMAT_OLDEST else FORMAT_MODERN_MIN
     }, "max_inclusive": ${if (legacy) FORMAT_LEGACY_MAX else FORMAT_NEWEST} },
-            "description": "VoidRP UI — интерфейсы сервера. void-rp.ru"
+            "description": "VoidRP UI — server interfaces. void-rp.ru"
           }${if (shaderMode == "patched" && withOverlay) "," else ""}
           ${if (shaderMode == "patched" && withOverlay) """"overlays": {
             "entries": [

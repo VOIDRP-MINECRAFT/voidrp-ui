@@ -1,0 +1,51 @@
+# Everything the player is shown, in a file you can edit. MiniMessage formatting is
+# supported (<gray>, <#8b7bff>, <bold> and the rest).
+#
+# This is the English set. Which one is written into messages.yml on first run is decided
+# by `language` in config.yml; after that, edit messages.yml — it is yours.
+
+pack:
+  # The caption in the client's resource pack prompt.
+  prompt: "<aqua>Server interface</aqua>"
+  # The player declined the pack, or it never arrived, and a page is needed now.
+  missing: "<red>The interface pack is not loaded.</red> <gray>Accept it — it has been sent again — and try once more. Without it there is nothing to draw pages with.</gray>"
+  # After /vui pack.
+  sent: "<green>Pack sent — accept it in your client.</green>"
+  # Nowhere to fetch the pack from: neither pack.url nor the built-in server.
+  unavailable: "<red>The interface pack is not configured.</red> <gray>Tell the server's admin.</gray>"
+
+page:
+  opened: "<gray>Look to move the cursor, left click to press, Shift to go back.</gray>"
+  closed: "<gray>Closed.</gray>"
+
+# The screen setup page — the one page every player sees.
+screen-page:
+  eyebrow: "Step 1 of 1 · screen setup"
+  title: "Line the frame up with your screen"
+  text: "The game never tells the server how big your window is, so you choose the shape — once. The brackets should sit in the corners of your screen."
+  narrower: "←  narrower"
+  wider: "wider  →"
+  fine: "Fine tuning — eight units a press"
+  invisible: "No frame at all? Your screen is narrower than the server thinks — press «narrower»."
+  done: "Done"
+  server: "Use the server's"
+
+screen:
+  # /vui screen — the player says what shape their screen is.
+  current: "<gray>Your screen: <white><screen></white>. Change it: <white>/vui screen 16:9</white> · list: <white>/vui screen</white></gray>"
+  list: "<gray>Shapes: <white><list></white>. A resolution works too: <white>/vui screen 1920x1080</white>.</gray>"
+  set: "<green>Screen: <white><screen></white>.</green> <gray>The page has been redrawn for it.</gray>"
+  auto: "<green>Back to the server's shape (<white><screen></white>).</green>"
+  unknown: "<red>That is not a screen shape.</red> <gray>Try <white>16:9</white>, <white>4:3</white>, <white>1920x1080</white> or <white>auto</white>.</gray>"
+
+# The game's own text dialog, which a page borrows to take typing.
+prompt:
+  submit: "Done"
+  cancel: "Cancel"
+
+command:
+  players-only: "<red>That command is for players.</red>"
+  no-permission: "<red>You are not allowed to do that.</red>"
+  usage: "<gray>/vui open · /vui screen · /vui pack · /vui help</gray>"
+  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|cursor|shape|text|shot|sweep|clear</gray>"
+  unknown: "<red>No such command.</red> <gray>/vui help</gray>"

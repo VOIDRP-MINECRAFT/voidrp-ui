@@ -1,74 +1,84 @@
-# VoidRP UI — настоящие интерфейсы на ванильном клиенте.
-# Открытый код (MIT): https://void-rp.ru
+# VoidRP UI — real interfaces on a vanilla client.
+# Open source (MIT): https://github.com/VOIDRP-MINECRAFT/voidrp-ui
+
+# Which set of words is written into messages.yml on this server's first run: en or ru.
+# After that the file is yours — changing this will not overwrite it.
+language: en
 
 pack:
-  # Адрес, по которому раздаётся архив. Оставьте пустым — плагин раздаст его сам.
-  # Заполняйте, только если хотите выложить plugins/VoidRpUI/voidrp-ui.zip куда-то ещё
-  # (свой веб-сервер, CDN) или если сервер стоит за прокси.
+  # Where the archive is served from. Leave it empty and the plugin serves it itself.
+  # Fill it in only to host plugins/VoidRpUI/voidrp-ui.zip somewhere else (your own web
+  # server, a CDN), or when the server sits behind a proxy.
   url: ""
-  # Встроенная раздача пака: работает, пока url пуст.
+  # The built-in server: used while url is empty.
   serve:
     enabled: true
     port: 8123
-    # Имя хоста в ссылке. Пусто — берётся адрес, который ввёл сам игрок,
-    # поэтому ссылка одинаково работает и в локальной сети, и снаружи.
+    # The host name in the link. Empty means the address the player typed to get here, so
+    # the link works the same on a local network and from the other side of the internet.
     host: ""
-  # Собирать второй пак для клиентов до 26.2.
-  # В 26.2 Mojang переименовал файлы текстового шейдера, а пак называет их прямо, поэтому
-  # одним архивом обе версии не накрыть. Плагин собирает оба и отдаёт каждому игроку свой:
-  # версию клиента он берёт у PacketEvents, а без него сначала пробует новый пак и, если
-  # клиент не смог его применить, досылает старый.
+  # Build a second pack for clients older than 26.2.
+  #
+  # Mojang renamed the text shader files in 26.2 and a pack names them outright, so one
+  # archive cannot cover both versions. The plugin builds both and hands each player the
+  # one their client reads: the version comes from PacketEvents, and without it the modern
+  # pack is tried first and the older one follows for anyone who could not apply it.
   legacy: true
-  # Адрес второго пака — нужен, только если вы выкладываете архивы сами (заполнен url).
+  # The second pack's address — needed only when you host the archives yourself (url set).
   legacy-url: ""
-  # Отправлять пак при входе игрока.
+  # Send the pack when a player joins.
   send-on-join: true
-  # true = без пака на сервер не пустят.
+  # true = players cannot join without accepting the pack.
   required: false
-  # Не открывать страницы, пока клиент не принял пак. Выключайте, только если пак
-  # применяется как-то иначе (через server.properties или свой собранный пак).
+  # Refuse to open pages until the client has accepted the pack. Turn this off only if the
+  # pack is applied some other way (server.properties, or a merged pack of your own).
   require-accepted: true
 
-# Как страница ложится на окно
+# How a page sits on the window
 display:
-  # Форма экрана, под которую верстается страница, пока игрок не сказал свою.
+  # The screen shape a page is laid out for until the player says what theirs is.
   #
-  # Холст всегда 1024 единицы в высоту — это вся высота окна при любом разрешении и любом
-  # масштабе интерфейса. Ширина зависит от формы экрана: 1820 на 16:9, 1365 на 4:3, 2389
-  # на 21:9. Единица квадратная всегда, поэтому ничего не сплющивается: страница просто
-  # верстается под ширину, как сайт под ширину окна браузера.
+  # The canvas is always 1024 units tall — the whole height of the window, at any
+  # resolution and any GUI scale. The width follows the shape of the screen: 1820 on 16:9,
+  # 1365 on 4:3, 2389 on 21:9. A unit is always square, so nothing is ever squashed: the
+  # page is simply laid out for the width, the way a web page is for a browser window.
   #
-  # Узнать форму экрана у клиента нельзя — ванильный клиент её не отправляет. Поэтому
-  # игрок сообщает её сам командой /vui screen 4:3 (запоминается в screens.yml), а до
-  # этого используется значение отсюда. Ошибка не ломает страницу: важное всё равно
-  # держится в центральной полосе 4:3, за её пределами живёт только фон и украшения.
+  # The shape cannot be read from the client — a vanilla client never sends it. So the
+  # player says it themselves with /vui screen 4:3 (kept in screens.yml), and until they
+  # do, this is what is assumed. Getting it wrong does not break a page: everything that
+  # matters stays inside the central 4:3 band, and only background and decoration live
+  # outside it.
   screen: "16:9"
-  # Спрашивать формат экрана у игрока перед его самой первой страницей.
+  # Ask a player what shape their screen is before their very first page.
   #
-  # Пять секунд один раз в жизни: игрок видит рамку по краям холста и жмёт формат, пока она
-  # не сядет по краям экрана. После этого все страницы верстаются под его настоящее окно.
-  # Выключите, если формат задаёте сами (например, все играют в одинаковых клиентах).
+  # Five seconds, once in their life: they see a frame on the edge of the canvas and press
+  # shapes until it sits on the edges of their screen. Every page after that is laid out
+  # for the window they actually have. Turn it off if you set the shape yourself (everyone
+  # on identical clients, say).
   ask-screen: true
 
-# Лица игроков на страницах
+# Players' faces on pages
 heads:
-  # Сохранять скины входящих игроков в plugins/VoidRpUI/heads/.
-  # Скин берётся у самого игрока: сервер уже держит адрес его скина в профиле — у Mojang
-  # для онлайн-режима, у вашего скин-плагина в любом другом. Никуда наружу мы не ходим.
-  # Лицо попадает в пак при следующей его сборке, то есть после перезапуска плагина.
+  # Save the skins of joining players into plugins/VoidRpUI/heads/.
+  #
+  # The skin comes from the player: the server already holds the address of it on their
+  # profile — Mojang's in online mode, your skin plugin's in any other. Nothing here calls
+  # anything outside. The face enters the pack the next time it is built, which is when the
+  # plugin restarts.
   collect: true
 
-# Ввод
+# Input
 input:
-  # Единиц холста на градус поворота. Больше — курсор быстрее.
+  # Canvas units per degree of turn. Higher means a faster cursor.
   sensitivity: 10
-  # Перерисовывать ли страницу, когда курсор наводится на другой элемент.
-  # Страница — одна длинная строка, её отправка стоит десяток килобайт, и на каждом
-  # пересечении карточки это чувствуется как рывок курсора. По умолчанию подсветка
-  # рисуется на полосе курсора, а страница остаётся как есть.
+  # Whether the page is drawn again when the cursor moves onto something else.
+  #
+  # A page is one long line; sending it costs tens of kilobytes, and doing that every time
+  # the cursor crosses a card is felt as the cursor stuttering. By default the highlight is
+  # drawn on the cursor's own bar and the page stays as it is.
   redraw-on-hover: false
 
-# Звуки интерфейса. Пустое имя — без звука.
+# Interface sounds. An empty name means silence.
 sound:
   click: "ui.button.click"
   hover: ""

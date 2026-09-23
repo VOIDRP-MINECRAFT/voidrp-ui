@@ -585,8 +585,8 @@ fun Page.dialog(
     id: String,
     title: String,
     text: String? = null,
-    yes: String = "Да",
-    no: String = "Отмена",
+    yes: String = "Yes",
+    no: String = "Cancel",
     tone: Tone = Tone.INFO,
     width: Int = 420,
 ): View = Panel(

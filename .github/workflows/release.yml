@@ -1,7 +1,7 @@
-name: Релиз
+name: Release
 
-# Тег вида v0.1.0 собирает jar и прикладывает его к релизу — владельцу сервера
-# нужен готовый файл, а не инструкция «поставьте Gradle и соберите».
+# A tag like v0.1.0 builds the jar and attaches it to the release — a server owner wants a
+# file, not instructions to install Gradle and build one.
 on:
   push:
     tags: ['v*']

@@ -61,10 +61,10 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 fun micros(total: Long) = total / rounds / 1000
                 sender.sendMessage(
                     Component.text(
-                        "Страница: $shapes фигур, $characters символов. " +
-                            "Сборка ${micros(building)} мкс, раскладка ${micros(laying)} мкс, " +
-                            "кодирование ${micros(encoding)} мкс — всего " +
-                            "${micros(building + laying + encoding)} мкс ($rounds прогонов)",
+                        "Page: $shapes shapes, $characters characters. " +
+                            "Build ${micros(building)} µs, layout ${micros(laying)} µs, " +
+                            "encode ${micros(encoding)} µs — " +
+                            "${micros(building + laying + encoding)} µs total ($rounds runs)",
                         NamedTextColor.AQUA,
                     )
                 )
@@ -78,7 +78,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 val length = PlainTextComponentSerializer.plainText()
                     .serialize(GlyphEncoder.encode(nodes)).length
                 sender.sendMessage(
-                    Component.text("${shapes.size} фигур, $length символов — список в логе.", NamedTextColor.AQUA)
+                    Component.text("${shapes.size} shapes, $length characters — the list is in the log.", NamedTextColor.AQUA)
                 )
                 shapes.forEach { node ->
                     plugin.logger.info(
@@ -100,7 +100,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 plugin.pages.traceClicks = !plugin.pages.traceClicks
                 sender.sendMessage(
                     Component.text(
-                        if (plugin.pages.traceClicks) "Замер взмахов включён." else "Замер выключен.",
+                        if (plugin.pages.traceClicks) "Swing tracing on." else "Swing tracing off.",
                         NamedTextColor.AQUA,
                     )
                 )
@@ -111,7 +111,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 val degrees = ru.voidrp.ui.layout.Viewport.DEFAULT.width / plugin.pages.sensitivity
                 sender.sendMessage(
                     Component.text(
-                        "Чувствительность ${plugin.pages.sensitivity} — экран ${degrees.toInt()}° по ширине.",
+                        "Sensitivity ${plugin.pages.sensitivity} — ${degrees.toInt()}° of turn across the screen.",
                         NamedTextColor.AQUA,
                     )
                 )
@@ -121,7 +121,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
             "cursor" -> {
                 args.getOrNull(1)?.toIntOrNull()?.let { plugin.pages.cursorBarOffset = it }
                 sender.sendMessage(
-                    Component.text("Смещение курсора: ${plugin.pages.cursorBarOffset}", NamedTextColor.AQUA)
+                    Component.text("Cursor bar offset: ${plugin.pages.cursorBarOffset}", NamedTextColor.AQUA)
                 )
             }
 
@@ -139,13 +139,13 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                     listOf(Box(x, y, w, h, Style(background = Paint(colour, alpha), radius = radius))),
                 )
                 sender.sendMessage(
-                    Component.text("$w×$h в ($x, $y), #%06X, α $alpha, r $radius".format(colour), NamedTextColor.AQUA)
+                    Component.text("$w×$h at ($x, $y), #%06X, α $alpha, r $radius".format(colour), NamedTextColor.AQUA)
                 )
             }
 
             "text" -> player(sender)?.let { player ->
                 val size = args.getOrNull(1)?.toIntOrNull() ?: Theme.TEXT_LEAD
-                val text = args.drop(2).joinToString(" ").ifBlank { "Съешь ещё этих мягких булок" }
+                val text = args.drop(2).joinToString(" ").ifBlank { "The quick brown fox jumps over the lazy dog" }
                 val label = Label(0, Shaders.CANVAS_HEIGHT / 2, text, size)
                 val across = plugin.screens.of(player).width
                 plugin.renderer.render(
@@ -153,7 +153,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                     listOf(label.copy(x = (across - label.width) / 2)),
                     across / 2,
                 )
-                sender.sendMessage(Component.text("Кегль $size, ширина ${label.width}.", NamedTextColor.AQUA))
+                sender.sendMessage(Component.text("Size $size, width ${label.width}.", NamedTextColor.AQUA))
             }
 
             // Walks a panel across the canvas so placement can be judged in motion.
@@ -164,7 +164,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
             "shot" -> player(sender)?.let { player ->
                 val page = plugin.pages.current(player)
                 if (page == null) {
-                    sender.sendMessage("§cСначала откройте страницу.")
+                    sender.sendMessage("§cOpen a page first.")
                     return@let
                 }
                 val shapes = args.drop(1).mapNotNull { ru.voidrp.ui.layout.Viewport.parse(it) }
@@ -177,8 +177,8 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                         if (shapes.size == 1) "$name.png" else "$name-${screen.width}.png",
                     )
                     runCatching { ru.voidrp.ui.preview.Preview.render(page, file, screen) }
-                        .onSuccess { sender.sendMessage("§aСнимок: §f${file.path}") }
-                        .onFailure { sender.sendMessage("§cНе вышло: ${it.message}") }
+                        .onSuccess { sender.sendMessage("§aSnapshot: §f${file.path}") }
+                        .onFailure { sender.sendMessage("§cFailed: ${it.message}") }
                 }
             }
 

@@ -38,23 +38,23 @@ import ru.voidrp.ui.widget.tooltipPanel
 open class DemoPage : Page() {
 
     private val rewards = listOf(
-        "diamond" to "Алмаз",
-        "emerald" to "Изумруд",
-        "golden_apple" to "Золотое яблоко",
-        "netherite_ingot" to "Незерит",
-        "totem_of_undying" to "Тотем",
-        "enchanted_book" to "Книга",
-        "elytra" to "Элитры",
-        "beacon" to "Маяк",
+        "diamond" to "Diamond",
+        "emerald" to "Emerald",
+        "golden_apple" to "Golden apple",
+        "netherite_ingot" to "Netherite",
+        "totem_of_undying" to "Totem",
+        "enchanted_book" to "Book",
+        "elytra" to "Elytra",
+        "beacon" to "Beacon",
     )
 
-    private val modes = listOf("Выживание", "Творческий", "Приключение")
+    private val modes = listOf("Survival", "Creative", "Adventure")
 
     private var notifications = true
     private var mode = 0
     private var modeOpen = false
     private var volume = 0.7
-    private var note = "нажмите, чтобы ввести"
+    private var note = "press to type"
     private var lastKey: Int? = null
     private var claimed: String? = null
 
@@ -74,7 +74,7 @@ open class DemoPage : Page() {
             children = listOf(
                 header(),
                 Panel(style = Theme.divider, width = Size.Fill, height = Size.Fixed(1)),
-                progress("Игроков онлайн", 0.42, "21 / 50"),
+                progress("Players online", 0.42, "21 / 50"),
                 seasonRewards(inner),
                 settings(),
                 Panel(
@@ -83,8 +83,8 @@ open class DemoPage : Page() {
                     gap = Theme.SPACE_3,
                     align = Align.CENTER,
                     children = listOf(
-                        button("Открыть магазин", "shop", Theme.buttonPrimary, Size.Fill),
-                        button("Закрыть", "close", Theme.buttonGhost, Size.Fixed(150)),
+                        button("Open the shop", "shop", Theme.buttonPrimary, Size.Fill),
+                        button("Close", "close", Theme.buttonGhost, Size.Fixed(150)),
                     ),
                 ),
                 Panel(
@@ -92,7 +92,7 @@ open class DemoPage : Page() {
                     width = Size.Fill,
                     align = Align.CENTER,
                     children = listOf(
-                        eyebrow(lastKey?.let { "выбран слот $it" } ?: "цифры 1–9 — выбор слота"),
+                        eyebrow(lastKey?.let { "slot $it chosen" } ?: "number keys 1–9 choose a slot"),
                         Panel(width = Size.Fill),
                         eyebrow("void-rp.ru"),
                     ),
@@ -120,11 +120,11 @@ open class DemoPage : Page() {
                     Text("Origins", Theme.TEXT_H1, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                     RichText(
                         spans = listOf(
-                            Span("Прицел — курсор, "),
-                            Span("ЛКМ", Theme.INK, TextFonts.Weight.SEMIBOLD),
-                            Span(" — нажать, "),
+                            Span("Look to move the cursor, "),
+                            Span("left click", Theme.INK, TextFonts.Weight.SEMIBOLD),
+                            Span(" to press, "),
                             Span("Shift", Theme.INK, TextFonts.Weight.SEMIBOLD),
-                            Span(" — назад"),
+                            Span(" to go back"),
                         ),
                         colour = Theme.INK_SOFT,
                     ),
@@ -138,7 +138,7 @@ open class DemoPage : Page() {
                 children = listOf(
                     chip("MC 26.2"),
                     chip("paper"),
-                    chip("Открытый", Theme.chipAccent),
+                    chip("Open source", Theme.chipAccent),
                 ),
             ),
         ),
@@ -154,9 +154,9 @@ open class DemoPage : Page() {
                 width = Size.Fill,
                 align = Align.CENTER,
                 children = listOf(
-                    eyebrow("Награды сезона"),
+                    eyebrow("Season rewards"),
                     Panel(width = Size.Fill),
-                    eyebrow(claimed?.let { "забрано: $it" } ?: "наведите на предмет"),
+                    eyebrow(claimed?.let { "claimed: $it" } ?: "point at an item"),
                 ),
             ),
             Grid(
@@ -194,13 +194,13 @@ open class DemoPage : Page() {
                 gap = Theme.SPACE_2,
                 width = Size.Fixed(300),
                 children = listOf(
-                    checkbox("Уведомления", "notifications", notifications, width = Size.Fill),
+                    checkbox("Notifications", "notifications", notifications, width = Size.Fill),
                     Panel(
                         style = Theme.card,
                         width = Size.Fill,
                         gap = Theme.SPACE_2,
                         children = listOf(
-                            eyebrow("Громкость"),
+                            eyebrow("Volume"),
                             slider("volume", volume),
                         ),
                     ),
@@ -210,7 +210,7 @@ open class DemoPage : Page() {
                 gap = Theme.SPACE_2,
                 width = Size.Fixed(200),
                 children = listOf(
-                    eyebrow("Режим"),
+                    eyebrow("Mode"),
                     select("mode", modes, mode, modeOpen),
                 ),
             ),
@@ -220,7 +220,7 @@ open class DemoPage : Page() {
                 gap = 4,
                 id = "note",
                 children = listOf(
-                    eyebrow("Заметка"),
+                    eyebrow("Note"),
                     // Whatever the player types goes here, so it wraps rather than being
                     // cut short — the placeholder alone did not fit the card.
                     Text(note, Theme.TEXT_LEAD, Theme.INK),
@@ -233,7 +233,7 @@ open class DemoPage : Page() {
         val hovered = hovered ?: return null
         if (!hovered.startsWith("reward:")) return null
         val reward = rewards.firstOrNull { it.first == hovered.removePrefix("reward:") } ?: return null
-        return tooltipPanel(reward.second, listOf("Награда сезона", "Выдаётся за уровень пропуска"))
+        return tooltipPanel(reward.second, listOf("Season reward", "Given at a pass level"))
     }
 
     override fun onClick(id: String, button: Button) {
@@ -260,13 +260,13 @@ open class DemoPage : Page() {
 
             id == "note" -> {
                 prompt(
-                    title = "Заметка",
-                    label = "Текст",
+                    title = "Note",
+                    label = "Text",
                     initial = note,
-                    hint = "Поле ввода — родное окно игры: страница остаётся на экране.",
+                    hint = "The field is the game's own dialog: the page stays on screen.",
                     maxLength = 48,
                 ) { value ->
-                    note = value.ifBlank { "пусто" }
+                    note = value.ifBlank { "empty" }
                     refresh()
                 }
                 return
