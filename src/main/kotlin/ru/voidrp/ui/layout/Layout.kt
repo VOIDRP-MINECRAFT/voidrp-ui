@@ -82,7 +82,7 @@ object Layout {
     /** The width this panel will actually have, when that is known before measuring. */
     private fun Panel.declaredWidth(available: Int): Int = clampWidth(
         when (width) {
-            is Size.Fixed -> (width as Size.Fixed).value
+            is Size.Fixed -> width.value
             is Size.Percent -> resolve(width, available, available)
             else -> available
         },
@@ -90,7 +90,7 @@ object Layout {
 
     private fun Panel.declaredHeight(available: Int): Int = clampHeight(
         when (height) {
-            is Size.Fixed -> (height as Size.Fixed).value
+            is Size.Fixed -> height.value
             is Size.Percent -> resolve(height, available, available)
             else -> available
         },

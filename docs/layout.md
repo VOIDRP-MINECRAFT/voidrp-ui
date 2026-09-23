@@ -34,6 +34,8 @@ Panel(
 | `align` | `START`, `CENTER`, `END`, `STRETCH` — across it |
 | `width` / `height` | see **Sizes** |
 | `minWidth` / `maxWidth` / `minHeight` / `maxHeight` | limits; past one, the panel takes the middle of the room it was given (`margin: 0 auto`) |
+| `shrink` | `false` keeps this panel's size when the row it is in has too little room, and the rest of the row gives it up instead — what a chip wants, because squeezed it becomes a word with an ellipsis |
+| `wrap` / `lineGap` | a row that carries on underneath when it runs out of width |
 | `style` | background, border, rounding, padding, shadow, glow — see the theme |
 | `id` | names a region: hovering and clicks arrive under this name |
 

@@ -72,7 +72,7 @@ class BossBarGuard {
                     }
 
                     private fun watch(event: PacketSendEvent) {
-                        val player = event.user?.uuid ?: return
+                        val player = event.user.uuid ?: return
                         val bar = WrapperPlayServerBossBar(event)
                         when (bar.action) {
                             WrapperPlayServerBossBar.Action.ADD -> remember(player, bar)
