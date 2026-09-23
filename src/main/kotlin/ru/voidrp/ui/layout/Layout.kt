@@ -548,11 +548,26 @@ object Layout {
                     TextAlign.CENTER -> (width - total) / 2
                     TextAlign.END -> width - total
                 }
+                // Every piece sits on the same baseline. Left at the same top edge, a
+                // smaller span floats above the line it belongs to — "12400 coins" had the
+                // word hanging off the top of the number. Their sheets share a typeface,
+                // so lining the bottoms of the cells up lines the baselines up.
+                val tallest = view.spans.maxOfOrNull { span ->
+                    TextFonts.sheet(span.weight ?: view.weight, span.size ?: view.size).cellHeight
+                } ?: 0
                 view.spans.forEach { span ->
                     val weight = span.weight ?: view.weight
                     val size = span.size ?: view.size
-                    out += Label(pen, y, span.text, size, span.colour ?: view.colour, weight)
-                    pen += TextFonts.sheet(weight, size).width(span.text)
+                    val sheet = TextFonts.sheet(weight, size)
+                    out += Label(
+                        pen,
+                        y + tallest - sheet.cellHeight,
+                        span.text,
+                        size,
+                        span.colour ?: view.colour,
+                        weight,
+                    )
+                    pen += sheet.width(span.text)
                 }
             }
 

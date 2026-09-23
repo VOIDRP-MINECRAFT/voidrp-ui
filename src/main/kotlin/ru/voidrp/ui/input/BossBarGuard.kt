@@ -67,6 +67,11 @@ class BossBarGuard {
                 object : PacketListenerAbstract(PacketListenerPriority.MONITOR) {
                     override fun onPacketSend(event: PacketSendEvent) {
                         if (event.packetType != PacketType.Play.Server.BOSS_BAR) return
+                        // Nothing here is worth breaking someone else's packet over.
+                        runCatching { watch(event) }
+                    }
+
+                    private fun watch(event: PacketSendEvent) {
                         val player = event.user?.uuid ?: return
                         val bar = WrapperPlayServerBossBar(event)
                         when (bar.action) {
@@ -149,7 +154,9 @@ class BossBarGuard {
             bar.health,
             bar.color,
             bar.overlay,
-            EnumSet.copyOf(bar.flags.ifEmpty { EnumSet.noneOf(BossBar.Flag::class.java) }),
+            // Not EnumSet.copyOf: it throws on an empty collection, and a bar with no
+            // flags — which is most of them — would have thrown on every packet.
+            EnumSet.noneOf(BossBar.Flag::class.java).apply { addAll(bar.flags) },
         )
     }
 

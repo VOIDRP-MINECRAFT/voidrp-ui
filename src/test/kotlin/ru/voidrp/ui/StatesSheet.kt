@@ -97,7 +97,8 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                     row(
                         "a row that wraps",
                         Panel(
-                            width = Size.Fixed(700),
+                            // Narrow on purpose: the point of the row is that it wraps.
+                            width = Size.Fixed(470),
                             direction = Direction.ROW,
                             wrap = true,
                             gap = Theme.SPACE_2,
@@ -115,7 +116,7 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                             width = Size.Fixed(300),
                             children = listOf(
                                 Text(
-                                    "A line that plainly does not fit its card and has to be cut short",
+                                    "A line that plainly does not fit its card, has to be cut short, and ends in an ellipsis",
                                     Theme.TEXT_BODY,
                                     Theme.INK,
                                     maxLines = 2,

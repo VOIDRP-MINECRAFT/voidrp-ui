@@ -3,6 +3,18 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.2.2
+
+- The pieces of one line sit on one baseline. A smaller span left at the same top edge
+  floats above the line it belongs to, so "12400 coins" had the word hanging off the top of
+  the number.
+- A boss bar another plugin owns no longer throws on every packet: the guard built its copy
+  of the flags with `EnumSet.copyOf`, which refuses an empty collection — and most bars have
+  no flags. The listener is also wrapped, so nothing here can break someone else's packet.
+- Four tests for the defects of the day: an icon button centring its icon, spans sharing a
+  baseline, a list showing whole rows and nothing of the rest, and a chip keeping its word
+  when the row runs out of room.
+
 ## 0.2.1
 
 - An icon in an icon button sat in the corner of it. The button's style carries the padding
