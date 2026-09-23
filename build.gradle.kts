@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.voidrp"
-version = "0.1.1"
+version = "0.2.0"
 
 kotlin {
     // Paper 26.2's own API is Java 25, so it takes a 25 compiler to read it...
@@ -119,7 +119,12 @@ tasks.build {
 }
 
 tasks.processResources {
+    // The version is an input of this task, and has to be declared as one: without it
+    // Gradle sees the same plugin.yml on disk, calls itself up to date and ships a jar
+    // named after the new version with the old one written inside it.
+    val tokens = mapOf("version" to project.version.toString())
+    inputs.properties(tokens)
     filesMatching("plugin.yml") {
-        expand("version" to project.version)
+        expand(tokens)
     }
 }
