@@ -113,6 +113,23 @@ Every cell is the same size — that of the largest — so the grid lines up. Th
 columns can come from the screen:
 `viewport.columns(ideal = 260, min = 2, max = 5, gap = Theme.SPACE_3)`.
 
+## A row that wraps
+
+```kotlin
+Panel(
+    direction = Direction.ROW,
+    wrap = true,
+    gap = Theme.SPACE_2,
+    lineGap = Theme.SPACE_2,   // between lines; the panel's gap when not given
+    children = tags.map { chip(it) },
+)
+```
+
+`flex-wrap`, for what a grid does not cover: things of different widths — chips, tags, a
+hand of items — that fill the line and start another. A grid puts everything in cells of
+one size, which is right for tiles and wrong for words. Only a row wraps; in a column the
+flag is ignored.
+
 ## Scrolling
 
 ```kotlin
@@ -175,7 +192,5 @@ More about events in [pages](page.md).
 
 - **Absolute positioning** — beyond `Raw`, and deliberately so: a page typed out in
   coordinates breaks on the first screen of another shape.
-- **Wrapping inside a row** (`flex-wrap`) — there is `Grid` for grids, and a row that wraps
-  by itself usually means a grid was wanted.
 - **Clipping to an arbitrary shape** — a glyph is drawn whole; cutting happens with
   rectangles only, which is what `Scroll` does.

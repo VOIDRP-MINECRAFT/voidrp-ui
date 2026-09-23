@@ -87,6 +87,48 @@ class ViewportTest {
     }
 
     @Test
+    fun `a row that runs out of width carries on underneath`() {
+        // flex-wrap, for the case a grid does not cover: things of different widths that
+        // should fill the line and then start another.
+        val widths = listOf(300, 300, 300, 200)
+        val panel = Panel(
+            direction = ru.voidrp.ui.layout.Direction.ROW,
+            wrap = true,
+            gap = 10,
+            lineGap = 20,
+            width = Size.Fixed(700),
+            children = widths.mapIndexed { index, w ->
+                Panel(id = "cell$index", width = Size.Fixed(w), height = Size.Fixed(40))
+            },
+        )
+        val placement = Layout.place(panel, 0, 0, 700, 400)
+        val cells = (0..3).map { index -> placement.regions.single { it.id == "cell$index" } }
+
+        assertEquals(0, cells[0].x, "первая карточка не у левого края")
+        assertEquals(310, cells[1].x, "вторая не встала за первой через зазор")
+        assertEquals(0, cells[2].x, "третья не перенеслась на новую строку")
+        assertEquals(310, cells[3].x, "четвёртая не встала рядом с третьей")
+
+        assertEquals(cells[0].y, cells[1].y, "первая строка разъехалась по высоте")
+        assertEquals(60, cells[2].y, "вторая строка не на высоте строки плюс её зазор")
+        assertEquals(cells[2].y, cells[3].y, "вторая строка разъехалась по высоте")
+
+        // And the panel itself knows how tall it came out: two rows of 40 and one 20 gap.
+        assertEquals(100, Layout.measure(panel, 700, 400).height, "панель не той высоты")
+    }
+
+    @Test
+    fun `a row only wraps when it is asked to`() {
+        val children = (0..3).map { Panel(id = "c$it", width = Size.Fixed(300), height = Size.Fixed(40)) }
+        val plain = Layout.place(
+            Panel(direction = ru.voidrp.ui.layout.Direction.ROW, gap = 10, children = children),
+            0, 0, 700, 400,
+        )
+        // Without wrap the row still fits itself into the width it was given, by squeezing.
+        assertEquals(1, plain.regions.map { it.y }.distinct().size, "строка без wrap всё же перенеслась")
+    }
+
+    @Test
     fun `counting columns never asks for none`() {
         val narrow = Viewport.parse("4:3")!!
         assertTrue(narrow.columns(ideal = 260, min = 2, max = 5, gap = 12) in 2..5)

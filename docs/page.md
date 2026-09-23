@@ -95,8 +95,14 @@ as it is. That is on purpose — a page travels whole (about 90 KB for the home 
 redrawing it every time the cursor crosses a card would be felt as the cursor stuttering.
 
 If a page really needs its **contents** to change on hover, rather than just be
-highlighted, turn on `input.redraw-on-hover: true` in the config; then `hovered` drives the
-layout too.
+highlighted — a preview panel that follows the list, say — it says so for itself:
+
+```kotlin
+override val redrawsOnHover = true
+```
+
+Then `hovered` drives that page's layout too, and every other page stays cheap.
+(`input.redraw-on-hover: true` in the config turns it on for all of them.)
 
 ## Colour to the edges of the screen
 

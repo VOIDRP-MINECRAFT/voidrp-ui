@@ -164,7 +164,7 @@ class PageSession(
             // things. The highlight rides the pointer's own bar instead, where it costs a
             // few glyphs and arrives at frame rate. A page that really does need to be
             // rebuilt when the pointer moves over it can ask for it.
-            if (redrawOnHover() || handedToPage) render()
+            if (redrawOnHover() || page.redrawsOnHover || handedToPage) render()
         }
     }
 

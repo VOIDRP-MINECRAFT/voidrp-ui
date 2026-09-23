@@ -79,6 +79,20 @@ data class Panel(
     /** Never narrower than this, even where there is not the room — it will overflow. */
     val minWidth: Int? = null,
     val minHeight: Int? = null,
+    /**
+     * Whether a row that runs out of width carries on underneath.
+     *
+     * `flex-wrap`, and it is for the case a [Grid] does not cover: things of different
+     * widths — chips, tags, a hand of items — that should fill the line and then start
+     * another. A grid puts everything in cells of one size, which is right for tiles and
+     * wrong for words.
+     *
+     * Only a row wraps. In a column it is ignored, because a column that wraps into
+     * another column is not a layout anyone wants.
+     */
+    val wrap: Boolean = false,
+    /** The gap between wrapped lines; the panel's own [gap] when it is not given. */
+    val lineGap: Int? = null,
 ) : View
 
 /** One piece of a line with its own look: a price in gold inside a sentence in grey. */

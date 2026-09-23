@@ -61,6 +61,22 @@ abstract class Page {
      */
     open val bleed: List<Paint> get() = emptyList()
 
+    /**
+     * Whether this page is drawn again when the pointer moves onto something else.
+     *
+     * Off by default, and the default is the right answer for nearly every page: the
+     * highlight under the pointer rides the pointer's own bar, at frame rate, for a few
+     * glyphs — while the page itself is tens of kilobytes, and resending it every time the
+     * pointer crosses a card is felt as the pointer stuttering.
+     *
+     * Turn it on for a page whose **contents** change with what is hovered — a preview
+     * panel that follows the list, say — rather than one that only wants a highlight. It
+     * is a property of the page rather than a setting of the server, because it is a
+     * property of the page. (`input.redraw-on-hover` in the config turns it on for all of
+     * them, and stays for compatibility.)
+     */
+    open val redrawsOnHover: Boolean get() = false
+
     /** What the page looks like right now. Called again whenever something changes. */
     abstract fun view(): View
 

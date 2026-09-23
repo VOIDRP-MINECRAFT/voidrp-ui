@@ -344,6 +344,12 @@ object Layout {
 
     private fun measureChildren(panel: Panel, innerWidth: Int, innerHeight: Int): Extent {
         if (panel.children.isEmpty()) return Extent(0, 0)
+        if (panel.wraps(innerWidth)) {
+            val lines = wrapLines(panel, innerWidth, innerHeight)
+            val widest = lines.maxOfOrNull { line -> lineWidth(panel, line, innerWidth, innerHeight) } ?: 0
+            val tall = lines.sumOf { line -> lineHeight(line, innerWidth, innerHeight) }
+            return Extent(widest, tall + panel.lineGapOr * (lines.size - 1).coerceAtLeast(0))
+        }
         var along = 0
         var across = 0
         panel.children.forEach { child ->
@@ -637,6 +643,53 @@ object Layout {
         }
     }
 
+    /** The gap between wrapped lines: its own, or the one between children. */
+    private val Panel.lineGapOr: Int get() = lineGap ?: gap
+
+    /** Whether this panel actually wraps here — only a row, and only with a width to fill. */
+    private fun Panel.wraps(width: Int): Boolean =
+        wrap && direction == Direction.ROW && width in 1 until UNBOUNDED
+
+    /** Something that takes no room in the flow cannot start a new line either. */
+    private fun View.inFlow(): Boolean = this !is Raw && this !is Overlay
+
+    /**
+     * Packs the children into lines that fit, greedily, the way `flex-wrap` does.
+     *
+     * A child wider than the whole panel gets a line of its own and is squeezed there,
+     * rather than being dropped or pushing the rest off the edge.
+     */
+    private fun wrapLines(panel: Panel, width: Int, height: Int): List<List<View>> {
+        val lines = mutableListOf<MutableList<View>>(mutableListOf())
+        var used = 0
+        panel.children.forEach { child ->
+            if (!child.inFlow()) {
+                lines.last() += child
+                return@forEach
+            }
+            val wants = measure(child, width, height).width
+            val line = lines.last()
+            val needs = if (line.any { it.inFlow() }) used + panel.gap + wants else wants
+            if (needs > width && line.any { it.inFlow() }) {
+                lines += mutableListOf(child)
+                used = wants
+            } else {
+                line += child
+                used = needs
+            }
+        }
+        return lines.filter { it.isNotEmpty() }
+    }
+
+    private fun lineWidth(panel: Panel, line: List<View>, width: Int, height: Int): Int {
+        val inFlow = line.filter { it.inFlow() }
+        if (inFlow.isEmpty()) return 0
+        return inFlow.sumOf { measure(it, width, height).width } + panel.gap * (inFlow.size - 1)
+    }
+
+    private fun lineHeight(line: List<View>, width: Int, height: Int): Int =
+        line.filter { it.inFlow() }.maxOfOrNull { measure(it, width, height).height } ?: 0
+
     private fun arrangeChildren(
         panel: Panel,
         x: Int,
@@ -647,6 +700,30 @@ object Layout {
         regions: MutableList<Region>,
     ) {
         if (panel.children.isEmpty()) return
+        if (panel.wraps(width)) {
+            var top = y
+            wrapLines(panel, width, height).forEach { line ->
+                val tall = lineHeight(line, width, height)
+                arrangeLine(panel, line, x, top, width, tall, out, regions)
+                top += tall + panel.lineGapOr
+            }
+            return
+        }
+        arrangeLine(panel, panel.children, x, y, width, height, out, regions)
+    }
+
+    /** One line of children: the ordinary case, and each line of a wrapped row. */
+    private fun arrangeLine(
+        panel: Panel,
+        children: List<View>,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        out: MutableList<Node>,
+        regions: MutableList<Region>,
+    ) {
+        if (children.isEmpty()) return
         val row = panel.direction == Direction.ROW
         val span = if (row) width else height
 
@@ -654,7 +731,7 @@ object Layout {
         // A greedy child is measured against no space along this axis, so it asks only for
         // what it holds — otherwise it would claim the whole row for itself and then be
         // handed the leftovers on top, pushing everything after it off the panel.
-        val wanted = panel.children.map { child ->
+        val wanted = children.map { child ->
             val greedy = child.growsAlong(panel.direction)
             val size = when {
                 row && greedy -> measure(child, 0, height)
@@ -663,11 +740,11 @@ object Layout {
             }
             if (row) size.width else size.height
         }
-        val greedy = panel.children.mapIndexed { index, child ->
+        val greedy = children.mapIndexed { index, child ->
             index.takeIf { child.growsAlong(panel.direction) }
         }.filterNotNull()
 
-        val gaps = panel.gap * (panel.children.size - 1)
+        val gaps = panel.gap * (children.size - 1)
         val used = wanted.sum() + gaps
         val sizes = wanted.toMutableList()
 
@@ -696,19 +773,19 @@ object Layout {
             }
         }
 
-        val leftover = (span - (sizes.sum() + panel.gap * (panel.children.size - 1))).coerceAtLeast(0)
+        val leftover = (span - (sizes.sum() + panel.gap * (children.size - 1))).coerceAtLeast(0)
         var cursor = when (panel.justify) {
             Justify.START, Justify.SPACE_BETWEEN -> 0
             Justify.CENTER -> leftover / 2
             Justify.END -> leftover
         }
-        val extraGap = if (panel.justify == Justify.SPACE_BETWEEN && panel.children.size > 1) {
-            leftover / (panel.children.size - 1)
+        val extraGap = if (panel.justify == Justify.SPACE_BETWEEN && children.size > 1) {
+            leftover / (children.size - 1)
         } else {
             0
         }
 
-        panel.children.forEachIndexed { index, child ->
+        children.forEachIndexed { index, child ->
             // A hand-placed shape is measured from the corner its parent holds, not from
             // wherever the flow happens to have reached: it takes no room, so a slot in the
             // flow would only tell it about the children around it.

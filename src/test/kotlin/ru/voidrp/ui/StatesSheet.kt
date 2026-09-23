@@ -94,6 +94,20 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                             children = listOf(chip("Обычная"), chip("Акцент", Theme.chipAccent)),
                         ),
                     ),
+                    row(
+                        "перенос в ряду",
+                        Panel(
+                            width = Size.Fixed(700),
+                            direction = Direction.ROW,
+                            wrap = true,
+                            gap = Theme.SPACE_2,
+                            lineGap = Theme.SPACE_2,
+                            children = listOf(
+                                "Выживание", "Мирный", "Хардкор", "Приключение",
+                                "Творческий", "Наблюдатель", "Испытание",
+                            ).map { chip(it) },
+                        ),
+                    ),
     )
 
     private fun second(): List<View> = listOf(
