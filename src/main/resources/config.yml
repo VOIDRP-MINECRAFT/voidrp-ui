@@ -96,6 +96,13 @@ effects:
 input:
   # Canvas units per degree of turn. Higher means a faster cursor.
   sensitivity: 10
+  # How often the pointer is drawn, in frames a second.
+  #
+  # The client reports where it is looking twenty times a second, and that is the ceiling on
+  # knowing where the pointer is — not on drawing it. Between two readings the pointer is
+  # reckoned forward, and the more often that is sent the smaller the step from one position
+  # to the next. Each frame is one small packet per player with a page open.
+  frame-rate: 85
   # Whether the page is drawn again when the cursor moves onto something else.
   #
   # A page is one long line; sending it costs tens of kilobytes, and doing that every time

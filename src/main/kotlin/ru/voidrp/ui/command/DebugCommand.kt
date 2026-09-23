@@ -123,6 +123,14 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 sender.sendMessage(
                     Component.text("Cursor bar offset: ${plugin.pages.cursorBarOffset}", NamedTextColor.AQUA)
                 )
+                sender.sendMessage(
+                    Component.text("Drawn ${plugin.pages.frameRate} times a second.", NamedTextColor.AQUA)
+                )
+                player(sender)?.let { player ->
+                    plugin.pages.cursorTiming(player)?.let {
+                        sender.sendMessage(Component.text(it, NamedTextColor.AQUA))
+                    }
+                }
             }
 
             // One rectangle, to check placement, opacity and rounding by eye.

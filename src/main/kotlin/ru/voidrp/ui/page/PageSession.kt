@@ -101,8 +101,46 @@ class PageSession(
     private var drawnX = targetX
     private var drawnY = targetY
 
+    /** The round trip to this player, refreshed now and then rather than every frame. */
+    private var roundTrip = 0
+    private var pingAt = 0L
+
+    /**
+     * How far ahead of the last reading the pointer is drawn, in seconds.
+     *
+     * Everything in the chain costs time: the client reports its aim twenty times a second
+     * (25 ms on average before a turn is even sent), the packet takes half a round trip to
+     * arrive, our frame takes up to one frame to go out, and the answer takes the other
+     * half of the round trip to be drawn. Drawn where the player *was* looking, a pointer
+     * lags by all of it at once.
+     *
+     * So it is drawn where they will be looking by the time it lands: the speed the
+     * tracker believes in, carried forward by that whole chain. For a hand moving steadily
+     * — which is most of the way to anything — the lag cancels out.
+     */
+    private fun lead(): Double {
+        val now = System.nanoTime()
+        if (now - pingAt > PING_EVERY) {
+            pingAt = now
+            roundTrip = runCatching { player.ping }.getOrDefault(roundTrip)
+        }
+        val millis = roundTrip / 2.0 + SAMPLE_HALF_MS + FRAME_HALF_MS
+        return (millis.coerceIn(0.0, LEAD_LIMIT_MS)) / 1000.0
+    }
+
     val cursorX: Int get() = drawnX.toInt()
     val cursorY: Int get() = drawnY.toInt()
+
+    /**
+     * What the pointer's own chain costs right now, for anyone asking why it lags.
+     *
+     * Feelings about a pointer are hard to act on; these are the numbers behind them.
+     */
+    fun timing(): String {
+        val gap = (System.nanoTime() - sampleAt) / 1_000_000
+        return "ping ${roundTrip}ms · lead ${Math.round(lead() * 1000)}ms · " +
+            "last reading ${gap}ms ago · speed ${Math.round(Math.hypot(speedX, speedY))} units/s"
+    }
 
     var hovered: String? = null
         private set
@@ -246,6 +284,12 @@ class PageSession(
             sampleAt = now
             val offX = targetX - estimateX
             val offY = targetY - estimateY
+            // A hand that turns round is not a hand that was going faster: when the reading
+            // lands on the other side of where we were heading, the speed we believed in
+            // was wrong rather than short, and carrying it on is what makes a pointer sail
+            // past the thing it was aimed at.
+            if (offX * speedX < 0) speedX = 0.0
+            if (offY * speedY < 0) speedY = 0.0
             estimateX += offX * CATCH_UP
             estimateY += offY * CATCH_UP
             speedX += offX * SPEED_CATCH_UP / interval
@@ -256,19 +300,30 @@ class PageSession(
             speedX *= SPEED_DECAY
             speedY *= SPEED_DECAY
         }
-        // And never far ahead of the last thing actually known. Reckoning is for bridging
-        // the gap between readings, not for deciding where the player is looking.
-        estimateX = estimateX.coerceIn(targetX - RUN_AHEAD, targetX + RUN_AHEAD)
-        estimateY = estimateY.coerceIn(targetY - RUN_AHEAD, targetY + RUN_AHEAD)
+        // And never further ahead of the last reading than the hand could have gone since
+        // it. A fixed limit is wrong at both ends — it holds a fast sweep back and lets a
+        // slow one drift — so the window is what the speed we believe in covers in the gap
+        // between readings, with a little floor under it.
+        val ahead = lead()
+        val windowX = Math.max(RUN_AHEAD_MIN, Math.abs(speedX) * (SAMPLE_GAP + ahead))
+        val windowY = Math.max(RUN_AHEAD_MIN, Math.abs(speedY) * (SAMPLE_GAP + ahead))
+        estimateX = estimateX.coerceIn(targetX - windowX, targetX + windowX)
+        estimateY = estimateY.coerceIn(targetY - windowY, targetY + windowY)
         estimateX = estimateX.coerceIn(0.0, (viewport.width - 1).toDouble())
         estimateY = estimateY.coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
 
+        // Where it has to be drawn for it to arrive under the player's hand rather than
+        // behind it: the estimate, carried forward by everything the answer still has to go
+        // through. See lead().
+        val wantX = (estimateX + speedX * ahead).coerceIn(0.0, (viewport.width - 1).toDouble())
+        val wantY = (estimateY + speedY * ahead).coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
+
         // A light smoothing over the top, which takes out the jitter in the estimate
         // without adding any of the lag that hiding the steps used to cost.
-        drawnX += (estimateX - drawnX) * EASING
-        drawnY += (estimateY - drawnY) * EASING
-        if (Math.abs(estimateX - drawnX) < 0.5) drawnX = estimateX
-        if (Math.abs(estimateY - drawnY) < 0.5) drawnY = estimateY
+        drawnX += (wantX - drawnX) * EASING
+        drawnY += (wantY - drawnY) * EASING
+        if (Math.abs(wantX - drawnX) < 0.5) drawnX = wantX
+        if (Math.abs(wantY - drawnY) < 0.5) drawnY = wantY
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
         if (under?.id != null && under?.id != wasOver?.id) sounds.hover(player)
         if (before == cursorX to cursorY && wasOver?.id == under?.id) return
@@ -490,7 +545,7 @@ class PageSession(
          * pointer is about three times closer to where the player is actually looking and
          * the worst jolt between two frames is half the size.
          */
-        const val EASING = 0.45
+        const val EASING = 0.72
 
         /** How much of the gap a fresh reading closes at once. Gentler is smoother. */
         const val CATCH_UP = 0.55
@@ -513,7 +568,22 @@ class PageSession(
          * shows full speed, so without a limit the pointer sails on for a frame or two and
          * comes back. Thirty units is a finger's width on screen.
          */
-        const val RUN_AHEAD = 30.0
+        const val RUN_AHEAD_MIN = 12.0
+
+        /** The gap between two readings: a tick, and the client sends one a tick. */
+        const val SAMPLE_GAP = 0.05
+
+        /** Half the wait for the next reading, which is the average of waiting for one. */
+        const val SAMPLE_HALF_MS = 25.0
+
+        /** Half a frame of ours, for the same reason. */
+        const val FRAME_HALF_MS = 8.0
+
+        /** However bad the connection, the pointer is not thrown a quarter of a screen. */
+        const val LEAD_LIMIT_MS = 140.0
+
+        /** How often the round trip is asked for; it does not change by the frame. */
+        const val PING_EVERY = 2_000_000_000L
 
         /** After this long without a new reading, the hand is taken to have stopped. */
         const val STALE_AFTER = 120_000_000L

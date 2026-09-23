@@ -197,6 +197,28 @@ class PenAccountingTest {
     }
 
     @Test
+    fun `every spacer is a plain letter`() {
+        // The pen is moved with invisible characters, and which characters they are is not
+        // a detail. A format character, a combining mark or an unassigned code point is
+        // dropped or given no width by the renderer, so the pen stops moving part way
+        // through a page and everything after it is thrown off the screen — a page comes
+        // out as a dark rectangle with nothing in it. That is what happened when they were
+        // put in the Syriac block, which holds all three within twenty of its start.
+        val wrong = mutableListOf<String>()
+        ru.voidrp.ui.pack.Glyphs.spacers().keys.forEach { spacer ->
+            spacer.codePoints().forEach { code ->
+                val type = Character.getType(code)
+                val letter = type == Character.LOWERCASE_LETTER.toInt() ||
+                    type == Character.UPPERCASE_LETTER.toInt() ||
+                    type == Character.OTHER_LETTER.toInt() ||
+                    type == Character.MODIFIER_LETTER.toInt()
+                if (!letter) wrong += "U+%04X — тип %d".format(code, type)
+            }
+        }
+        assertTrue(wrong.isEmpty(), "распорки не буквы:\n" + wrong.joinToString("\n"))
+    }
+
+    @Test
     fun `every path in the pack is a legal resource name`() {
         // Minecraft resource paths are lower case, and a font naming a file that cannot
         // exist is discarded whole — every glyph in it. A page of icons then draws as a

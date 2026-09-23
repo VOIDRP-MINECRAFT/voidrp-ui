@@ -3,6 +3,38 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.2
+
+**The pointer is drawn where the player will be looking, not where they were.** Every link
+in the chain costs time: the client reports its aim twenty times a second (25 ms on average
+before a turn is even sent), the packet takes half a round trip, our frame takes up to one
+frame to go out, and the answer takes the other half of the round trip to be drawn. Drawn
+at the last reading, a pointer lags by all of it at once. It is now carried forward by that
+whole chain, measured — the round trip comes from the player's own ping — so for a hand
+moving steadily the lag cancels out.
+
+- A reading on the other side of where the tracker was heading means the speed it believed
+  in was wrong rather than short. It is dropped instead of carried on, which is what used
+  to sail the pointer past the thing it was aimed at.
+- How far the reckoning may run ahead of the last reading was a flat thirty units, which
+  held a fast sweep back and let a slow one drift. It is what the speed covers in the gap
+  between readings now.
+- The smoothing over the top is lighter (0.45 → 0.72): with the prediction under it there
+  is less jitter left to hide, and hiding it was costing another thirty milliseconds.
+- The pointer is drawn 85 times a second rather than 62, configurable with
+  `input.frame-rate`.
+- `/vui debug cursor` prints the numbers behind all of this: ping, the lead it works out
+  from it, how long ago the last reading landed, and the speed the tracker believes in.
+
+## 0.3.1
+
+**Fixes a page that came out as a dark rectangle with nothing in it.** The invisible
+characters that move the pen had been put in the Syriac block, which holds a format
+character, a combining mark and an unassigned code point within twenty of its start. A
+renderer drops or zero-widths all three, so the pen stopped moving part way through a page
+and everything after the first few shapes was thrown off the screen. They live among plain
+letters now, and a test holds every spacer to being one.
+
 ## 0.3.0
 
 **Something that moves.** A page is sent once and then sits still, which is right for a page

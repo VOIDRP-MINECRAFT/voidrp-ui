@@ -61,6 +61,9 @@ class PageManager(
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
 
+    /** What the pointer's chain costs this player right now, or null if no page is open. */
+    fun cursorTiming(player: Player): String? = session(player)?.timing()
+
     /** Draws this player's page again, if one is open — after their screen changed, say. */
     fun refresh(player: Player) {
         session(player)?.render()
@@ -115,6 +118,17 @@ class PageManager(
      */
     var redrawOnHover: Boolean = plugin.config.getBoolean("input.redraw-on-hover", false)
 
+    /**
+     * How often the pointer is drawn, in frames a second.
+     *
+     * The client reports its aim twenty times a second and that is the ceiling on *knowing*
+     * where the pointer is, but not on drawing it: between two readings the pointer is
+     * reckoned forward, and the more often that reckoning is sent the less of a step there
+     * is between one position and the next. Eighty-five is about one frame of a 144 Hz
+     * screen; past that the packets cost more than the smoothness is worth.
+     */
+    val frameRate: Int = plugin.config.getInt("input.frame-rate", 85).coerceIn(20, 144)
+
     /** Starts drawing frames at about the rate a screen refreshes. */
     fun start() {
         frames.scheduleAtFixedRate(
@@ -122,7 +136,7 @@ class PageManager(
                 runCatching { sessions.values.forEach { it.frame() } }
             },
             0,
-            16,
+            (1000L / frameRate).coerceAtLeast(6L),
             java.util.concurrent.TimeUnit.MILLISECONDS,
         )
     }

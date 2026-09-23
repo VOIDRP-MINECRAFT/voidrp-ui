@@ -78,7 +78,7 @@ class ClientSimulator(pack: File) {
 
     private fun advance(font: String, code: Int): Int = fonts[font]?.get(code) ?: 0
 
-    private fun isSpacer(code: Int): Boolean = code in 0x0700..0x07FF
+    private fun isSpacer(code: Int): Boolean = code in 0x0250..0x02AF
 
     private fun runs(component: Component): List<Pair<String, String>> {
         val out = mutableListOf<Pair<String, String>>()

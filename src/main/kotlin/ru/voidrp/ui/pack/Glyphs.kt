@@ -69,7 +69,7 @@ object Glyphs {
     private const val RING_BASE = 0xE600
     private const val GLOW_BASE = 0xEB00
     /**
-     * Where the invisible spacers live: Syriac, of all places.
+     * Where the invisible spacers live: the IPA block, of all places.
      *
      * They were in the private use area, and a private-use code point costs three bytes in
      * UTF-8. A page is mostly spacers — the pen is moved before nearly every shape — so the
@@ -77,8 +77,15 @@ object Glyphs {
      * character that draws nothing. Anything from 0x80 to 0x7FF costs two, and this block
      * is one the typeface has no letters in, so a spacer can never collide with a glyph in
      * the same font.
+     *
+     * It has to be ordinary letters, and that is not a detail. The first two-byte block
+     * tried was Syriac, which holds a format character, a combining mark and an unassigned
+     * code point within twenty of its start — a renderer drops or zero-widths all three, so
+     * the pen stopped moving part way through a page and everything after the first few
+     * shapes was thrown off the screen. A page came out as a dark rectangle with nothing in
+     * it. Every spacer must be a plain letter; a test holds this to it.
      */
-    private const val SPACER_BASE = 0x0700
+    private const val SPACER_BASE = 0x0250
 
     /** The font that draws shapes at [level]/8 opacity. */
     fun fontName(level: Int): String = "ui_a${level.coerceIn(1, ALPHA_LEVELS)}"
