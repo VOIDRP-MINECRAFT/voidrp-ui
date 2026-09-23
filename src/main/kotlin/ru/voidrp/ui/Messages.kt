@@ -69,8 +69,29 @@ class Messages(private val plugin: Plugin) {
     private fun read(path: String): YamlConfiguration? =
         plugin.getResource(path)?.bufferedReader()?.use { YamlConfiguration.loadConfiguration(it) }
 
-    private companion object {
+    companion object {
         /** English, because a plugin other people install should speak to them first. */
         const val FALLBACK = "en"
+
+        private val bundled: YamlConfiguration by lazy {
+            Messages::class.java.getResourceAsStream("/lang/$FALLBACK.yml")
+                ?.bufferedReader()
+                ?.use { YamlConfiguration.loadConfiguration(it) }
+                ?: YamlConfiguration()
+        }
+
+        /**
+         * The English wording that ships in the jar, for whoever has no server to ask.
+         *
+         * A page drawn outside a running plugin — a preview, a test — would otherwise put
+         * the key itself on the screen, which is how `screen-page.title` ended up in the
+         * documentation's own screenshots.
+         */
+        @JvmStatic
+        fun bundled(key: String): String {
+            val raw = bundled.getString(key) ?: return key
+            return PlainTextComponentSerializer.plainText()
+                .serialize(MiniMessage.miniMessage().deserialize(raw))
+        }
     }
 }

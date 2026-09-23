@@ -672,6 +672,9 @@ object Layout {
     private fun Panel.wraps(width: Int): Boolean =
         wrap && direction == Direction.ROW && width in 1 until UNBOUNDED
 
+    /** Whether this view gives up room when the row it is in is too small. */
+    private fun View.shrinks(): Boolean = this !is Panel || shrink
+
     /** Something that takes no room in the flow cannot start a new line either. */
     private fun View.inFlow(): Boolean = this !is Raw && this !is Overlay
 
@@ -771,20 +774,34 @@ object Layout {
         val sizes = wanted.toMutableList()
 
         if (used > span) {
-            // Too much to fit: everything gives up room in proportion to what it asked
-            // for, which is what a browser does and what keeps a row inside its panel
-            // instead of hanging out over the edge of the page.
-            val room = (span - gaps).coerceAtLeast(0)
-            val asked = wanted.sum().coerceAtLeast(1)
+            // Too much to fit: the room is taken out of everything in proportion to what
+            // it asked for, which is what a browser does and what keeps a row inside its
+            // panel instead of hanging out over the edge of the page.
+            //
+            // Except what said it would rather not: a chip squeezed by twenty units is not
+            // a narrower chip, it is a word with an ellipsis in it. Those keep their size
+            // and the rest of the row gives up more — unless nothing in the row is willing,
+            // in which case everything does, because overflowing is worse.
+            val firm = children.mapIndexed { index, child -> index.takeIf { !child.shrinks() } }
+                .filterNotNull()
+                .takeIf { it.size < children.size }
+                .orEmpty()
+            val fixed = firm.sumOf { wanted[it] }
+            val room = (span - gaps - fixed).coerceAtLeast(0)
+            val asked = wanted.filterIndexed { index, _ -> index !in firm }.sum().coerceAtLeast(1)
             var handed = 0
+            var last = -1
             sizes.indices.forEach { index ->
+                if (index in firm) return@forEach
                 val share = (wanted[index].toLong() * room / asked).toInt()
                 sizes[index] = share
                 handed += share
+                last = index
             }
-            // Rounding leaves a unit or two over; the widest child takes them.
-            val widest = sizes.indices.maxByOrNull { sizes[it] } ?: 0
-            sizes[widest] += room - handed
+            // Rounding leaves a unit or two over; the widest child that gave up room takes
+            // them.
+            val widest = sizes.indices.filter { it !in firm }.maxByOrNull { sizes[it] } ?: last
+            if (widest >= 0) sizes[widest] += room - handed
         } else {
             val spare = span - used
             if (greedy.isNotEmpty() && spare > 0) {

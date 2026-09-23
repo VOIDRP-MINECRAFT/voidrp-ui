@@ -102,7 +102,7 @@ open class ShopPage : Page() {
                                 RichText(
                                     spans = listOf(
                                         Span(balance.toString(), Theme.INK, TextFonts.Weight.SEMIBOLD),
-                                        Span(" ₽", Theme.INK_DIM),
+                                        Span(" coins", Theme.INK_DIM, size = Theme.TEXT_CAPTION),
                                     ),
                                     size = Theme.TEXT_H3,
                                 ),
@@ -168,7 +168,7 @@ open class ShopPage : Page() {
             RichText(
                 spans = listOf(
                     Span(offer.price.toString(), Theme.GOLD, TextFonts.Weight.SEMIBOLD),
-                    Span(" ₽", Theme.INK_DIM),
+                    Span(" coins", Theme.INK_DIM, size = Theme.TEXT_CAPTION),
                 ),
                 size = Theme.TEXT_H3,
             ),

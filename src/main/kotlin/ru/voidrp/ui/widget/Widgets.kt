@@ -338,6 +338,9 @@ fun chip(text: String, style: Style = Theme.chip): View = Panel(
     style = style,
     justify = Justify.CENTER,
     align = Align.CENTER,
+    // A chip squeezed by a row that ran out of width is not a narrower chip, it is a word
+    // with an ellipsis in it. It keeps its size and the row gives up the difference.
+    shrink = false,
     children = listOf(Text(text, style.textSize, style.textColour, style.textWeight, wrap = false)),
 )
 
@@ -480,7 +483,9 @@ fun Page.iconButton(
     size: Int = 42,
     style: Style = Theme.buttonGhost,
     selected: Boolean = false,
-    iconSize: Int = 20,
+    // Twenty-four, not twenty: the set is drawn on a 24-unit grid, and at that size a
+    // stroke lands on whole pixels instead of between two of them.
+    iconSize: Int = 24,
 ): View = Panel(
     style = when {
         selected -> Theme.buttonPrimary

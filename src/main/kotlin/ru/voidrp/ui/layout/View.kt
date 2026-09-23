@@ -93,6 +93,16 @@ data class Panel(
     val wrap: Boolean = false,
     /** The gap between wrapped lines; the panel's own [gap] when it is not given. */
     val lineGap: Int? = null,
+    /**
+     * Whether this panel gives up room when the row it is in has too little.
+     *
+     * A row that does not fit takes the difference out of everything in it, in proportion
+     * to what each asked for — which is what a browser does. For most things that is
+     * right, and for a few it is not: a chip squeezed by twenty units does not become a
+     * narrower chip, it becomes a word with an ellipsis in it. Those say `shrink = false`
+     * and keep their size; the rest of the row gives up the room instead.
+     */
+    val shrink: Boolean = true,
 ) : View
 
 /** One piece of a line with its own look: a price in gold inside a sentence in grey. */

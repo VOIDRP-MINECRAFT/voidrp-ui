@@ -135,6 +135,9 @@ open class DemoPage : Page() {
                 direction = Direction.ROW,
                 gap = Theme.SPACE_2,
                 align = Align.CENTER,
+                // The row of chips keeps its size; the title beside it gives up the room,
+                // because a wrapped headline still reads and a clipped chip does not.
+                shrink = false,
                 children = listOf(
                     chip("MC 26.2"),
                     chip("paper"),

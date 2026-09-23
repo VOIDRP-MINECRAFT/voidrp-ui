@@ -193,7 +193,7 @@ open class HomePage : Page() {
                         id = id,
                         // White on the violet, the way the site marks the page you are on —
                         // a dark glyph on an accent reads as disabled.
-                        children = listOf(Icon(name, 20, if (active) 0xFFFFFF else Theme.INK_DIM)),
+                        children = listOf(Icon(name, 24, if (active) 0xFFFFFF else Theme.INK_DIM)),
                     )
                 )
             }
@@ -206,7 +206,7 @@ open class HomePage : Page() {
                     justify = Justify.CENTER,
                     align = Align.CENTER,
                     id = "logout",
-                    children = listOf(Icon("logout", 20, Theme.INK_DIM)),
+                    children = listOf(Icon("logout", 24, Theme.INK_DIM)),
                 )
             )
         },

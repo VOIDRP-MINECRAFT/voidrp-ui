@@ -17,16 +17,37 @@ Bigger sizes keep their partial pixels, where a diagonal needs them.
 import sys
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 ICONS = Path(__file__).resolve().parent.parent / "src/main/resources/icons/ui"
 SIZES = [12, 16, 20, 24, 32, 48]
 CRISP_UP_TO = 24
 
 
-def bake(master: Image.Image, size: int) -> Image.Image:
+def symmetric(master: Image.Image) -> bool:
+    """Whether this icon is drawn the same on both sides of its middle.
+
+    Most of them are — a house, a gear, a shield — and for those the resample is the only
+    thing that makes one slope of a roof a pixel thicker than the other. Averaging with the
+    mirror image before the threshold takes that away. For the ones that are not symmetric,
+    a cart or an arrow, the same trick folds the icon in half and ruins it, so it is asked
+    rather than assumed.
+    """
+    alpha = master.split()[3]
+    mirrored = alpha.transpose(Image.FLIP_LEFT_RIGHT)
+    difference = ImageChops.difference(alpha, mirrored)
+    pixels = list(difference.getdata())
+    return sum(pixels) / len(pixels) < 4.0
+
+
+def bake(master: Image.Image, size: int, mirror: bool) -> Image.Image:
     out = master.resize((size, size), Image.LANCZOS)
     alpha = out.split()[3]
+    if mirror:
+        # Half of each side, added together: the same picture, with both halves agreeing
+        # on where the ink is.
+        flipped = alpha.transpose(Image.FLIP_LEFT_RIGHT)
+        alpha = ImageChops.add(alpha.point(lambda v: v // 2), flipped.point(lambda v: v // 2))
     if size <= CRISP_UP_TO:
         alpha = alpha.point(lambda v: 255 if v >= 128 else 0)
     else:
@@ -45,9 +66,10 @@ def main() -> int:
     for master_path in masters:
         name = master_path.name[: -len("_64.png")]
         master = Image.open(master_path).convert("RGBA")
+        mirror = symmetric(master)
         for size in SIZES:
             target = ICONS / f"{name}_{size}.png"
-            baked = bake(master, size)
+            baked = bake(master, size, mirror)
             before = Image.open(target).convert("RGBA").tobytes() if target.is_file() else None
             if baked.tobytes() != before:
                 changed += 1

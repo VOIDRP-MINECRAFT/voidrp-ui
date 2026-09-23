@@ -119,7 +119,12 @@ object Preview {
 
             is Label -> drawText(image, node)
 
-            is Sprite -> icon(node)?.let { picture ->
+            // An item the server has no texture for — they live in the client, and the
+            // pack never carries them. A slot with the "package" icon in it says that,
+            // where an empty rectangle only looks like something went wrong.
+            is Sprite -> if (icon(node) == null && node.font?.startsWith("icons_") == true) {
+                placeholder(g, image, node)
+            } else icon(node)?.let { picture ->
                 val size = node.font?.substringAfterLast('_')?.toIntOrNull() ?: 16
                 // A server's own picture keeps its proportions; everything else here is
                 // square by construction.
@@ -149,6 +154,21 @@ object Preview {
             }
 
             is Box -> Unit
+        }
+    }
+
+    /** What an item looks like here: its slot, with a parcel in it. */
+    private fun placeholder(g: java.awt.Graphics2D, image: BufferedImage, node: Sprite) {
+        val size = node.font?.substringAfterLast('_')?.toIntOrNull() ?: 16
+        g.composite = AlphaComposite.SrcOver
+        g.color = Color(0x6B, 0x77, 0x9A, 40)
+        g.fillRoundRect(node.x, node.y, size, size, 4, 4)
+        val glyph = ru.voidrp.ui.pack.UiIcons.png("package", (size * 3 / 4).coerceAtLeast(12)) ?: return
+        val picture = ImageIO.read(ByteArrayInputStream(glyph)) ?: return
+        val inset = (size - picture.width) / 2
+        for (y in 0 until picture.height) for (x in 0 until picture.width) {
+            val alpha = (picture.getRGB(x, y) ushr 24) / 255.0
+            if (alpha > 0.0) blend(image, node.x + inset + x, node.y + inset + y, Color(0x6B, 0x77, 0x9A), alpha * 0.8)
         }
     }
 

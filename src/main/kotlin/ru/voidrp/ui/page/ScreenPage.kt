@@ -42,7 +42,7 @@ class ScreenPage(
      * This is the one page of ours that every player on every server will see, so none of
      * it is written in the code: a server that speaks another language edits a file.
      */
-    private val say: (String) -> String = { it },
+    private val say: (String) -> String = { ru.voidrp.ui.Messages.bundled(it) },
 ) : Page() {
 
     /** Whether [done] takes the player somewhere, or this page has to close itself. */
@@ -107,7 +107,7 @@ class ScreenPage(
             background = Paint(0x0B0D18, 0.98),
             padding = Insets.all(Theme.SPACE_5),
         ),
-        width = Size.Fixed(660),
+        width = Size.Fixed(700),
         gap = Theme.SPACE_3,
         align = Align.CENTER,
         children = listOf(
@@ -149,7 +149,7 @@ class ScreenPage(
                 align = Align.CENTER,
                 width = Size.Fill,
                 children = listOf(
-                    button(say("screen-page.narrower"), "screen:narrower", Theme.buttonGhost, Size.Fixed(120), height = 40),
+                    button(say("screen-page.narrower"), "screen:narrower", Theme.buttonGhost, Size.Fixed(170), height = 40),
                     Panel(
                         width = Size.Fixed(190),
                         align = Align.CENTER,
@@ -172,7 +172,7 @@ class ScreenPage(
                             ),
                         ),
                     ),
-                    button(say("screen-page.wider"), "screen:wider", Theme.buttonGhost, Size.Fixed(120), height = 40),
+                    button(say("screen-page.wider"), "screen:wider", Theme.buttonGhost, Size.Fixed(170), height = 40),
                 ),
             ),
             Text(

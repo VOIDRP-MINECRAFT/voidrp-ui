@@ -67,35 +67,35 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
 
     private fun first(): List<View> = listOf(
                     row(
-                        "кнопки",
-                        button("Основная", "b1", Theme.buttonPrimary, Size.Fixed(190)),
-                        button("Тихая", "b2", Theme.buttonGhost, Size.Fixed(150)),
-                        button("Наведение", "hover:button", Theme.buttonPrimary, Size.Fixed(190)),
+                        "buttons",
+                        button("Primary", "b1", Theme.buttonPrimary, Size.Fixed(190)),
+                        button("Quiet", "b2", Theme.buttonGhost, Size.Fixed(150)),
+                        button("Hovered", "hover:button", Theme.buttonPrimary, Size.Fixed(190)),
                     ),
                     row(
-                        "флажок, счётчик",
-                        Panel(width = Size.Fixed(230), children = listOf(checkbox("Включено", "c1", true))),
-                        Panel(width = Size.Fixed(230), children = listOf(checkbox("Выключено", "c2", false))),
+                        "tick box, stepper",
+                        Panel(width = Size.Fixed(230), children = listOf(checkbox("On", "c1", true))),
+                        Panel(width = Size.Fixed(230), children = listOf(checkbox("Off", "c2", false))),
                         Panel(width = Size.Fixed(230), children = listOf(stepper("q", "7"))),
                     ),
                     row(
-                        "ползунок",
+                        "slider",
                         Panel(width = Size.Fixed(230), children = listOf(slider("s0", 0.0))),
                         Panel(width = Size.Fixed(230), children = listOf(slider("s1", 0.5))),
                         Panel(width = Size.Fixed(230), children = listOf(slider("s2", 1.0))),
                     ),
                     row(
-                        "полоса и метки",
-                        Panel(width = Size.Fixed(230), children = listOf(progress("Пусто", 0.0, "0 / 50"))),
-                        Panel(width = Size.Fixed(230), children = listOf(progress("Онлайн", 0.35, "21 / 50"))),
+                        "progress, chips",
+                        Panel(width = Size.Fixed(230), children = listOf(progress("Empty", 0.0, "0 / 50"))),
+                        Panel(width = Size.Fixed(230), children = listOf(progress("Online", 0.35, "21 / 50"))),
                         Panel(
                             direction = Direction.ROW,
                             gap = Theme.SPACE_2,
-                            children = listOf(chip("Обычная"), chip("Акцент", Theme.chipAccent)),
+                            children = listOf(chip("Plain"), chip("Accent", Theme.chipAccent)),
                         ),
                     ),
                     row(
-                        "перенос в ряду",
+                        "a row that wraps",
                         Panel(
                             width = Size.Fixed(700),
                             direction = Direction.ROW,
@@ -103,19 +103,19 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                             gap = Theme.SPACE_2,
                             lineGap = Theme.SPACE_2,
                             children = listOf(
-                                "Выживание", "Мирный", "Хардкор", "Приключение",
-                                "Творческий", "Наблюдатель", "Испытание",
+                                "Survival", "Peaceful", "Hardcore", "Adventure",
+                                "Creative", "Spectator", "Challenge",
                             ).map { chip(it) },
                         ),
                     ),
                     row(
-                        "длинный текст и прокрутка",
+                        "long text, scrolling",
                         Panel(
                             style = Theme.card,
                             width = Size.Fixed(300),
                             children = listOf(
                                 Text(
-                                    "Строка, которая заведомо не помещается в свою карточку и обязана оборваться",
+                                    "A line that plainly does not fit its card and has to be cut short",
                                     Theme.TEXT_BODY,
                                     Theme.INK,
                                     maxLines = 2,
@@ -139,7 +139,7 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                                             width = Size.Fill,
                                             height = Size.Fixed(30),
                                             justify = ru.voidrp.ui.layout.Justify.CENTER,
-                                            children = listOf(Text("Строка $it", Theme.TEXT_BODY, Theme.INK_SOFT)),
+                                            children = listOf(Text("Row $it", Theme.TEXT_BODY, Theme.INK_SOFT)),
                                         )
                                     },
                                 ),
@@ -151,24 +151,24 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                             height = Size.Fixed(110),
                             justify = ru.voidrp.ui.layout.Justify.CENTER,
                             align = Align.CENTER,
-                            children = listOf(Text("Акцентная карточка", Theme.TEXT_LEAD, Theme.INK)),
+                            children = listOf(Text("Accent card", Theme.TEXT_LEAD, Theme.INK)),
                         ),
                     ),
     )
 
     private fun second(): List<View> = listOf(
                     row(
-                        "вкладки, переключатель, иконки",
+                        "tabs, switches, icon buttons",
                         Panel(
                             width = Size.Fixed(300),
                             children = listOf(
-                                tabs("tab", listOf("all" to "Все", "arms" to "Оружие", "food" to "Еда"), "arms"),
+                                tabs("tab", listOf("all" to "All", "arms" to "Weapons", "food" to "Food"), "arms"),
                             ),
                         ),
                         Panel(
                             width = Size.Fixed(230),
                             gap = Theme.SPACE_2,
-                            children = listOf(toggle("t1", true, "Включено"), toggle("t2", false, "Выключено")),
+                            children = listOf(toggle("t1", true, "On"), toggle("t2", false, "Off")),
                         ),
                         Panel(
                             direction = Direction.ROW,
@@ -181,42 +181,42 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                         ),
                     ),
                     row(
-                        "плитки, разделитель",
-                        Panel(width = Size.Fixed(230), children = listOf(statTile("Баланс", "184 200", "coins", accent = Theme.GOLD))),
-                        Panel(width = Size.Fixed(230), children = listOf(statTile("Убийств", "1 204", "swords"))),
+                        "tiles, divider",
+                        Panel(width = Size.Fixed(230), children = listOf(statTile("Balance", "184 200", "coins", accent = Theme.GOLD))),
+                        Panel(width = Size.Fixed(230), children = listOf(statTile("Kills", "1 204", "swords"))),
                         Panel(
-                            width = Size.Fixed(300),
+                            width = Size.Fixed(220),
                             gap = Theme.SPACE_2,
                             children = listOf(
-                                Text("Над чертой", Theme.TEXT_BODY, Theme.INK_SOFT),
+                                Text("Above the line", Theme.TEXT_BODY, Theme.INK_SOFT),
                                 divider(),
-                                Text("Под чертой", Theme.TEXT_BODY, Theme.INK_SOFT),
+                                Text("Below it", Theme.TEXT_BODY, Theme.INK_SOFT),
                             ),
                         ),
-                    ),
-                    row(
-                        "сообщения и пустота",
-                        Panel(width = Size.Fixed(360), gap = Theme.SPACE_2, children = listOf(
-                            notice("Сохранено", Tone.GOOD),
-                            notice("Не хватает монет", Tone.BAD),
-                        )),
-                        Panel(width = Size.Fixed(360), gap = Theme.SPACE_2, children = listOf(
-                            notice("Скоро вайп", Tone.WARN),
-                            notice("Сезон закончится через 3 дня", Tone.INFO),
-                        )),
                         Panel(
                             style = Theme.card,
                             width = Size.Fixed(330),
-                            children = listOf(emptyState("Здесь пусто", "Купите первый предмет на рынке")),
+                            children = listOf(emptyState("Nothing here yet", "Buy your first item on the market")),
                         ),
                     ),
                     row(
-                        "карточка с заголовком",
+                        "notices, empty state",
+                        Panel(width = Size.Fixed(360), gap = Theme.SPACE_2, children = listOf(
+                            notice("Saved", Tone.GOOD),
+                            notice("Not enough coins", Tone.BAD),
+                        )),
+                        Panel(width = Size.Fixed(360), gap = Theme.SPACE_2, children = listOf(
+                            notice("A wipe is coming", Tone.WARN),
+                            notice("The season ends in three days", Tone.INFO),
+                        )),
+                    ),
+                    row(
+                        "card with a heading",
                         Panel(
                             width = Size.Fixed(480),
                             children = listOf(
                                 card(
-                                    "Быстрый доступ",
+                                    "Quick access",
                                     icon = "grid",
                                     trailing = chip("6"),
                                     children = listOf(
@@ -225,8 +225,8 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                                             gap = Theme.SPACE_2,
                                             width = Size.Fill,
                                             children = listOf(
-                                                statTile("Квесты", "57", "quest", Theme.cardAccent),
-                                                statTile("Рынок", "12", "market", Theme.cardAccent),
+                                                statTile("Quests", "57", "quest", Theme.cardAccent),
+                                                statTile("Market", "12", "market", Theme.cardAccent),
                                             ),
                                         ),
                                     ),
@@ -236,10 +236,10 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                         Panel(width = Size.Fixed(600), children = listOf(dialogPreview())),
                     ),
                     row(
-                        "список",
+                        "dropdown",
                         Panel(width = Size.Fixed(230), children = listOf(select("m1", MODES, 0, false))),
                         Panel(width = Size.Fixed(230), children = listOf(select("m2", MODES, 1, true))),
-                        Panel(width = Size.Fixed(300), children = listOf(tooltipPanel("Алмаз", listOf("120 ₽", "12 шт")))),
+                        Panel(width = Size.Fixed(300), children = listOf(tooltipPanel("Diamond", listOf("120 coins", "12 in stock")))),
                     ),
     )
 
@@ -253,16 +253,16 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
         gap = Theme.SPACE_3,
         align = Align.CENTER,
         children = listOf(
-            Text("Продать за 120 ₽?", Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.BOLD),
-            Text("Предмет уйдёт сразу, отменить будет нельзя.", Theme.TEXT_BODY, Theme.INK_SOFT),
+            Text("Sell for 120 coins?", Theme.TEXT_LEAD, Theme.INK, TextFonts.Weight.BOLD),
+            Text("The item goes at once and this cannot be undone.", Theme.TEXT_BODY, Theme.INK_SOFT),
             Panel(
                 direction = Direction.ROW,
                 gap = Theme.SPACE_2,
                 justify = ru.voidrp.ui.layout.Justify.CENTER,
                 width = Size.Fill,
                 children = listOf(
-                    button("Продать", "d:yes", Theme.buttonPrimary, Size.Fixed(150)),
-                    button("Отмена", "d:no", Theme.buttonGhost, Size.Fixed(150)),
+                    button("Sell", "d:yes", Theme.buttonPrimary, Size.Fixed(150)),
+                    button("Cancel", "d:no", Theme.buttonGhost, Size.Fixed(150)),
                 ),
             ),
         ),
@@ -286,6 +286,6 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
     override fun onClick(id: String, button: Button) = Unit
 
     private companion object {
-        val MODES = listOf("Выживание", "Творческий", "Приключение")
+        val MODES = listOf("Survival", "Creative", "Adventure")
     }
 }

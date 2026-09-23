@@ -50,8 +50,8 @@ object Preview {
                 align = ru.voidrp.ui.layout.Align.CENTER,
                 children = listOf(
                     ru.voidrp.ui.widget.tooltipPanel(
-                        "Алмаз",
-                        listOf("Цена: 120 ₽", "В наличии: 12", "Годится на инструменты и броню."),
+                        "Diamond",
+                        listOf("Price: 120 coins", "In stock: 12", "Good for tools and armour."),
                     ),
                 ),
             ),
