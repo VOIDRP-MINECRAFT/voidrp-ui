@@ -472,7 +472,19 @@ fun statTile(
     children = buildList {
         icon?.let { add(Icon(it, Theme.TEXT_LEAD, Theme.INK_SOFT)) }
         add(eyebrow(label))
-        add(Text(value, Theme.TEXT_H3, accent, TextFonts.Weight.BOLD, wrap = false))
+        // The line box of a big number carries the room a descender would need, and there
+        // is no descender in "184 200" — so the tile looked bottom-heavy while its boxes
+        // were centred exactly. The number's box is trimmed to what it actually draws.
+        add(
+            Text(
+                value,
+                Theme.TEXT_H3,
+                accent,
+                TextFonts.Weight.BOLD,
+                wrap = false,
+                lineHeight = Theme.TEXT_H3,
+            ),
+        )
     },
 )
 
@@ -487,11 +499,15 @@ fun Page.iconButton(
     // stroke lands on whole pixels instead of between two of them.
     iconSize: Int = 24,
 ): View = Panel(
+    // Without the padding the style carries for text. A button's padding is sized for
+    // words, and inside a square that leaves an inner box a few units wide — the icon then
+    // sits in the corner of it rather than in the middle of the button, which is exactly
+    // what it looked like.
     style = when {
         selected -> Theme.buttonPrimary
         hovered == id -> style.hover()
         else -> style
-    },
+    }.copy(padding = Insets.NONE),
     width = Size.Fixed(size),
     height = Size.Fixed(size),
     justify = Justify.CENTER,

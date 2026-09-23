@@ -613,7 +613,16 @@ object Layout {
         var cursor = y - offset
         scroll.children.forEach { child ->
             val size = measure(child, innerWidth, UNBOUNDED)
-            arrange(child, x, cursor, innerWidth, size.height, inner, innerRegions)
+            // A child the window left a few units of is not shown at all. Kept, it is a
+            // line lying at the edge of the list, with the corners it was rounded with as
+            // two stray squares beside it and its lit top edge as a hairline below —
+            // every piece of a card except the card.
+            val top = cursor.coerceAtLeast(y)
+            val end = (cursor + size.height).coerceAtMost(y + height)
+            val whole = cursor >= y && cursor + size.height <= y + height
+            if (whole || end - top >= minOf(CLIPPED_MINIMUM, size.height)) {
+                arrange(child, x, cursor, innerWidth, size.height, inner, innerRegions)
+            }
             cursor += size.height + scroll.gap
         }
 
@@ -651,19 +660,43 @@ object Layout {
     /** What is left of a shape once the window has had its way with it. */
     private fun clip(node: Node, x: Int, y: Int, width: Int, height: Int): Node? {
         val bottom = y + height
+
+        /**
+         * What is left of a shape that runs from [from] to [to], or null.
+         *
+         * Whatever is inside the window, and nothing of what is not.
+         */
+        fun visible(from: Int, to: Int): IntRange? {
+            val top = from.coerceAtLeast(y)
+            val end = to.coerceAtMost(bottom)
+            return if (end <= top) null else top until end
+        }
+
         return when (node) {
-            is Rect -> {
-                val top = node.y.coerceAtLeast(y)
-                val end = (node.y + node.height).coerceAtMost(bottom)
-                if (end <= top) null else node.copy(y = top, height = end - top)
-            }
-            // A letter, an icon or a rounded corner is drawn whole or not at all.
+            is Rect -> visible(node.y, node.y + node.height)
+                ?.let { node.copy(y = it.first, height = it.last - it.first + 1) }
+
+            // A letter or an icon is drawn whole or not at all.
             is Label -> node.takeIf { it.y >= y && it.y + it.size <= bottom }
             is Sprite -> node.takeIf { it.y >= y && it.y + it.advance <= bottom }
-            is CornerPiece -> node.takeIf { it.y >= y && it.y + it.radius <= bottom }
+
+            // A rounded corner cut in half is a notch out of the card, so what the window
+            // cuts gets a square corner instead: the quarter disc becomes the part of its
+            // own square that is still inside. A border's corner has no square to fall back
+            // on and simply goes.
+            is CornerPiece -> when {
+                node.y >= y && node.y + node.radius <= bottom -> node
+                node.ring -> null
+                else -> visible(node.y, node.y + node.radius)
+                    ?.let { Rect(node.x, it.first, node.radius, it.last - it.first + 1, node.paint) }
+            }
+
             else -> node
         }
     }
+
+    /** Below this, what the window left of a shape reads as an artefact rather than a card. */
+    private const val CLIPPED_MINIMUM = 14
 
     /** The gap between wrapped lines: its own, or the one between children. */
     private val Panel.lineGapOr: Int get() = lineGap ?: gap

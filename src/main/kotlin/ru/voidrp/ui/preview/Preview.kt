@@ -75,6 +75,7 @@ object Preview {
                     when (node) {
                         is Box -> appendLine("box ${node.width}×${node.height} @ ${node.x},${node.y}")
                         is Label -> appendLine("text \"${node.text}\" ${node.size} @ ${node.x},${node.y}")
+                        is Sprite -> appendLine("sprite ${node.font ?: "shape"} @ ${node.x},${node.y} +${node.advance}")
                         else -> Unit
                     }
                 }

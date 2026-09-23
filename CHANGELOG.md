@@ -3,6 +3,27 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.2.1
+
+- An icon in an icon button sat in the corner of it. The button's style carries the padding
+  its text would need, and inside a square that left an inner box a few units wide, so the
+  icon was placed in the corner of that box rather than in the middle of the button. Icon
+  buttons drop the padding.
+- Icons are re-baked: a symmetric one is folded onto its own mirror before the threshold, so
+  both sides of a roof agree on where the ink is, and icons inside buttons are drawn at 24 —
+  the grid the set is drawn on, where a stroke lands on whole pixels.
+- `Panel(shrink = false)` for something that would rather overflow than be squeezed. Chips
+  use it: squeezed, a chip does not become narrower, it becomes a word with an ellipsis.
+- Spacer glyphs moved to a two-byte range: the home page went from 94 to 90 KB on the wire.
+- The screen setup page falls back to the English that ships in the jar rather than showing
+  the key when it is drawn outside a running plugin.
+- A scrolling list stops leaving pieces of a card at the edge of its window: a child the
+  window shows a few units of is not drawn at all, rather than as a line with the corners it
+  was rounded with lying beside it, and a card the window really does cut gets a square
+  corner there instead of a notch.
+- A tile's number no longer sits low: the line box of a big number carries room for a
+  descender there is none of, so the boxes were centred exactly while the ink was not.
+
 ## 0.2.0
 
 **A page is laid out for the player's screen.** It used to live on a fixed 1820×1024 board
