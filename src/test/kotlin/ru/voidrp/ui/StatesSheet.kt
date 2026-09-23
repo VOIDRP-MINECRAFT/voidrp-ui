@@ -55,13 +55,24 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
             Panel(
                 style = Theme.page,
                 width = Size.Fixed(1180),
-                gap = Theme.SPACE_4,
-                // Two sheets, not one: everything on a single page no longer fits the
-                // canvas, and a layout that does not fit is compressed — the gaps go
-                // first, so every control would be shown a little tighter than it really
-                // is. Exactly the thing this sheet exists to catch.
-                children = (if (part == 1) first() else second()).map { it },
+                // Room between one group and the next: a label belongs to what is under
+                // it, and at a smaller gap it reads as belonging to what is above.
+                gap = Theme.SPACE_5,
+                // Opened on its own in the documentation, the sheet should say what it is.
+                children = listOf(header()) + (if (part == 1) first() else second()),
             ),
+        ),
+    )
+
+    private fun header(): View = Panel(
+        direction = Direction.ROW,
+        width = Size.Fill,
+        align = Align.CENTER,
+        gap = Theme.SPACE_3,
+        children = listOf(
+            Text("Components", Theme.TEXT_H3, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
+            Panel(width = Size.Fill),
+            chip(if (part == 1) "sheet 1 of 2" else "sheet 2 of 2"),
         ),
     )
 
@@ -242,6 +253,9 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
                         Panel(width = Size.Fixed(230), children = listOf(select("m2", MODES, 1, true))),
                         Panel(width = Size.Fixed(300), children = listOf(tooltipPanel("Diamond", listOf("120 coins", "12 in stock")))),
                     ),
+                    // The open list stands over what follows it, and here nothing follows:
+                    // without this it would hang off the bottom of the card.
+                    ru.voidrp.ui.layout.Gap(64),
     )
 
     /**
@@ -269,6 +283,13 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
         ),
     )
 
+    /**
+     * One labelled row of the sheet.
+     *
+     * The cells line up on their middles rather than their tops: a row holds a tall card
+     * next to a pair of chips, and hung from the top the chips read as an afterthought
+     * rather than as the other half of the row.
+     */
     private fun row(title: String, vararg cells: View): View = Panel(
         width = Size.Fill,
         gap = Theme.SPACE_2,
@@ -277,8 +298,8 @@ class StatesSheet(private val hover: String? = null, private val part: Int = 1) 
             Panel(
                 direction = Direction.ROW,
                 width = Size.Fill,
-                gap = Theme.SPACE_3,
-                align = Align.START,
+                gap = Theme.SPACE_4,
+                align = Align.CENTER,
                 children = cells.toList(),
             ),
         ),

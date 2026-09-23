@@ -73,7 +73,14 @@ fun Page.button(
     width: Size = Size.Auto,
     height: Int = 44,
 ): View = Panel(
-    style = if (hovered == id) style.hover() else style,
+    // The height is given, so the style's vertical padding has nothing left to do but
+    // fight it: the inner box comes out shorter than the line of text, and the caption is
+    // pushed down against the bottom edge instead of sitting in the middle. Only the
+    // padding that still means something — the one that decides how wide the button is —
+    // is kept.
+    style = (if (hovered == id) style.hover() else style).let {
+        it.copy(padding = Insets(0, it.padding.right, 0, it.padding.left))
+    },
     width = width,
     height = Size.Fixed(height),
     justify = Justify.CENTER,
@@ -568,7 +575,7 @@ fun emptyState(
     gap = Theme.SPACE_3,
     align = Align.CENTER,
     justify = Justify.CENTER,
-    style = Style(padding = Insets.all(Theme.SPACE_6)),
+    style = Style(padding = Insets.symmetric(Theme.SPACE_5, Theme.SPACE_4)),
     children = buildList {
         add(Icon(icon, Theme.TEXT_H2, Theme.INK_DIM))
         add(Text(title, Theme.TEXT_LEAD, Theme.INK_SOFT, TextFonts.Weight.SEMIBOLD, align = TextAlign.CENTER))

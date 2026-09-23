@@ -3,6 +3,17 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.2.3
+
+- A button's caption sat low in it. The height is given, so the style's vertical padding had
+  nothing left to do but fight it: the inner box came out shorter than the line of text and
+  the caption was pushed against the bottom edge. Buttons keep only the padding that still
+  means something — the one that decides how wide they are.
+- The sheet of components says what it is, its cells line up on their middles rather than
+  their tops, and its open dropdown no longer hangs off the bottom of the card.
+- An empty state is a little less tall, which is what let the second sheet fit a 5:4 screen
+  again.
+
 ## 0.2.2
 
 - The pieces of one line sit on one baseline. A smaller span left at the same top edge

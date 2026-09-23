@@ -139,7 +139,8 @@ loads on a 1.21.6 server, which usually runs on 21.
 
 ## Components
 
-![Every control in every state](docs/states.png)
+![Components: buttons, tick boxes, sliders, progress bars, chips](docs/states.png)
+![Components: tabs, switches, tiles, notices, dialogs, dropdowns](docs/states-2.png)
 
 There is no need to build a button out of a panel and a label every time —
 `ru.voidrp.ui.widget` has them, and they all follow one rule: a function returns a `View`,
@@ -191,6 +192,18 @@ Both are built at startup, served from the built-in server, and need no configur
 the second one is not needed because everybody is on one version, `pack.legacy: false`
 saves a second of startup and a megabyte of disk. If you host the archives yourself, the
 second address is `pack.legacy-url`.
+
+## Four looks, one page
+
+| | |
+|---|---|
+| ![Midnight](docs/theme-midnight.png) | ![Daylight](docs/theme-daylight.png) |
+| **midnight** — near-black with violet, the default | **daylight** — a light theme |
+| ![Ember](docs/theme-ember.png) | ![Grove](docs/theme-grove.png) |
+| **ember** — warm dark | **grove** — dark green |
+
+The same page and the same code: the whole look is a dozen colours in `theme.yml`, and the
+jar carries these four to start from. See [theming](docs/theming.md).
 
 ## Responsive
 
