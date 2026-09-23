@@ -374,7 +374,14 @@ object Layout {
         }
         var along = 0
         var across = 0
+        // Only what stands in the flow. A dropdown's open list is an Overlay: it takes no
+        // room, so it must not earn a gap either — with one the panel came out four units
+        // taller than it draws, and in a row of centred cells the open list sat two units
+        // higher than the closed one beside it.
+        var counted = 0
         panel.children.forEach { child ->
+            if (!child.inFlow()) return@forEach
+            counted++
             val size = measure(child, innerWidth, innerHeight)
             if (panel.direction == Direction.ROW) {
                 along += size.width
@@ -384,7 +391,7 @@ object Layout {
                 across = maxOf(across, size.width)
             }
         }
-        along += panel.gap * (panel.children.size - 1)
+        along += panel.gap * (counted - 1).coerceAtLeast(0)
         return if (panel.direction == Direction.ROW) Extent(along, across) else Extent(across, along)
     }
 
@@ -817,7 +824,7 @@ object Layout {
             index.takeIf { child.growsAlong(panel.direction) }
         }.filterNotNull()
 
-        val gaps = panel.gap * (children.size - 1)
+        val gaps = panel.gap * (children.count { it.inFlow() } - 1).coerceAtLeast(0)
         val used = wanted.sum() + gaps
         val sizes = wanted.toMutableList()
 

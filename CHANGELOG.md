@@ -3,6 +3,12 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.2.5
+
+- Something that takes no room no longer earns a gap either. A dropdown's open list is an
+  overlay, so a panel holding one came out four units taller than it draws — and in a row of
+  centred cells the open list sat two units higher than the closed one beside it.
+
 ## 0.2.4
 
 - The closed dropdown centres its text too — it had the same fight between a height of its
