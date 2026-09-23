@@ -273,6 +273,17 @@ object Layout {
     fun maxOffset(scroll: Scroll, width: Int, height: Int): Int =
         (contentHeight(scroll, width).first - height).coerceAtLeast(0)
 
+    /** Where each child of a scroll starts, measured from the top of its content. */
+    fun rowStarts(scroll: Scroll, width: Int): List<Int> {
+        var y = 0
+        return scroll.children.mapIndexed { index, child ->
+            if (index > 0) y += scroll.gap
+            val start = y
+            y += measure(child, width, UNBOUNDED).height
+            start
+        }
+    }
+
     /**
      * From one line's top to the next. The typeface's own line box is tight, so a little
      * air is added — the same thing a stylesheet does with `line-height`.

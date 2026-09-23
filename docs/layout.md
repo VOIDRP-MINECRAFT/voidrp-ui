@@ -143,6 +143,21 @@ glyph cannot be cut in half on the way to the client — it is drawn whole or no
 rectangles are cut at the edge of the window and words and icons are shown only while they
 fit whole.
 
+Move it with `scrolled` from `ru.voidrp.ui.widget`, rather than adding to it yourself:
+
+```kotlin
+override fun onScroll(direction: Int) {
+    offset = scrolled(list(), direction, width, height)
+    refresh()
+}
+```
+
+It stops on the top of a row, because a list stopped between rows cuts a card through the
+middle and what is left of it is whatever text happened to fit — a description with no
+title over it. And it stops at both ends: an offset that only stops at zero runs on past
+the bottom, and the wheel turned back does nothing for as many notches as were spent there.
+`step = 20` moves by a fixed distance instead.
+
 The bar can be dragged: `scrollFromBar(scroll, id, viewport.width, viewport.height)` from
 `ru.voidrp.ui.widget` turns the cursor's position into the new `offset`.
 

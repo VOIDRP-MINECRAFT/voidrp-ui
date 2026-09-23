@@ -20,6 +20,7 @@ import ru.voidrp.ui.widget.screen
 import ru.voidrp.ui.widget.button
 import ru.voidrp.ui.widget.eyebrow
 import ru.voidrp.ui.widget.scrollFromBar
+import ru.voidrp.ui.widget.scrolled
 import ru.voidrp.ui.widget.stepper
 import ru.voidrp.ui.widget.tooltipPanel
 
@@ -176,7 +177,7 @@ open class ShopPage : Page() {
     )
 
     override fun onScroll(direction: Int) {
-        offset = (offset + direction * 48).coerceAtLeast(0)
+        offset = scrolled(list(), direction, inner, listHeight)
         refresh()
     }
 

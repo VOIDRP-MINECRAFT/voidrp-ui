@@ -3,6 +3,39 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.5
+
+**A page is sent again only when it has changed.** The whole page travels as one boss bar
+title — ninety kilobytes for a rich one — and it used to go out every time a page asked,
+whether or not anything on it was different. The description a page gives is immutable
+data, so it is compared with the last one first: finding out that nothing changed costs
+0.08 ms against 2.3 ms to draw the home page again, and the ninety kilobytes stay put. A
+test holds every page that ships to describing itself identically when it has not changed,
+since a lambda or a timestamp in the tree would quietly defeat the whole thing.
+
+**Several changes in one tick are drawn once.** A wheel spun hard puts several notches into
+a single tick; the first is drawn at once and the rest fold into one more draw on the next.
+
+`/vui debug cursor` reports how many times the page was really sent, how many asks came out
+the same and how many were folded — the numbers behind both of those.
+
+**Found by driving a real client, and fixed:**
+
+- **Two rows lit at once while scrolling.** A page was described with what the pointer was
+  over *before* the change, so a list scrolling under a still pointer lit the row that had
+  just left it, while the pointer's own highlight marked the row that had arrived. When a
+  change moves things under the pointer, the page is now asked once more with the answer
+  the new layout gives.
+- **A list that stuck after being spun past its end.** The shop stopped its offset at the
+  top and let it run on past the bottom; the picture stopped moving, the number did not,
+  and turning the wheel back did nothing for as many notches as were spent past the end.
+- **Cards cut through the middle.** The wheel moved a list 48 units, rows are 76 tall, so
+  it came to rest between rows — and since a glyph is drawn whole or not at all, the top
+  card showed its description and the word "coins" with no title and no price.
+
+All three are handled by `scrolled()`, which moves a list a row at a time and never past
+either end, and which `docs/layout.md` now recommends for every list.
+
 ## 0.3.4
 
 **The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a

@@ -302,6 +302,34 @@ fun Page.scrollFromBar(scroll: Scroll, id: String, viewportWidth: Int, viewportH
 }
 
 /**
+ * Moves a list by notches of the wheel: a row at a time, and never past either end.
+ *
+ * **A row at a time**, because a glyph is drawn whole or not at all. A list stopped between
+ * two rows cuts the top card through its middle, and what survives of it is whatever text
+ * happened to fit: a description with no title over it, a unit with no number in front of
+ * it. Seen on a live client, it reads as broken rather than as scrolled. Stopping on the top
+ * of a row is what an inventory does, and it is the only stop at which every card is whole.
+ * The last stop is the bottom of the list, wherever that falls, so the end is reachable.
+ * Pass [step] for a list that should move by a fixed distance instead.
+ *
+ * **Never past either end**, because the offset is the page's own number and a page that
+ * only stops it at the top lets it run on past the bottom: the picture stops moving, the
+ * number keeps growing, and the wheel turned back then does nothing for as many notches as
+ * were spent past the end.
+ */
+fun scrolled(scroll: Scroll, direction: Int, viewportWidth: Int, viewportHeight: Int, step: Int? = null): Int {
+    val limit = Layout.maxOffset(scroll, viewportWidth, viewportHeight).coerceAtLeast(0)
+    val current = scroll.offset.coerceIn(0, limit)
+    if (step != null) return (current + direction * step).coerceIn(0, limit)
+    val stops = (Layout.rowStarts(scroll, viewportWidth).filter { it < limit } + limit).distinct().sorted()
+    var at = current
+    repeat(Math.abs(direction)) {
+        at = if (direction > 0) stops.firstOrNull { it > at } ?: limit else stops.lastOrNull { it < at } ?: 0
+    }
+    return at
+}
+
+/**
  * A tooltip: a title, and lines of explanation under it.
  *
  * Built from the menu's surface rather than the page's, because it floats over whatever

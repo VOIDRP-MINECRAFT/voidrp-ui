@@ -51,6 +51,30 @@ object PageBench {
             )
         }
 
+        // What a page costs when nothing about it has changed. The session compares the
+        // description it was given with the one it last drew and sends nothing if they
+        // match, so this is the price of finding that out against the price of not
+        // bothering to.
+        listOf<Pair<String, Page>>("home" to HomePage(), "shop" to ShopPage()).forEach { (name, page) ->
+            val a = page.view()
+            repeat(200) { a == page.view() }
+            val compares = (1..2000).map {
+                val started = System.nanoTime()
+                val same = a == page.view()
+                check(same)
+                System.nanoTime() - started
+            }.sorted()
+            val renders = (1..200).map { measure(page) }.sorted()
+            println(
+                "%-9s unchanged: %.3f ms to notice, against %.2f ms to draw it again — %.0f× cheaper".format(
+                    name,
+                    compares[compares.size / 2] / 1_000_000.0,
+                    renders[renders.size / 2] / 1_000_000.0,
+                    renders[renders.size / 2].toDouble() / compares[compares.size / 2].coerceAtLeast(1),
+                ),
+            )
+        }
+
         repeat(200) { cursorFrame() }
         val frames = (1..2000).map { cursorFrame() }.sorted()
         val median = frames[frames.size / 2] / 1_000_000.0

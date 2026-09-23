@@ -140,7 +140,7 @@ abstract class Page {
 
     /** Draw the page again, because something it shows has changed. */
     fun refresh() {
-        session?.render()
+        session?.refresh()
     }
 
     /** Opens another page on top of this one. Crouching, or [back], returns here. */

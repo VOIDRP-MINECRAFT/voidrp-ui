@@ -161,7 +161,8 @@ class PageSession(
         return "ping ${ping()}ms · lead ${Math.round(pointer.lead(ping()) * 1000)}ms · " +
             "readings every ${Math.round(pointer.gap * 1000)}ms, " +
             "last ${pointer.age(now)}ms ago ($believed% believed) · " +
-            "walking at ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s"
+            "walking at ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s · " +
+            "page sent $sent times, $unchanged asks came out the same, $merged folded into a tick"
     }
 
     var hovered: String? = null
@@ -402,16 +403,103 @@ class PageSession(
         page.onKey(number)
     }
 
+    /**
+     * The page as it last described itself, and the canvas it was drawn on.
+     *
+     * A page is sent as one boss bar title, which is the whole picture every time any of it
+     * changes — ninety kilobytes for a rich one. So the description is compared before any
+     * of that is spent: a page that answers `view()` with the same tree draws the same
+     * picture, and the tree is immutable data, so comparing it is a walk over a few hundred
+     * small objects against a layout, an encode and a packet.
+     */
+    private var drawn: ru.voidrp.ui.layout.View? = null
+    private var drawnOn: ru.voidrp.ui.layout.Viewport? = null
+
     /** The tooltip as the page last described it; re-laid out as the cursor moves. */
     private var tooltip: ru.voidrp.ui.layout.View? = null
     private var tooltipEncoded: Component? = null
     private var tooltipAt = Int.MIN_VALUE
 
-    /** Builds the page again from scratch and sends it. */
+    /**
+     * The page says it has changed; send it again, at most once a tick.
+     *
+     * A wheel spun hard puts several notches into one tick, and a page that answers each of
+     * them separately lays itself out, encodes and sends itself several times for one
+     * scroll — tens of kilobytes each. The first change in a tick is drawn at once, so
+     * nothing feels delayed, and the rest of that tick collapses into one more draw on the
+     * next: the only picture that mattered was the last one anyway.
+     */
+    fun refresh() {
+        if (closed) return
+        val tick = currentTick()
+        if (tick != renderedAtTick) {
+            renderedAtTick = tick
+            render()
+            return
+        }
+        merged++
+        if (renderQueued) return
+        renderQueued = true
+        val queued = runCatching {
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable {
+                renderQueued = false
+                renderedAtTick = currentTick()
+                if (!closed) render()
+            })
+            true
+        }.getOrDefault(false)
+        // No scheduler to hand — a test, a shutdown — so draw it here rather than lose it.
+        if (!queued) {
+            renderQueued = false
+            render()
+        }
+    }
+
+    private var renderedAtTick = Int.MIN_VALUE
+    private var renderQueued = false
+
+    /**
+     * What the page has cost since it opened: how many times it was really sent, how many
+     * times it asked and came out the same, and how many asks were folded into another
+     * one in the same tick. The last two are what these two measures save.
+     */
+    private var sent = 0
+    private var unchanged = 0
+    private var merged = 0
+
+    private fun currentTick(): Int = runCatching { org.bukkit.Bukkit.getCurrentTick() }.getOrDefault(-1)
+
+    /** Builds the page again from scratch and sends it — unless it comes out the same. */
     fun render() {
         if (closed) return
         val canvas = viewport
-        val placement = Layout.centred(page.view(), canvas.width, canvas.height)
+        val view = page.view()
+        if (view == drawn && canvas == drawnOn) {
+            unchanged++
+            // Same description, same canvas: the picture on the screen is already this one.
+            // The tooltip is still asked for, because it follows the cursor rather than the
+            // page, and the cursor is redrawn as always.
+            takeTooltip()
+            draw()
+            return
+        }
+        var described = view
+        var placement = Layout.centred(described, canvas.width, canvas.height)
+        // The page was described with what the pointer was over before this change. When
+        // the change itself moves things under a still pointer — a list scrolling past it —
+        // that is no longer what it is over, and a page that styles its hovered row lights
+        // up the row that just left while the pointer's own highlight marks the one that
+        // arrived: two rows lit at once. So it is asked once more, with the answer the new
+        // layout gives. Once is enough; a hover style that moved things again would be a
+        // page fighting itself, and a second pass would not settle that either.
+        val nowOver = placement.regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
+        if (nowOver != hovered) {
+            hovered = nowOver
+            described = page.view()
+            placement = Layout.centred(described, canvas.width, canvas.height)
+        }
+        drawn = described
+        drawnOn = canvas
         // Painted first and wider than the canvas: the page was laid out for the screen
         // the player said they have, and any difference from the real one is a strip of
         // the world down the side. See Page.bleed.
@@ -431,11 +519,19 @@ class PageSession(
         regions = placement.regions
         // The page is encoded once and kept: the cursor moves every tick, the page does not.
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
-        tooltip = page.tooltip()
-        tooltipEncoded = null
+        takeTooltip()
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
         renderer.render(player, GlyphEncoder.encode(nodes, canvas.width / 2))
+        sent++
         draw()
+    }
+
+    /** Asks the page for its tooltip, and throws away the drawn one if it has changed. */
+    private fun takeTooltip() {
+        val next = page.tooltip()
+        if (next == tooltip) return
+        tooltip = next
+        tooltipEncoded = null
     }
 
     /** Sends what is already encoded, with the pointer on top. */
