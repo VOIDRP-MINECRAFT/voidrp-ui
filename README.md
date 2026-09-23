@@ -352,6 +352,11 @@ To look at the pages without joining the game, drawn by the code the client will
 ./gradlew preview        # PNGs of the pages in build/preview
 ```
 
+Three environment variables make the drawing the real thing rather than placeholders:
+`VOIDRP_CLIENT_JAR` points at a client jar and the item icons come out as the game's own
+textures, `VOIDRP_HEADS` at a server's `plugins/VoidRpUI/heads` and the faces are real
+players', `VOIDRP_IMAGES` at its `images` and the server's own pictures are drawn.
+
 ## What it costs
 
 ```bash
