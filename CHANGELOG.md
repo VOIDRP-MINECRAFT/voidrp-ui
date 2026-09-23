@@ -3,6 +3,13 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.2.4
+
+- The closed dropdown centres its text too — it had the same fight between a height of its
+  own and the padding its style carries for words.
+- A test holds every control that has a height of its own to putting its caption in the
+  middle of it.
+
 ## 0.2.3
 
 - A button's caption sat low in it. The height is given, so the style's vertical padding had

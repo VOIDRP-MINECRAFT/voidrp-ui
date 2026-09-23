@@ -179,7 +179,11 @@ fun Page.select(
     children = buildList {
         add(
             Panel(
-                style = if (hovered == id) Theme.buttonGhost.hover() else Theme.buttonGhost,
+                // Keeping only the padding that decides the width, as a button does: with
+                // a height of its own, the vertical padding just pushes the word down.
+                style = (if (hovered == id) Theme.buttonGhost.hover() else Theme.buttonGhost).let {
+                    it.copy(padding = Insets(0, it.padding.right, 0, it.padding.left))
+                },
                 width = Size.Fill,
                 height = Size.Fixed(40),
                 direction = Direction.ROW,

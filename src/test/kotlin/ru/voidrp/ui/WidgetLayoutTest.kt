@@ -17,7 +17,9 @@ import ru.voidrp.ui.render.Label
 import ru.voidrp.ui.render.Rect
 import ru.voidrp.ui.render.Sprite
 import ru.voidrp.ui.style.Theme
+import ru.voidrp.ui.widget.button
 import ru.voidrp.ui.widget.iconButton
+import ru.voidrp.ui.widget.select
 
 /**
  * What the components put where — the things a screenshot shows and a unit test usually
@@ -40,6 +42,29 @@ class WidgetLayoutTest {
         val icon = placement.nodes.filterIsInstance<Sprite>().single()
         assertEquals(9, icon.x, "иконка не по центру по горизонтали")
         assertEquals(9, icon.y, "иконка не по центру по вертикали")
+    }
+
+    @Test
+    fun `a control with a height of its own centres its caption`() {
+        // The style carries the padding its text would need, and a control that is also
+        // given a height has no room for it: the caption ends up against the bottom edge.
+        // On a 36-unit tab that was eighteen units above the word and five below.
+        val page = Blank()
+        listOf<Pair<String, View>>(
+            "кнопка" to page.button("Primary", "b", height = 44),
+            "вкладка" to page.button("All", "t", Theme.buttonGhost, height = 36),
+            "список" to page.select("m", listOf("Survival"), 0, open = false, width = Size.Fixed(230)),
+        ).forEach { (name, view) ->
+            val height = if (name == "вкладка") 36 else if (name == "кнопка") 44 else 40
+            val label = Layout.place(view, 0, 0, 230, height).nodes.filterIsInstance<Label>().first()
+            val cell = TextFonts.sheet(label.weight, label.size).cellHeight
+            val above = label.y
+            val below = height - (label.y + cell)
+            assertTrue(
+                Math.abs(above - below) <= 2,
+                "$name: текст не по центру — сверху $above, снизу $below",
+            )
+        }
     }
 
     @Test
