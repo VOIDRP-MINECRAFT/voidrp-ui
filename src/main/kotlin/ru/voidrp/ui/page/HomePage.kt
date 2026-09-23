@@ -115,7 +115,9 @@ open class HomePage : Page() {
 
     /** The well the player stands in: a card's own surface, and the light inside it. */
     private val WELL get() = Palette.composite(Theme.tileFill, Theme.onCard)
-    private val WELL_LIGHT get() = Palette.composite(Paint(Theme.VIOLET, 0.35), WELL)
+    // A gentle step: the well is lit rather than painted, and a jump this wash cannot
+    // express in its handful of shades comes out as stripes across the card.
+    private val WELL_LIGHT get() = Palette.composite(Paint(Theme.VIOLET, 0.16), WELL)
 
     /** The well the player stands in, in the profile card. */
     private val WELL_WIDTH = 286
@@ -462,10 +464,14 @@ open class HomePage : Page() {
             background = Gradient(
                 // Both ends are the accent over the surface this panel stands on, so the
                 // banner follows the theme instead of carrying two violets of its own.
-                Paint(Palette.composite(Paint(Theme.VIOLET, 0.30), CARD)),
-                Paint(Palette.composite(Paint(Theme.VIOLET, 0.06), CARD)),
+                Paint(Palette.composite(Paint(Theme.VIOLET, 0.24), CARD)),
+                Paint(Palette.composite(Paint(Theme.VIOLET, 0.04), CARD)),
                 direction = GradientDirection.HORIZONTAL,
                 over = CARD,
+                // One stripe every eight units rather than every few: the wash is a
+                // thousand units wide, and the fewer stripes it has the more each one has
+                // to step, which is what makes a wash this size come out in bands.
+                steps = 128,
                 // The site holds the violet for the first fifth and then drops away fast;
                 // a fade that starts at the very edge is dimmer than it where the words are.
                 start = 0.0,

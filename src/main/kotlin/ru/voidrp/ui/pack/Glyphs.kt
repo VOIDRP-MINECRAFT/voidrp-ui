@@ -68,7 +68,17 @@ object Glyphs {
     private const val CORNER_BASE = 0xE400
     private const val RING_BASE = 0xE600
     private const val GLOW_BASE = 0xEB00
-    private const val SPACER_BASE = 0xE800
+    /**
+     * Where the invisible spacers live: Syriac, of all places.
+     *
+     * They were in the private use area, and a private-use code point costs three bytes in
+     * UTF-8. A page is mostly spacers — the pen is moved before nearly every shape — so the
+     * home page spent about a tenth of its ninety kilobytes on the third byte of a
+     * character that draws nothing. Anything from 0x80 to 0x7FF costs two, and this block
+     * is one the typeface has no letters in, so a spacer can never collide with a glyph in
+     * the same font.
+     */
+    private const val SPACER_BASE = 0x0700
 
     /** The font that draws shapes at [level]/8 opacity. */
     fun fontName(level: Int): String = "ui_a${level.coerceIn(1, ALPHA_LEVELS)}"
