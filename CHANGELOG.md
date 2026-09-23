@@ -36,6 +36,20 @@ the same and how many were folded — the numbers behind both of those.
 All three are handled by `scrolled()`, which moves a list a row at a time and never past
 either end, and which `docs/layout.md` now recommends for every list.
 
+**Blocks have pictures.** Ancient debris was an empty square in the shop, because there is
+no `ancient_debris.png` — only a side and a top. So were 103 other blocks, furnaces and
+crafting tables among them. Which face stands for an item is now read from the client's own
+models by `tools/item-faces.py` rather than guessed from file names, which would have given
+a glass pane its thin edge instead of the glass. Only names and numbers come out of it.
+
+**What the client paints is painted.** Leaves, vines, ferns and lily pads are grey in their
+textures and green only because the client colours them; drawn white they were grey noise.
+The colour comes from the item's own definition — a constant, or the grass and foliage maps
+at the temperature it names — and rides the glyph's colour. A face is painted only if the
+model paints it: a grass block's side already has its green.
+
+436 items in all, which the plain lookup drew wrongly or not at all.
+
 ## 0.3.4
 
 **The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a

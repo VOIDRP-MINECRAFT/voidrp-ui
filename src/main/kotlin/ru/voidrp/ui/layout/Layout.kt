@@ -525,7 +525,11 @@ object Layout {
                 val size = Icons.nearestSize(view.size)
                 val glyph = Icons.glyph(view.item)
                 if (glyph != null) {
-                    out += Sprite(x, y, glyph, Icons.advance(view.item, size), font = Icons.fontName(size))
+                    out += Sprite(
+                        x, y, glyph, Icons.advance(view.item, size),
+                        colour = Icons.tint(view.item),
+                        font = Icons.fontName(size),
+                    )
                 } else {
                     // The client has no picture of this — a few items are drawn from models
                     // rather than a texture. An empty slot says so; nothing at all looks

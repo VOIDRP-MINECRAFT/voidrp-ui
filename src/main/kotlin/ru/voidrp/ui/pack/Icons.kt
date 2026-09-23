@@ -12,8 +12,13 @@ package ru.voidrp.ui.pack
  * white leaves the texture exactly as it is, while everything else on the page is tinted.
  *
  * Blocks are included because a shop is mostly blocks, and a shop that cannot show stone
- * is not a shop. They are drawn flat — one face of the texture, not the little cube the
- * inventory draws — since a glyph is a picture and nothing here can turn a model into one.
+ * is not a shop. They are drawn flat — one face, not the little cube the inventory draws —
+ * since a glyph is a picture and nothing here can turn a model into one. Which face is not
+ * guessed from file names: ancient debris has no ancient_debris.png at all, only a side and
+ * a top, and a glass pane's picture is the glass rather than the thin edge its own texture
+ * shows. [faces] says, for every item where the name does not lead to the right picture,
+ * the texture the client's own model puts on the face you see — and, for leaves, vines and
+ * grass, the colour the client paints them, since in the texture they are grey.
  */
 object Icons {
 
@@ -47,6 +52,32 @@ object Icons {
 
     val NAMES: List<String> get() = table.map { it.first }
 
+    /**
+     * Items whose picture is not the texture named after them, and the tint the client
+     * gives them. Worked out from the client's models by `tools/item-faces.py`: only names
+     * and numbers, nothing of the artwork.
+     */
+    private val faces: Map<String, Pair<String, Int?>> by lazy {
+        Icons::class.java.getResourceAsStream("/icons/item_faces.txt")
+            ?.bufferedReader()
+            ?.readLines()
+            ?.mapNotNull { line ->
+                if (line.isBlank() || line.startsWith("#")) return@mapNotNull null
+                val parts = line.trim().split(' ')
+                if (parts.size < 2) return@mapNotNull null
+                val tint = parts.getOrNull(2)?.removePrefix("#")?.toIntOrNull(16)
+                parts[0] to (parts[1] to tint)
+            }
+            ?.toMap()
+            ?: emptyMap()
+    }
+
+    /**
+     * The colour to draw an item's picture in: white for nearly everything, which leaves
+     * the texture as it is, and the client's own paint for what the client paints.
+     */
+    fun tint(name: String): Int = faces[plain(name)]?.second ?: 0xFFFFFF
+
     private val index: Map<String, Int> by lazy {
         table.withIndex().associate { (i, entry) -> entry.first to i }
     }
@@ -75,10 +106,13 @@ object Icons {
      * name finds the item before the block — which is what anyone naming `stone` means.
      */
     private fun lookup(name: String): Int? {
-        val plain = name.substringAfter(':').lowercase().trim()
+        val plain = plain(name)
         if (plain.startsWith("item/") || plain.startsWith("block/")) return index[plain]
+        faces[plain]?.let { (texture, _) -> index[texture]?.let { return it } }
         return index["item/$plain"] ?: index["block/$plain"]
     }
+
+    private fun plain(name: String): String = name.substringAfter(':').lowercase().trim()
 
     /**
      * One font per size, each naming every item texture the client already has.
