@@ -231,11 +231,14 @@ The cursor is the player's aim converted into canvas coordinates. The findings t
   has to treat an overdue reading as the news. Getting this wrong left the pointer resting
   twelve units from the button it was pointed at, and that is not visible in any simulation
   that feeds it a steady stream of readings.
-- **A pointer that bounces reads as broken; one that trails only reads as slow.** The lead
-  that cancels the lag is worth having and has to be spent carefully: a drop in speed is
-  believed at once and a rise only after three readings agree, and there is a ceiling on how
-  far forward the pointer may be thrown. See `ru.voidrp.ui.input.Pointer`, where the
-  arithmetic and the measurements that chose its numbers live together.
+- **What matters is not only arriving, but how the frames of a gap divide the distance.**
+  A reading says the hand covered so much ground since the last one; drawing that distance
+  over that time, at one pace, is what makes a pointer move rather than twitch. A filter
+  that corrects a fraction of its error per reading lunges instead: 45% of a gap's travel
+  in its first frame, five times a second. Measured, not guessed — see
+  `ru.voidrp.ui.input.Pointer` and the recorded hand it is tested against.
+- **Never add the lead as a distance.** An offset on the position has to appear and
+  disappear, and both show. Fold it into the pace instead: aim to arrive early.
 - **`/vui debug trace <seconds>`** writes every frame of the pointer to a CSV: the aim, the
   reckoning and what was drawn. "The mouse feels bad" cannot be acted on; four columns can.
 - **The game does not report a button press — it reports a swing of the arm.** Held down,

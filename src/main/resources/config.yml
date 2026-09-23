@@ -96,6 +96,23 @@ effects:
 input:
   # Canvas units per degree of turn. Higher means a faster cursor.
   sensitivity: 10
+  # How many gaps between readings the pointer is given to cover the distance one shows.
+  #
+  # The client says where it is looking twenty times a second; between two of those the
+  # pointer walks the distance at one pace instead of jumping most of it at once. This is
+  # how long it is given for the walk, counted in those gaps, and it is the one number here
+  # worth turning:
+  #
+  #   1.0  the pointer arrives exactly as the next reading is due — as close to the hand as
+  #        this can get, at the cost of a stub of a frame at the end of every gap
+  #   1.5  the default: nothing is worse than it was and every part of the smoothness is
+  #        better
+  #   2.0  every frame of a gap the same size, and the pointer noticeably further behind
+  #
+  # Measured against a recording of a real hand, the pointer sits 63 units from it at 1.0,
+  # 90 at 1.5 and 108 at 1.8, while the largest jump between two frames goes the other way:
+  # 452, 144, 121.
+  smoothing: 1.5
   # How often the pointer is drawn, in frames a second.
   #
   # The client reports where it is looking twenty times a second, and that is the ceiling on

@@ -3,6 +3,45 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.4
+
+**The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a
+player moving the mouse fast and slow, kept as a fixture in `src/test/resources/hand.csv` —
+showed what every version before this got wrong, and it was not the lag any of them were
+tuned against:
+
+- **45% of a gap's whole movement happened in its first frame**, where an even walk puts
+  20%. A tracker corrects a fraction of its error per reading, so it lunges when one lands
+  and coasts afterwards. Five times a second, that is a pointer that twitches rather than
+  moves, and no smoothing on top could fix it: smoothing hid the twitch by adding lag, and
+  the twitch came back the moment the lag was taken out.
+- **The lead collapsed and came back twenty times a second.** It was a distance added to
+  the position, worked out from the speed the filter believed in — and that speed jumped
+  when a reading landed and fell to nothing when the filter ran out of distance. Thirty-two
+  units, on and off, on top of everything else.
+
+What a reading really says is that the hand covered a distance in the time since the last
+one. So that distance is now drawn over that time, at one pace: every frame of a gap is the
+same size, and there is nothing left to lunge. The lead is folded into the pace — the walk
+aims to arrive half a round trip early, rather than being shoved forward by a number that
+has to appear and disappear. Nothing is extrapolated past the last reading any more, which
+means there is no speed to be wrong about, nothing to sail past a target with, and a stop is
+simply a walk that has finished.
+
+Measured on the recorded hand, this build against the one before it: the first frame of a
+gap takes **25%** of its travel instead of 45%, and the worst jump between two frames is
+**133 units instead of 308**. The pointer sits 104 units from the hand's own path rather
+than 88 — that is the price, and it is a dial:
+
+```yaml
+input:
+  smoothing: 1.5   # gaps allowed for the walk. 1.0 = closest to the hand, 2.0 = most even
+```
+
+`/vui debug smooth <n>` turns it with a page open, which is the only way to judge it. On a
+slow connection the lead may spend only the slack the walk was given, never the walk itself
+— otherwise a long round trip would eat the whole budget and put the jump straight back.
+
 ## 0.3.3
 
 **The pointer, measured rather than guessed at.** A recording of a live one

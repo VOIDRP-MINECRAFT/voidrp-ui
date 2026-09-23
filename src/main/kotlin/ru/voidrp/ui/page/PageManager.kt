@@ -143,6 +143,15 @@ class PageManager(
      */
     val frameRate: Int = plugin.config.getInt("input.frame-rate", 85).coerceIn(20, 144)
 
+    /**
+     * How many gaps between readings the pointer is given to cover the distance one shows.
+     *
+     * Higher is smoother and further behind the hand; see [ru.voidrp.ui.input.Pointer].
+     */
+    var smoothing: Double = plugin.config
+        .getDouble("input.smoothing", ru.voidrp.ui.input.Pointer.SMOOTHING)
+        .coerceIn(ru.voidrp.ui.input.Pointer.SMOOTHING_MIN, ru.voidrp.ui.input.Pointer.SMOOTHING_MAX)
+
     /** Starts drawing frames at about the rate a screen refreshes. */
     fun start() {
         // Now, not in the constructor: by the time a plugin is enabled, the plugins it
@@ -219,6 +228,7 @@ class PageManager(
                 renderer,
                 sounds,
                 { sensitivity },
+                { smoothing },
                 { cursorBarOffset },
                 { redrawOnHover },
                 aim,

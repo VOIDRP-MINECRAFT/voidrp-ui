@@ -38,6 +38,12 @@ class PageSession(
      */
     private val sensitivity: () -> Double,
     /**
+     * How many reading gaps the pointer is given to walk a reading's distance, read fresh
+     * each frame so it can be tuned with a page open — which is the only way to tune it,
+     * since the whole of it is how the motion feels.
+     */
+    private val smoothing: () -> Double,
+    /**
      * How much lower the cursor's own boss bar draws its line than the page's. Bars stack,
      * so the second one starts further down the screen, and what is drawn on it has to be
      * lifted by that much to land where the page thinks it should.
@@ -84,6 +90,7 @@ class PageSession(
     private val pointer = ru.voidrp.ui.input.Pointer(
         (screen().width / 2).toDouble(),
         (Shaders.CANVAS_HEIGHT / 2).toDouble(),
+        smoothing = smoothing(),
     )
 
     /** The round trip to this player, refreshed now and then rather than every frame. */
@@ -154,8 +161,7 @@ class PageSession(
         return "ping ${ping()}ms · lead ${Math.round(pointer.lead(ping()) * 1000)}ms · " +
             "readings every ${Math.round(pointer.gap * 1000)}ms, " +
             "last ${pointer.age(now)}ms ago ($believed% believed) · " +
-            "speed ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s, " +
-            "leading on ${Math.round(Math.hypot(pointer.leadX, pointer.leadY))}"
+            "walking at ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s"
     }
 
     var hovered: String? = null
@@ -289,6 +295,7 @@ class PageSession(
         val wasOver = under
         val now = System.nanoTime()
         readAim(now)
+        pointer.smoothing = smoothing()
         pointer.frame(now, ping(), viewport.width, Shaders.CANVAS_HEIGHT)
         record(now)
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
