@@ -167,7 +167,7 @@ class PackBuilder(
             }
             // Item pictures: names only, because the client already has the textures.
             Icons.SIZES.forEach { size ->
-                zip.put("assets/voidrp/font/${Icons.fontName(size)}.json", Icons.fontJson(size))
+                zip.put("assets/voidrp/font/${Icons.fontName(size)}.json", Icons.fontJson(size, legacy))
             }
             // Inter, the face the site is set in, baked at each size pages use.
             TextFonts.all().forEach { sheet ->

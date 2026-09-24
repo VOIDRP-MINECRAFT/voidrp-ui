@@ -78,6 +78,17 @@ object Icons {
      */
     fun tint(name: String): Int = faces[plain(name)]?.second ?: 0xFFFFFF
 
+    /** Textures the oldest client the legacy pack serves does not have. tools/legacy-absent.py */
+    private val absentLegacy: Set<String> by lazy {
+        Icons::class.java.getResourceAsStream("/icons/absent_legacy.txt")
+            ?.bufferedReader()
+            ?.readLines()
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() && !it.startsWith("#") }
+            ?.toSet()
+            ?: emptySet()
+    }
+
     private val index: Map<String, Int> by lazy {
         table.withIndex().associate { (i, entry) -> entry.first to i }
     }
@@ -120,11 +131,20 @@ object Icons {
      * The spacers come along for the ride: the step to where an icon goes is written in
      * the same run as the icon, so both have to live in the same font.
      */
-    fun fontJson(size: Int): String {
-        val advances = Glyphs.spacers().entries.joinToString(", ") { (char, advance) ->
+    fun fontJson(size: Int, legacy: Boolean = false): String {
+        // For an older client, a picture it does not have becomes a space as wide as the
+        // picture would have been: the icon is simply not there, and the pen is where the
+        // server thinks it is. Pointing at the missing file instead cost 1.21.6 the whole
+        // font — every icon and every spacer beside it drawn as the missing-glyph box.
+        val missing = if (legacy) table.withIndex().filter { it.value.first in absentLegacy } else emptyList()
+        val holes = missing.map { (i, entry) ->
+            String(Character.toChars(BASE + i)) to Math.round(entry.second.toDouble() * size / 16).toInt() + 1
+        }
+        val advances = (Glyphs.spacers().entries.map { it.key to it.value } + holes).joinToString(", ") { (char, advance) ->
             "\"${Fonts.escapeJson(char)}\": $advance"
         }
-        val providers = table.mapIndexed { i, (name, _) ->
+        val providers = table.withIndex().filter { it.value.first !in absentLegacy || !legacy }.map { (i, entry) ->
+            val name = entry.first
             """{"type": "bitmap", "file": "minecraft:$name.png", "ascent": 0,
                 "height": $size, "chars": ["${Fonts.escapeJson(String(Character.toChars(BASE + i)))}"]}"""
         }

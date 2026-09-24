@@ -13,7 +13,6 @@ ancient_debris block/ancient_debris_side
 andesite_slab block/andesite
 andesite_stairs block/andesite
 andesite_wall block/andesite
-anvil block/anvil_top
 azalea block/azalea_side
 bamboo_button block/bamboo_planks
 bamboo_mosaic_slab block/bamboo_mosaic
@@ -23,7 +22,6 @@ bamboo_slab block/bamboo_planks
 bamboo_stairs block/bamboo_planks
 barrel block/barrel_side
 basalt block/basalt_side
-beacon block/glass
 bee_nest block/bee_nest_front
 beehive block/beehive_front
 big_dripleaf block/big_dripleaf_side
@@ -82,7 +80,6 @@ crafting_table block/crafting_table_front
 crimson_button block/crimson_planks
 crimson_fence block/crimson_planks
 crimson_fence_gate block/crimson_planks
-crimson_nylium block/crimson_nylium_side
 crimson_pressure_plate block/crimson_planks
 crimson_slab block/crimson_planks
 crimson_stairs block/crimson_planks
@@ -374,7 +371,6 @@ vine block/vine #48b518
 warped_button block/warped_planks
 warped_fence block/warped_planks
 warped_fence_gate block/warped_planks
-warped_nylium block/warped_nylium_side
 warped_pressure_plate block/warped_planks
 warped_slab block/warped_planks
 warped_stairs block/warped_planks

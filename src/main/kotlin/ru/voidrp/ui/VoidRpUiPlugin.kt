@@ -419,6 +419,9 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         // A server hosting the zip itself but saying nothing about older clients gets the
         // one address it gave, which is the right answer when everyone is on one version.
         if (!older) config.getString("pack.url")?.takeIf { it.isNotBlank() }?.let { return it }
+        // pack.legacy off means no older pack was built, and the server has no page for it:
+        // handing out its address anyway sent old clients to a 404 and gave them nothing.
+        if (older && legacyFile == null) return ""
         val serving = packServer ?: return ""
         val named = config.getString("pack.serve.host").orEmpty()
         val host = when {

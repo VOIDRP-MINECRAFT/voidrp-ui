@@ -30,6 +30,9 @@ class ItemFaceTest {
         assertEquals(Icons.glyph("block/ancient_debris_side"), Icons.glyph("ancient_debris"))
         // Not the edge a guess from the name would take.
         assertEquals(Icons.glyph("block/glass"), Icons.glyph("glass_pane"))
+        // A model that carries its own namesake keeps it: a beacon is its core, not the
+        // glass its particle falls back to.
+        assertEquals(Icons.glyph("block/beacon"), Icons.glyph("beacon"))
     }
 
     @Test

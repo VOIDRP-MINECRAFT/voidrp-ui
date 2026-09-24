@@ -149,10 +149,16 @@ def face_is_tinted(models: "Models", chain: list[str], textures: dict, texture: 
     return False
 
 
-def pick(textures: dict, chain: list[str]) -> str | None:
+def pick(textures: dict, chain: list[str], item: str = "") -> str | None:
     if "item/generated" in chain or "item/handheld" in chain:
         layer = textures.get("layer0")
         return strip(layer) if isinstance(layer, str) and not layer.startswith("#") else None
+    # A texture named after the item is the one that says what it is: a beacon's model also
+    # carries glass and obsidian, and the glass is what its particle falls back to, which
+    # drew a beacon as an empty pane.
+    for value in textures.values():
+        if isinstance(value, str) and strip(value) in (f"block/{item}", f"item/{item}"):
+            return strip(value)
     for key in FACE_PREFERENCE:
         value = textures.get(key)
         if isinstance(value, str) and not value.startswith("#"):
@@ -178,7 +184,7 @@ def main() -> None:
         if not model_id:
             continue
         textures, chain = models.textures(model_id)
-        texture = pick(textures, chain)
+        texture = pick(textures, chain, item)
         # A texture the client cannot give us as one flat 16×16 glyph is no better than
         # the placeholder: animated, oversized, or simply not a picture we measured.
         if not texture or texture not in known:

@@ -48,7 +48,25 @@ The colour comes from the item's own definition — a constant, or the grass and
 at the temperature it names — and rides the glyph's colour. A face is painted only if the
 model paints it: a grass block's side already has its green.
 
-436 items in all, which the plain lookup drew wrongly or not at all.
+432 items in all, which the plain lookup drew wrongly or not at all. A model that carries a
+texture named after its item keeps it: a beacon is its core, not the glass its particle
+falls back to.
+
+**Clients older than 26.2 get their interface.** Tried at last on a real 1.21.6 client —
+through ViaVersion, which is how most servers see one — and it had never worked:
+
+- **Every item picture was the missing-glyph box, and the page slid sideways after it.** The
+  pack named every item texture of 26.2, and 1.21.6, short 193 of them, did not just go
+  without those: it drew every glyph of the icon font — the diamond, and the spacers that
+  place each icon — as the box, and each box moved the pen by the wrong amount. The older
+  pack now leaves those textures out and puts a space of the same width in each one's
+  place: a brand-new item is simply not drawn, and nothing around it moves.
+  `tools/legacy-absent.py` writes the list from the oldest supported client.
+- **With `pack.legacy: false`, old clients were sent to a 404.** The built-in server handed
+  out the address of a pack it had not built. There is no address now when there is no pack.
+
+The screen setup frame sat exactly on the edges of the 1.21.6 window, which is what showed
+the placement itself was right and the fault was in the fonts.
 
 ## 0.3.4
 
