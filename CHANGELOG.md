@@ -3,6 +3,12 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.11
+
+The same code as 0.3.10. JitPack's build of that tag failed on a rate limit at Maven
+Central (HTTP 429) and JitPack does not try a tag again by itself, so the version the
+README and the example depend on is this one.
+
 ## 0.3.10
 
 **What happens to an open page when something happens to the player.** Tried on a live client

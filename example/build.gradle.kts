@@ -19,12 +19,12 @@ dependencies {
     // names it.
     //
     // Building next to the VoidRP UI sources instead, point at a fresh jar:
-    //   ./gradlew build -PvoidrpUi=../build/libs/voidrp-ui-0.3.10.jar
+    //   ./gradlew build -PvoidrpUi=../build/libs/voidrp-ui-0.3.11.jar
     val local = findProperty("voidrpUi") as String?
     if (local != null) {
         compileOnly(files(local))
     } else {
-        compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.10")
+        compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.11")
     }
 }
 
