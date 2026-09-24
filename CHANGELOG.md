@@ -83,6 +83,19 @@ bar is no longer a picture of how it looked when it was first sent.
 refused the shader it needs. Tried on real clients at both ends of the supported range —
 26.2 and 1.21.6 — the pack loads on both and the specks drift on both, so it is on now.
 
+- **A speck drawn as a line from the top of the screen to the bottom.** Everything that moves
+  a speck was worked out per corner of its glyph: the wrap at the bottom of the screen took
+  the top corners round before the bottom ones, and the seed came from each corner's own
+  x, so the left and right edges drifted at different paces and specks became slanted
+  streaks. Both come from the glyph's own row now, which all four corners share, and a
+  speck moves as the square it is.
+
+**No frame down the sides of a wide screen.** The strips painted past the canvas — so that a
+window not quite the named shape shows no world at its edges — left out the screen's
+second wash, and on a 21:9 window they came out darker than the page by a visible step
+(6,7,15 against 9,11,27). `Page.bleedOf(style)` takes every layer off a style; all three
+pages that ship use it, and the edges now differ from the page by one level in one channel.
+
 ## 0.3.4
 
 **The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a

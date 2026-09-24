@@ -131,7 +131,7 @@ open class HomePage : Page() {
 
     // Painted past the edges of the canvas, so a window that is not quite the shape the
     // player named still has no strip of world down its side.
-    override val bleed get() = listOf(Paint(0x000000, 0.93), pageTint)
+    override val bleed get() = bleedOf(Theme.scrim) + pageTint
 
     override fun view(): View = screen(
         // Not a window floating over the world: the screen belongs to the interface, the

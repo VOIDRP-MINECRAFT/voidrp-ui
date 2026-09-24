@@ -136,10 +136,21 @@ object Shaders {
         // Nothing about it is sent: its own place on the line is its seed, so every speck
         // drifts at its own pace and sways by its own amount, and the whole field is one
         // static page that never needs sending again.
-        vec2 voidrp_drift(vec2 canvas, float seed, float time) {
+        //
+        // Everything that moves a speck is worked out from its glyph, not from the corner
+        // being drawn: a glyph's four corners run through this one at a time, and anything
+        // that differs between them pulls the square apart. Worked out per corner, the seed
+        // came from each corner's own x, so the left and right edges drifted at different
+        // paces and a speck became a slanted streak; and the wrap at the bottom of the
+        // screen took the top corners round before the bottom ones, which on a live client
+        // drew one speck as a line from the top of the screen to the bottom. [anchor] is the
+        // glyph's own row, which its colour carries and all four corners share.
+        vec2 voidrp_drift(vec2 canvas, float anchor, float time) {
+            float seed = fract(sin(anchor * 12.9898 + 78.233) * 43758.5453);
             float pace = 0.35 + fract(seed * 7.13) * 0.9;
             float sway = 4.0 + fract(seed * 3.71) * 10.0;
-            float y = mod(canvas.y + time * pace + seed * ${CANVAS_HEIGHT}.0, ${CANVAS_HEIGHT}.0);
+            float within = canvas.y - anchor;
+            float y = mod(anchor + time * pace + seed * ${CANVAS_HEIGHT}.0, ${CANVAS_HEIGHT}.0) + within;
             float x = canvas.x + sin(time * 0.012 + seed * 6.2831) * sway;
             return vec2(x, y);
         }
@@ -154,7 +165,7 @@ object Shaders {
                 // Ticks since the world began, near enough: GameTime runs 0…1 over twenty
                 // minutes, which is all a drift needs.
                 float time = GameTime * 24000.0;
-                canvas = voidrp_drift(canvas, fract(sin(canvas.x * 12.9898) * 43758.5453), time);
+                canvas = voidrp_drift(canvas, canvasY - ${LINE_TOP}.0, time);
             }
         #endif
 

@@ -58,8 +58,17 @@ abstract class Page {
      * so a maximised 1920×1080 window is nearer 1.89 than 1.78. The difference is a strip
      * of the world down one side. Listing the page's background here fills those strips,
      * in order, back to front.
+     *
+     * Every layer the canvas is painted with has to be here, or the strips come out a
+     * shade apart from the page and read as a frame: seen on a 21:9 window, where the
+     * screen's own second wash was missing and the edges were darker by a visible step.
+     * [bleedOf] takes them off a style so none is forgotten.
      */
     open val bleed: List<Paint> get() = emptyList()
+
+    /** Every flat layer a style paints — its background, then its second wash. */
+    protected fun bleedOf(style: ru.voidrp.ui.style.Style): List<Paint> =
+        listOfNotNull(style.background as? Paint, style.overlay as? Paint)
 
     /**
      * Whether this page is drawn again when the pointer moves onto something else.

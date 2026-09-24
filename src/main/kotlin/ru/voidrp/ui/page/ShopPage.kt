@@ -79,7 +79,7 @@ open class ShopPage : Page() {
     )
 
     /** The page's own wash, carried past the edges of the canvas. See [Page.bleed]. */
-    override val bleed = listOfNotNull(Theme.scrim.background as? Paint)
+    override val bleed get() = bleedOf(Theme.scrim)
 
     override fun view(): View {
         val page = Panel(
