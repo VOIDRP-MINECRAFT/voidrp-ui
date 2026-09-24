@@ -119,6 +119,18 @@ input:
   # 90 at 1.5 and 108 at 1.8, while the largest jump between two frames goes the other way:
   # 452, 144, 121.
   smoothing: 1.5
+  # How far past the last reading the pointer aims, as a share of how far that reading moved.
+  #
+  # Walking evenly between readings keeps the pointer a whole reading behind the hand, and on
+  # a normal ping the lead already uses up all the room smoothing gives it — so this is the
+  # one dial that brings it closer. It carries the movement on a little; when the hand stops,
+  # the readings stop, and the pointer settles back onto the aim within a reading.
+  #
+  #   0     never past the aim: 65 ms behind a moving hand
+  #   0.35  the default: 45 ms behind; a sudden stop overshoots by about 10 units at an
+  #         ordinary pace and 26 on a fast flick, and settles back within 75 ms
+  #   0.75  21 ms behind; 20 to 56 units past a stop, which starts to read as a bounce
+  prediction: 0.35
   # How often the pointer is drawn, in frames a second.
   #
   # The client reports where it is looking twenty times a second, and that is the ceiling on

@@ -197,11 +197,16 @@ object GlyphEncoder {
      * the shader needs no page width of its own: the same shader draws a page laid out for
      * any screen.
      */
-    fun encode(nodes: List<Node>, centre: Int = 0): Component {
+    @JvmOverloads
+    fun encode(nodes: List<Node>, centre: Int = 0, lift: Int = 0): Component {
         val line = Line()
         var pen = centre
 
-        for (node in Painter.flatten(nodes)) {
+        // A bar below the first draws its line [lift] units lower, so everything on it is
+        // carried that much higher to land where it was meant to.
+        val flat = Painter.flatten(nodes)
+        val placed = if (lift == 0) flat else flat.map { Painter.moved(it, 0, -lift) }
+        for (node in placed) {
             pen = when (node) {
                 is Rect -> appendRect(line, node, pen)
                 is CornerPiece -> appendCorner(line, node, pen)
@@ -339,10 +344,19 @@ object GlyphEncoder {
     /**
      * Marker nibble, then y (10 bits), then fill (10 bits). One step is one canvas unit,
      * so a y survives the trip untouched and pieces of the same panel always meet exactly.
+     *
+     * A y a little above the canvas — which is where a lifted bar puts the top of the
+     * screen — goes with the shifted marker, [Shaders.SHIFT] units low.
      */
-    private fun pack(y: Int, fill: Int, drift: Boolean = false): Int {
-        val qy = y.coerceIn(0, Y_MAX)
-        val marker = if (drift) Shaders.MARKER_DRIFT else Shaders.MARKER
+    internal fun pack(y: Int, fill: Int, drift: Boolean = false): Int {
+        val shifted = y < 0
+        val qy = if (shifted) (y + Shaders.SHIFT).coerceAtLeast(0) else y.coerceAtMost(Y_MAX)
+        val marker = when {
+            shifted && drift -> Shaders.MARKER_DRIFT_SHIFTED
+            shifted -> Shaders.MARKER_SHIFTED
+            drift -> Shaders.MARKER_DRIFT
+            else -> Shaders.MARKER
+        }
         return (marker shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
     }
 }

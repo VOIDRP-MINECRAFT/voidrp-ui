@@ -35,27 +35,43 @@ class BossBarRenderer(
          * one packet, so a page that keeps growing eventually stops arriving at all.
          */
         private const val BUSY_PAGE = 20_000
+
+        /**
+         * How many bars a page is spread over; the pointer has one more of its own.
+         *
+         * Four is what every client draws: the boss bar list stops at a third of the
+         * screen's height, each bar takes nineteen units of it starting at twelve, and no
+         * GUI scale leaves the screen shorter than 240 — so bars at 12, 31, 50 and 69 always
+         * fit, and a fifth at 88 does not on a large scale.
+         */
+        const val PAGE_BARS = 3
     }
 
-    private val pages = mutableMapOf<UUID, BossBar>()
+    private val pages = mutableMapOf<UUID, List<BossBar>>()
     private val cursors = mutableMapOf<UUID, BossBar>()
 
     fun render(player: Player, nodes: List<Node>, centre: Int = 0) =
         render(player, GlyphEncoder.encode(nodes, centre))
 
+    /** Sends a whole page on the first bar, and clears the others. For tests and tools. */
+    fun render(player: Player, title: Component) {
+        part(player, 0, title)
+        for (index in 1 until PAGE_BARS) part(player, index, Component.empty())
+    }
+
     /**
-     * Sends the page.
+     * Sends one piece of the page.
      *
-     * A boss bar's title is replaced whole, so everything drawn on this one travels again
-     * every time any of it changes. That is fine for a page, which changes when the player
-     * does something — and it is why the cursor lives on a bar of its own.
+     * A boss bar's title is replaced whole, so everything drawn on a bar travels again
+     * every time any of it changes. That is why a page is spread over [PAGE_BARS] of them —
+     * see [PageParts] — and why the cursor lives on a bar of its own.
      */
-    fun render(player: Player, title: net.kyori.adventure.text.Component) {
+    fun part(player: Player, index: Int, title: Component) {
         val length = PlainTextComponentSerializer.plainText().serialize(title).length
         if (length > BUSY_PAGE) {
-            log?.warning("The page for ${player.name} is $length characters, which is near the packet limit.")
+            log?.warning("A piece of the page for ${player.name} is $length characters, which is near the packet limit.")
         }
-        bar(pages, player).name(title)
+        bars(player)[index].name(title)
     }
 
     /**
@@ -65,24 +81,36 @@ class BossBarRenderer(
      * both on one bar a rich page went out in full every frame, which was tens of
      * kilobytes a second per player and felt exactly like a laggy mouse.
      */
-    fun cursor(player: Player, title: net.kyori.adventure.text.Component) {
-        // The page's bar is made sure of first. Bars stack in the order they appear, and a
-        // page that finds itself second is drawn a line lower than every y it carries —
-        // which the player sees as a strip of the world along the top of the screen.
-        bar(pages, player)
-        bar(cursors, player).name(title)
+    fun cursor(player: Player, title: Component) {
+        bars(player)
+        cursors[player.uniqueId]!!.name(title)
     }
 
-    private fun bar(store: MutableMap<UUID, BossBar>, player: Player): BossBar =
-        store.getOrPut(player.uniqueId) {
-            announcing(player)
-            // Progress 0 keeps the bar itself invisible; only the title glyphs are drawn.
-            BossBar.bossBar(Component.empty(), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS)
-                .also { player.showBossBar(it) }
-        }
+    /**
+     * The page's bars, made the first time any of them is needed — all of them, and the
+     * pointer's, in the order they are drawn.
+     *
+     * Bars stack in the order they appear and are drawn in that order too, so the order
+     * they are made in is the page's order, top to bottom and back to front. A bar made
+     * later would land below the pointer's, a line out and on top of it.
+     */
+    private fun bars(player: Player): List<BossBar> {
+        pages[player.uniqueId]?.let { return it }
+        val made = List(PAGE_BARS) { bar(player) }
+        pages[player.uniqueId] = made
+        cursors[player.uniqueId] = bar(player)
+        return made
+    }
+
+    private fun bar(player: Player): BossBar {
+        announcing(player)
+        // Progress 0 keeps the bar itself invisible; only the title glyphs are drawn.
+        return BossBar.bossBar(Component.empty(), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS)
+            .also { player.showBossBar(it) }
+    }
 
     fun clear(player: Player) {
-        pages.remove(player.uniqueId)?.let { runCatching { player.hideBossBar(it) } }
+        pages.remove(player.uniqueId)?.forEach { runCatching { player.hideBossBar(it) } }
         cursors.remove(player.uniqueId)?.let { runCatching { player.hideBossBar(it) } }
     }
 
@@ -99,9 +127,11 @@ class BossBarRenderer(
      */
     fun clearAll() {
         for (entry in pages.entries) {
-            try {
-                org.bukkit.Bukkit.getPlayer(entry.key)?.hideBossBar(entry.value)
-            } catch (ignored: Throwable) {
+            for (bar in entry.value) {
+                try {
+                    org.bukkit.Bukkit.getPlayer(entry.key)?.hideBossBar(bar)
+                } catch (ignored: Throwable) {
+                }
             }
         }
         for (entry in cursors.entries) {
@@ -123,10 +153,10 @@ class BossBarRenderer(
      * texture that is made transparent.
      */
     fun clearOrphans(player: Player) {
-        val ours = pages[player.uniqueId]
+        val ours = pages[player.uniqueId].orEmpty()
         val cursor = cursors[player.uniqueId]
         for (bar in player.activeBossBars()) {
-            if (bar === ours || bar === cursor) continue
+            if (ours.any { it === bar } || bar === cursor) continue
             if (bar.color() != BossBar.Color.WHITE || bar.progress() != 0f) continue
             try {
                 player.hideBossBar(bar)

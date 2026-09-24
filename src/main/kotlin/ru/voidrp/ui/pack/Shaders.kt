@@ -56,6 +56,24 @@ object Shaders {
     const val MARKER_DRIFT = 0xC
 
     /**
+     * The same two, for a glyph whose y is carried [SHIFT] units low.
+     *
+     * A page is spread over several boss bars, and every bar below the first draws its
+     * line nineteen units further down, so what it carries is lifted by that much to land
+     * in the same place. For anything near the top of the screen that lift goes below
+     * zero, where ten bits of y cannot follow — the pointer used to simply not be drawn
+     * over the top row of a page. These markers say "take [SHIFT] off what you read",
+     * which gives the lower bars the whole screen back.
+     *
+     * 0xD and 0xE, for the reason 0xB was chosen: no named colour has either as its red.
+     */
+    const val MARKER_SHIFTED = 0xD
+    const val MARKER_DRIFT_SHIFTED = 0xE
+
+    /** How far below zero a shifted glyph's y may reach. More than any bar is lifted by. */
+    const val SHIFT = 64
+
+    /**
      * Whether the pack carries the drifting branch at all.
      *
      * It costs one import — the client's own globals, where the time of day lives — and a
@@ -101,16 +119,17 @@ object Shaders {
         bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill, out bool drifts) {
             int red = int(floor(color.r * 255.0 + 0.5));
             int mark = red >> 4;
-            drifts = mark == ${MARKER_DRIFT};
-            if (mark != ${MARKER} && !drifts) {
+            if (mark < ${MARKER} || mark > ${MARKER_DRIFT_SHIFTED}) {
                 return false;
             }
+            drifts = mark == ${MARKER_DRIFT} || mark == ${MARKER_DRIFT_SHIFTED};
+            bool shifted = mark >= ${MARKER_SHIFTED};
             int bits = ((red & 15) << 16)
                      | (int(floor(color.g * 255.0 + 0.5)) << 8)
                      |  int(floor(color.b * 255.0 + 0.5));
             int qy = (bits >> ${COLOUR_BITS}) & ${Y_MAX};
             int c = bits & ${(1 shl COLOUR_BITS) - 1};
-            canvasY = float(qy);
+            canvasY = float(qy) - (shifted ? ${SHIFT}.0 : 0.0);
             fill = vec3(float((c >> 7) & 7) / 7.0,
                         float((c >> 3) & 15) / 15.0,
                         float(c & 7) / 7.0);

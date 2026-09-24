@@ -52,20 +52,42 @@ object Layout {
             px >= x && px < x + width && py >= y && py < y + height
     }
 
-    /** A laid-out page: what to draw, and what can be pointed at. */
-    data class Placement(val nodes: List<Node>, val regions: List<Region>)
+    /**
+     * A laid-out page: what to draw, and what can be pointed at.
+     *
+     * [cuts] are the places in [nodes] where something that changes on its own begins or
+     * ends — a scrolling list, whatever stands above the page. A page is sent over several
+     * boss bars, and cutting it there is what lets a scroll send the list again and not
+     * the whole page with it.
+     */
+    data class Placement(val nodes: List<Node>, val regions: List<Region>, val cuts: List<Int> = emptyList())
 
     /** Lays a page out inside a rectangle of the canvas. */
     fun place(view: View, x: Int, y: Int, width: Int, height: Int): Placement = pass {
         val nodes = mutableListOf<Node>()
         val regions = mutableListOf<Region>()
-        arrange(view, x, y, width, height, nodes, regions)
+        val outer = cutting.get()
+        val cuts = Cuts(nodes)
+        cutting.set(cuts)
+        try {
+            arrange(view, x, y, width, height, nodes, regions)
+        } finally {
+            cutting.set(outer)
+        }
         // What stands above the page goes on last, so a menu covers the card under it
         // rather than the other way round. Its regions come last too: the cursor asks the
         // list in reverse, so the topmost thing under it answers first.
         val above = overlay.get()
-        Placement(nodes + above.nodes, regions + above.regions)
+        if (above.nodes.isNotEmpty()) cuts.at += nodes.size
+        Placement(nodes + above.nodes, regions + above.regions, cuts.at.distinct().sorted())
     }
+
+    /** Where the page being laid out can be cut: see [Placement.cuts]. */
+    private class Cuts(val into: List<Node>) {
+        val at = mutableListOf<Int>()
+    }
+
+    private val cutting = ThreadLocal<Cuts?>()
 
     /** Lays a page out at its own size, centred on the canvas. */
     fun centred(view: View, canvasWidth: Int, canvasHeight: Int): Placement = pass {
@@ -707,6 +729,11 @@ object Layout {
             cursor += size.height + scroll.gap
         }
 
+        // Only a list drawn straight onto the page can be sent on its own: one inside a menu
+        // or another list is already part of something that is.
+        val cuts = cutting.get()?.takeIf { it.into === out }
+        cuts?.at?.add(out.size)
+
         // Panels become rectangles before anything is cut, because a panel is drawn as
         // shapes and it is the shapes that have to fit the window.
         Painter.flatten(inner).forEach { node -> clip(node, x, y, width, height)?.let { out += it } }
@@ -736,6 +763,7 @@ object Layout {
                 regions += Region("$id:thumb", trackX, thumbY, SCROLLBAR - 4, thumbHeight)
             }
         }
+        cuts?.at?.add(out.size)
     }
 
     /** What is left of a shape once the window has had its way with it. */

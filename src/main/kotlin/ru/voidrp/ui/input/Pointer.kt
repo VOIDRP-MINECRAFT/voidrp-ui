@@ -34,10 +34,14 @@ package ru.voidrp.ui.input
  *    for as long as the hand stayed still.
  *  * **The gap is measured, not assumed.** A tick is what the protocol says; a live client
  *    sent readings 44 to 99 ms apart.
- *  * **Nothing is ever extrapolated past the last reading.** There is no speed here to be
- *    wrong about, so there is nothing to sail past a target with, and a single reading
- *    showing a huge step — a very fast hand, or a jump, and no telling which — costs nothing
- *    but that one gap's travel.
+ *  * **It carries a movement on, a little.** Walked evenly, the pointer is a whole reading
+ *    behind the hand, and on a normal ping the lead already spends all the room the walk
+ *    was given — so the only way closer is to aim past the last reading, by a share of how
+ *    far that reading moved ([prediction]). Only while readings keep coming: the first one
+ *    after a silence has no pace to carry on, and once a reading is late the hand has
+ *    stopped and the pointer walks back onto the aim over one gap rather than snapping.
+ *    At the default it is 45 ms behind a moving hand instead of 65, and passes a sudden
+ *    stop by about 10 units at an ordinary pace.
  *
  * Nothing here knows about a player or a canvas: it is arithmetic, and it is tested as such,
  * against six invented hands and one recorded one.
@@ -59,7 +63,18 @@ class Pointer(
      * replaces and everything about the smoothness is better.
      */
     var smoothing: Double = SMOOTHING,
+    /**
+     * How far past the last reading the walk aims, as a share of how far that reading
+     * moved. The dial between close to the hand and quiet at a stop: at 0 the pointer never
+     * passes the aim and sits 65 ms behind, at 0.35 it is 45 ms behind and overshoots an
+     * ordinary stop by 10 units, at 0.75 21 ms and up to 56 on a fast flick.
+     */
+    var prediction: Double = PREDICTION,
 ) {
+
+    /** What the last reading moved by, when it came straight after the one before. */
+    private var stepX = 0.0
+    private var stepY = 0.0
 
     /** The last reading of the aim. */
     var targetX = x
@@ -100,9 +115,14 @@ class Pointer(
 
     /** A fresh reading of the aim. */
     fun sample(newX: Double, newY: Double, now: Long = System.nanoTime()) {
-        val interval = ((now - sampleAt) / 1_000_000_000.0).coerceIn(0.01, 0.25)
+        val raw = (now - sampleAt) / 1_000_000_000.0
+        val interval = raw.coerceIn(0.01, 0.25)
         sampleAt = now
         gap += (interval.coerceIn(SAMPLE_GAP_MIN, SAMPLE_GAP_MAX) - gap) * GAP_EASING
+        // A reading after a silence starts a movement: there is no pace to carry on yet.
+        val running = raw <= gap * FRESH_GAPS
+        stepX = if (running) newX - targetX else 0.0
+        stepY = if (running) newY - targetY else 0.0
         targetX = newX
         targetY = newY
     }
@@ -129,9 +149,14 @@ class Pointer(
         // slow connection it would otherwise eat the whole budget and the pointer would be
         // back to covering a reading's distance in one frame — the very thing this is for.
         val ahead = Math.min(lead(roundTrip), gap * (smoothing - 1.0))
-        val left = Math.max(gap * smoothing - age - ahead, step)
-        speedX = (targetX - estimateX) / left
-        speedY = (targetY - estimateY) / left
+        // A reading overdue means the hand has stopped: the aim is the reading itself again,
+        // and the pointer goes back to it over a gap rather than in one frame.
+        val fresh = age <= gap * FRESH_GAPS
+        val left = if (fresh) Math.max(gap * smoothing - age - ahead, step) else Math.max(gap, step)
+        val aimX = targetX + if (fresh) stepX * prediction else 0.0
+        val aimY = targetY + if (fresh) stepY * prediction else 0.0
+        speedX = (aimX - estimateX) / left
+        speedY = (aimY - estimateY) / left
         estimateX = (estimateX + speedX * step).coerceIn(0.0, (width - 1).toDouble())
         estimateY = (estimateY + speedY * step).coerceIn(0.0, (height - 1).toDouble())
         x = estimateX
@@ -199,5 +224,15 @@ class Pointer(
         /** And the range it is worth setting to: below one it steps, far above it floats. */
         const val SMOOTHING_MIN = 1.0
         const val SMOOTHING_MAX = 3.0
+
+        /** How far past the last reading the walk aims by default. See the constructor. */
+        const val PREDICTION = 0.35
+
+        /** And the range it is worth setting to: past one it overshoots every stop. */
+        const val PREDICTION_MIN = 0.0
+        const val PREDICTION_MAX = 1.0
+
+        /** A reading later than this many gaps means the hand has stopped. */
+        const val FRESH_GAPS = 1.5
     }
 }

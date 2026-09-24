@@ -152,6 +152,15 @@ class PageManager(
         .getDouble("input.smoothing", ru.voidrp.ui.input.Pointer.SMOOTHING)
         .coerceIn(ru.voidrp.ui.input.Pointer.SMOOTHING_MIN, ru.voidrp.ui.input.Pointer.SMOOTHING_MAX)
 
+    /**
+     * How far past the last reading the pointer aims, in readings' worth of travel: the
+     * one thing that takes it closer to the hand than a reading behind it. See
+     * [ru.voidrp.ui.input.Pointer.prediction].
+     */
+    var prediction: Double = plugin.config
+        .getDouble("input.prediction", ru.voidrp.ui.input.Pointer.PREDICTION)
+        .coerceIn(ru.voidrp.ui.input.Pointer.PREDICTION_MIN, ru.voidrp.ui.input.Pointer.PREDICTION_MAX)
+
     /** Starts drawing frames at about the rate a screen refreshes. */
     fun start() {
         // Now, not in the constructor: by the time a plugin is enabled, the plugins it
@@ -229,6 +238,7 @@ class PageManager(
                 sounds,
                 { sensitivity },
                 { smoothing },
+                { prediction },
                 { cursorBarOffset },
                 { redrawOnHover },
                 aim,

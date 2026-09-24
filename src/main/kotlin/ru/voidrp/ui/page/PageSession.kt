@@ -6,6 +6,7 @@ import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
 import ru.voidrp.ui.render.GlyphEncoder
+import ru.voidrp.ui.render.PageParts
 import ru.voidrp.ui.render.Node
 import ru.voidrp.ui.render.Painter
 import ru.voidrp.ui.pack.Glyphs
@@ -43,10 +44,12 @@ class PageSession(
      * since the whole of it is how the motion feels.
      */
     private val smoothing: () -> Double,
+    /** How far past the last reading the pointer aims; read fresh each frame, like [smoothing]. */
+    private val prediction: () -> Double,
     /**
-     * How much lower the cursor's own boss bar draws its line than the page's. Bars stack,
-     * so the second one starts further down the screen, and what is drawn on it has to be
-     * lifted by that much to land where the page thinks it should.
+     * How much lower each boss bar draws its line than the one above it. Bars stack, so
+     * every bar after the first starts further down the screen, and what is drawn on it
+     * has to be lifted by that much for each bar above it to land where the page thinks.
      */
     private val cursorBarOffset: () -> Int,
     /**
@@ -91,6 +94,7 @@ class PageSession(
         (screen().width / 2).toDouble(),
         (Shaders.CANVAS_HEIGHT / 2).toDouble(),
         smoothing = smoothing(),
+        prediction = prediction(),
     )
 
     /** The round trip to this player, refreshed now and then rather than every frame. */
@@ -162,7 +166,7 @@ class PageSession(
             "readings every ${Math.round(pointer.gap * 1000)}ms, " +
             "last ${pointer.age(now)}ms ago ($believed% believed) · " +
             "walking at ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s · " +
-            "page sent $sent times, $unchanged asks came out the same, $merged folded into a tick"
+            "page sent $sent times in $sentParts bar updates, $unchanged asks came out the same, $merged folded into a tick"
     }
 
     var hovered: String? = null
@@ -271,7 +275,10 @@ class PageSession(
      * where a y cannot go. Those few are left to the page, which has no such offset.
      */
     private fun fitsOnCursorBar(region: Layout.Region?): Boolean =
-        region == null || region.y - cursorBarOffset() >= 0
+        region == null || region.y - cursorLift() >= -ru.voidrp.ui.pack.Shaders.SHIFT
+
+    /** How far the pointer's bar is below the first one: it comes after all of the page's. */
+    private fun cursorLift(): Int = cursorBarOffset() * BossBarRenderer.PAGE_BARS
 
     /**
      * Where the aim says the pointer should be, read fresh.
@@ -327,6 +334,7 @@ class PageSession(
         val now = System.nanoTime()
         readAim(now)
         pointer.smoothing = smoothing()
+        pointer.prediction = prediction()
         pointer.frame(now, ping(), viewport.width, Shaders.CANVAS_HEIGHT)
         record(now)
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
@@ -494,6 +502,7 @@ class PageSession(
      * one in the same tick. The last two are what these two measures save.
      */
     private var sent = 0
+    private var sentParts = 0
     private var unchanged = 0
     private var merged = 0
 
@@ -533,6 +542,7 @@ class PageSession(
         // Painted first and wider than the canvas: the page was laid out for the screen
         // the player said they have, and any difference from the real one is a strip of
         // the world down the side. See Page.bleed.
+        val bleed = page.bleed.size
         val nodes = if (page.bleed.isEmpty()) {
             placement.nodes
         } else {
@@ -551,9 +561,42 @@ class PageSession(
         hovered = regions.lastOrNull { it.contains(cursorX, cursorY) }?.id
         takeTooltip()
         under = regions.lastOrNull { it.contains(cursorX, cursorY) }
-        renderer.render(player, GlyphEncoder.encode(nodes, canvas.width / 2))
-        sent++
+        send(nodes, placement.cuts.map { it + bleed }, canvas.width / 2)
         draw()
+    }
+
+    /**
+     * What each of the page's bars carries now, as shapes — compared before anything is
+     * encoded, so a piece that came out the same is not sent at all.
+     */
+    private val parts = arrayOfNulls<List<Node>>(BossBarRenderer.PAGE_BARS)
+
+    /**
+     * Shares the page out over its bars and sends the pieces that changed.
+     *
+     * Cut at the edges of a scrolling list, a scroll changes one piece: the list goes again
+     * and the rest of the page, the heaviest part of it, stays where it is on the screen.
+     */
+    private fun send(page: List<Node>, cuts: List<Int>, centre: Int) {
+        // Panels taken apart first, so that even a page that is one big panel can be halved,
+        // and the cuts moved to where their nodes' shapes begin.
+        val nodes = ArrayList<Node>()
+        val starts = IntArray(page.size + 1)
+        page.forEachIndexed { index, node ->
+            starts[index] = nodes.size
+            nodes += Painter.flatten(listOf(node))
+        }
+        starts[page.size] = nodes.size
+        val runs = PageParts.split(nodes.size, cuts.map { starts[it.coerceIn(0, page.size)] }, BossBarRenderer.PAGE_BARS)
+        val step = cursorBarOffset()
+        for (index in 0 until BossBarRenderer.PAGE_BARS) {
+            val piece = runs.getOrNull(index)?.let { nodes.subList(it.first, it.last + 1) }.orEmpty()
+            if (piece == parts[index]) continue
+            parts[index] = piece
+            renderer.part(player, index, GlyphEncoder.encode(piece, centre, step * index))
+            sentParts++
+        }
+        sent++
     }
 
     /** Asks the page for its tooltip, and throws away the drawn one if it has changed. */
@@ -566,7 +609,7 @@ class PageSession(
 
     /** Sends what is already encoded, with the pointer on top. */
     private fun draw() {
-        val lift = cursorBarOffset()
+        val lift = cursorLift()
         val line = Component.text()
         halo(lift)?.let { line.append(it) }
         tooltipAt(cursorX, cursorY, lift)?.let { line.append(it) }
@@ -613,8 +656,8 @@ class PageSession(
         val top = tooltipTop(y, size.height, canvas.height)
         // Drawn on the pointer's bar, which sits a line lower than the page's, so it is
         // lifted by that much — and cannot go above that bar's own top.
-        val placement = Layout.place(view, left, (top - lift).coerceAtLeast(0), size.width, size.height)
-        return GlyphEncoder.encode(placement.nodes, canvas.width / 2).also { tooltipEncoded = it }
+        val placement = Layout.place(view, left, top, size.width, size.height)
+        return GlyphEncoder.encode(placement.nodes, canvas.width / 2, lift).also { tooltipEncoded = it }
     }
 
     /**

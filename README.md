@@ -136,7 +136,7 @@ Building against it through [JitPack](https://jitpack.io):
 repositories { maven("https://jitpack.io") }
 
 dependencies {
-    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.11")
+    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.12")
 }
 ```
 
@@ -305,7 +305,7 @@ Three files in `plugins/VoidRpUI/`, all optional — anything unset comes from t
 
 | File | What is in it |
 |---|---|
-| `config.yml` | where the pack is served from, how the cursor moves (sensitivity, smoothing, frame rate), interface sounds, the screen the pages are laid out for |
+| `config.yml` | where the pack is served from, how the cursor moves (sensitivity, smoothing, prediction, frame rate), interface sounds, the screen the pages are laid out for |
 | `theme.yml` | colours, type sizes, rounding — the whole look, for your own brand ([four to start from](docs/theming.md)) |
 | `messages.yml` | every string a player is shown; MiniMessage is supported |
 
@@ -467,7 +467,8 @@ The details, and the rakes — in [docs/internals.md](docs/internals.md).
 - A page rides a **boss bar**, and bars stack in the order the client received them.
   With PacketEvents installed, other plugins' bars are held back while a page is open and
   come back when it closes. Without it the server cannot see them at all: a bar another
-  plugin is already showing puts the page 19 units down.
+  plugin is already showing puts the page 19 units down. A page itself takes four bars
+  (three for the page, one for the pointer) — the most every client is sure to draw.
 - Client shader packs (Iris, OptiFine) replace world rendering and leave the interface
   vanilla, so pages survive them. Mods that touch the text shaders themselves do not.
 

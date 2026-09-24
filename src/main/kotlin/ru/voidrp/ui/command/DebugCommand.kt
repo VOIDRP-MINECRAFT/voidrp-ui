@@ -117,6 +117,24 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 )
             }
 
+            // How close to the hand the pointer runs, against how far it overshoots a stop.
+            "predict" -> {
+                args.getOrNull(1)?.toDoubleOrNull()?.let {
+                    plugin.pages.prediction = it.coerceIn(
+                        ru.voidrp.ui.input.Pointer.PREDICTION_MIN,
+                        ru.voidrp.ui.input.Pointer.PREDICTION_MAX,
+                    )
+                }
+                sender.sendMessage(
+                    Component.text(
+                        "Prediction ${plugin.pages.prediction} — the pointer aims that share of the " +
+                            "last reading's travel past it. Higher is closer to the hand and " +
+                            "overshoots a sudden stop by more; 0 never overshoots.",
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
             // The one number behind how the pointer feels: smooth against close behind.
             "smooth" -> {
                 args.getOrNull(1)?.toDoubleOrNull()?.let {
@@ -230,7 +248,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "smooth", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()

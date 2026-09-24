@@ -17,10 +17,34 @@ arbitrary:
 - The bar itself is hidden with transparent `boss_bar/white_background.png` and
   `white_progress.png`; the white bar colour is reserved for the interface.
 
+### Several bars, not one
+
+A title is replaced whole, so everything on a bar travels again whenever any of it
+changes. A page is therefore spread over **three bars**, with the pointer on a fourth:
+
+- The layout marks where a scrolling list and whatever stands above the page (a menu)
+  begin and end in the list of shapes. The page is cut there, so a scroll sends the list
+  again and nothing else — for the shop that is 7 KB instead of 17.
+- Pieces are always runs of the page in its own order. Bars are drawn one after another,
+  so a piece stitched together from two places would put something on top of what it was
+  meant to be under.
+- Bars left over halve the heaviest piece, which halves what a hover there costs.
+- A piece that comes out the same as last time is not sent.
+
+Why four: the client stops drawing boss bars at a third of the screen's height, each takes
+19 GUI units starting at 12, and no GUI scale leaves the screen shorter than 240 units — so
+bars at 12, 31, 50 and 69 always fit and a fifth does not.
+
+Every bar below the first draws its line 19 units lower, so its shapes are carried 19 units
+higher per bar above it. Near the top of the screen that goes below zero, where 10 bits of y
+cannot follow — so a second pair of markers, `0xD` (and `0xE` for drifting specks), means
+"take 64 off the y you read". Before it, the pointer could not be drawn over the top 19
+units of the screen.
+
 ## The shader
 
 The pack carries a replaced text vertex shader. It looks at the vertex colour: if the high
-nibble of red is the marker `0xB`, this glyph is ours, and the shader moves it to the
+nibble of red is the marker `0xB` (or `0xC`…`0xE`, see above), this glyph is ours, and the shader moves it to the
 position encoded in the remaining bits.
 
 Two file layouts, both needed:

@@ -3,6 +3,34 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.12
+
+**A page is spread over three boss bars, and a scroll sends only the list.** A bar's title
+is replaced whole, so until now any change — a notch of the wheel, a hovered row — sent the
+entire page again. The layout now marks where a scrolling list and a menu begin and end,
+the page is cut there, and a piece that comes out the same is not sent. The shop's scroll
+went from 17 KB to 7 KB a notch; a page with nothing to cut at is halved by weight, which
+halves what a hover costs. The pointer moves to a fourth bar — four is what every client is
+sure to draw at any GUI scale.
+
+- **The pointer reaches the top of the screen.** A bar below the first is drawn a line
+  lower, and what it carried near the top had nowhere to go: the pointer was not drawn over
+  the top 19 units. Two new markers (`0xD`, `0xE`) carry a y up to 64 units above the
+  canvas. The pack changes with them — servers publishing it themselves should publish the
+  new one.
+- **The pointer is 20 ms closer to the hand.** It used to walk to the last reading and stop,
+  a whole reading behind a moving hand, and on a normal ping the lead already used all the
+  room `smoothing` leaves — which is why turning `smoothing` down did little. It now aims a
+  little past the last reading while the readings keep coming (`input.prediction`, 0.35):
+  65 ms behind became 45, and a sudden stop is passed by about 10 units and settled back
+  within a reading. `0` gives the old behaviour; `/vui debug predict` tunes it live.
+- `Layout.Placement` has a `cuts` list; `GlyphEncoder.encode` takes a `lift`.
+
+Tried on live 26.2 and 1.21.6 clients: a page split in three draws without a seam, the shop
+scrolls with only its list going out (14 redraws cost 18 bar updates, three of them the
+opening), a menu opened over a button stays on top of it, and the pointer is drawn at the
+very top edge.
+
 ## 0.3.11
 
 The same code as 0.3.10. JitPack's build of that tag failed on a rate limit at Maven

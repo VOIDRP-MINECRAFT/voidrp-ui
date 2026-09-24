@@ -201,6 +201,47 @@ class PointerTest {
         assertTrue(worst < 160.0, "it jumped $worst units in one frame")
     }
 
+    @Test
+    fun `aims past the last reading to run closer to the hand`() {
+        // Walked evenly, the pointer is a whole reading behind a moving hand, and on a
+        // normal ping the lead has already used up the room smoothing leaves — so only
+        // carrying the movement on brings it closer. Measured: 65 ms behind without it,
+        // 45 with the default, for 10 units past a stop at an ordinary pace.
+        fun sweep(prediction: Double): Pair<Double, Double> {
+            val speed = 600.0
+            val pointer = Pointer(400.0, 512.0, 0L, prediction = prediction)
+            var now = 0L
+            var next = 0L
+            var sent: Double? = null
+            var behind = 0.0
+            var counted = 0
+            var past = 0.0
+            while (now < 1_500_000_000L) {
+                val t = now / 1_000_000_000.0
+                if (now >= next) {
+                    val at = 400 + speed * minOf(t, 0.4)
+                    if (sent == null || abs(at - sent!!) > 1e-9) {
+                        pointer.sample(at, 512.0, now)
+                        sent = at
+                    }
+                    next = now + 50_000_000L
+                }
+                pointer.frame(now, 40, width, height)
+                if (t in 0.15..0.38) {
+                    behind += 400 + speed * (t + 0.02) - pointer.x
+                    counted++
+                }
+                if (t >= 0.4) past = maxOf(past, pointer.x - (400 + speed * 0.4))
+                now += frame
+            }
+            return behind / counted / speed * 1000 to past
+        }
+        val (plain, _) = sweep(0.0)
+        val (ahead, overshoot) = sweep(Pointer.PREDICTION)
+        assertTrue(ahead < plain - 15, "prediction took the pointer from $plain ms behind only to $ahead")
+        assertTrue(overshoot < 15.0, "an ordinary stop was overshot by $overshoot units")
+    }
+
     // ── the recorded hand ────────────────────────────────────────────────────────────────
 
     /** Every reading of the aim a real player's ten seconds of mouse gave the server. */
