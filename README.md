@@ -124,11 +124,20 @@ val ui = VoidRpUi.get() ?: return   // not installed: you lose screens, not your
 ui.open(player, MyShopPage())
 ```
 
-A soft dependency in `plugin.yml`, so your plugin still runs without interfaces:
+In `plugin.yml`:
 
 ```yaml
-softdepend: [VoidRpUI]
+depend: [VoidRpUI]      # a plugin written in Kotlin
+softdepend: [VoidRpUI]  # a plugin in Java that should still run without interfaces
 ```
+
+**Written in Kotlin, do not pack Kotlin into your jar.** VoidRP UI has the server fetch
+Kotlin at start (`libraries:` in its `plugin.yml`), and a plugin that depends on it uses that
+same Kotlin. A copy of your own — renamed or not — is a different Kotlin as far as the JVM is
+concerned, and the pages you write call into ours with its types: a `Panel(...)` with an
+argument left out passes Kotlin's own marker type, a prompt passes a Kotlin function. A plain
+`jar` build is right as it is; with Shadow, leave `kotlin-stdlib` out. That is also why a
+Kotlin plugin needs `depend` rather than `softdepend`: without VoidRP UI it has no Kotlin.
 
 Building against it through [JitPack](https://jitpack.io):
 

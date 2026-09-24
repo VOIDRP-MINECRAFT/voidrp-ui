@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.voidrp"
-version = "0.3.13"
+version = "0.3.14"
 
 kotlin {
     // Paper 26.2's own API is Java 25, so it takes a 25 compiler to read it...
@@ -66,7 +66,14 @@ dependencies {
     compileOnly("com.google.code.gson:gson:2.11.0")
     // Optional: read the player's look the moment it arrives instead of on the next tick.
     compileOnly("com.github.retrooper:packetevents-spigot:2.13.0")
-    implementation(kotlin("stdlib"))
+    // Not in the jar: the server fetches it at start (`libraries:` in plugin.yml). Shaded and
+    // renamed, as it used to be, it broke every plugin written in Kotlin against this one —
+    // a `Panel(...)` with any argument left out calls a constructor that takes Kotlin's own
+    // marker type, and ours had been renamed, so the call found no such constructor at run
+    // time. Loaded as a library it is one Kotlin that this plugin and those that depend on
+    // it share.
+    compileOnly(kotlin("stdlib"))
+    testImplementation(kotlin("stdlib"))
 
     // The tests read the pack we build and add up a line the way the client would.
     testImplementation(kotlin("test"))
@@ -110,8 +117,6 @@ tasks.test {
 
 tasks.shadowJar {
     archiveClassifier.set("all")
-    relocate("kotlin", "ru.voidrp.ui.shaded.kotlin")
-    minimize()
 }
 
 tasks.build {
@@ -122,7 +127,11 @@ tasks.processResources {
     // The version is an input of this task, and has to be declared as one: without it
     // Gradle sees the same plugin.yml on disk, calls itself up to date and ships a jar
     // named after the new version with the old one written inside it.
-    val tokens = mapOf("version" to project.version.toString())
+    val tokens = mapOf(
+        "version" to project.version.toString(),
+        // The Kotlin the server fetches for us: the one this plugin was compiled with.
+        "kotlinVersion" to org.jetbrains.kotlin.gradle.plugin.getKotlinPluginVersion(logger),
+    )
     inputs.properties(tokens)
     filesMatching("plugin.yml") {
         expand(tokens)

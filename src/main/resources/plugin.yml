@@ -6,6 +6,10 @@ api-version: '1.21'
 # the packets. Without this the order is whatever the server happens to choose, and enabling
 # first means the check for it fails and the cursor falls back to once a tick.
 softdepend: [packetevents]
+# Kotlin, fetched by the server at start rather than packed into the jar — so a plugin
+# written in Kotlin against this one shares the very same Kotlin. See build.gradle.kts.
+libraries:
+  - org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}
 author: VoidRP
 website: https://void-rp.ru
 description: Real interfaces on a vanilla client. Open source, MIT.

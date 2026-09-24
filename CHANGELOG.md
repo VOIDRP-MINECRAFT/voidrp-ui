@@ -3,6 +3,26 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.14
+
+**Plugins written in Kotlin against this one work.** The jar carried Kotlin inside it, renamed
+to keep it apart from other plugins' — and so every constructor with an argument left out,
+and every function taking a lambda, was published with the renamed Kotlin's types in its
+signature. A plugin compiled against the API calls them with Kotlin's real types, so
+`Panel(style = ..., children = ...)` in any other plugin compiled fine and failed at run time
+with `NoSuchMethodError`. The example plugin built; it could not have run.
+
+- Kotlin is no longer inside the jar: the server fetches it at start (`libraries:` in
+  `plugin.yml`), and plugins that depend on VoidRP UI share it. The jar went from 2.8 MB to
+  1.3 MB. The first start downloads Kotlin once (about 1.7 MB) into `libraries/`.
+- **For plugin authors:** a Kotlin plugin uses `depend: [VoidRpUI]` and does not pack Kotlin
+  into its own jar — see "From your own plugin" in the README.
+- The pointer's prediction defaults to 0.5 (36 ms behind the hand): side by side it could not
+  be told from 0.35, and it is closer.
+
+Tried on a test server: the example plugin, built against this jar, loads, draws its page on a
+live client and takes clicks.
+
 ## 0.3.13
 
 **Moving the pointer sends the pointer and nothing else.** The highlight around what the
