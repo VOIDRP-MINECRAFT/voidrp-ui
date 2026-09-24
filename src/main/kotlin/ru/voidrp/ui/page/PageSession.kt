@@ -162,7 +162,8 @@ class PageSession(
     fun timing(): String {
         val now = System.nanoTime()
         val believed = Math.round(pointer.trust(now) * 100)
-        return "ping ${ping()}ms · lead ${Math.round(pointer.lead(ping()) * 1000)}ms · " +
+        return "at ${cursorX},${cursorY} on ${viewport.width}×${Shaders.CANVAS_HEIGHT} over ${under?.id ?: "nothing"} · " +
+            "ping ${ping()}ms · lead ${Math.round(pointer.lead(ping()) * 1000)}ms · " +
             "readings every ${Math.round(pointer.gap * 1000)}ms, " +
             "last ${pointer.age(now)}ms ago ($believed% believed) · " +
             "walking at ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s · " +
@@ -309,6 +310,19 @@ class PageSession(
             yaw = location.yaw
             pitch = location.pitch
         }
+        // The first look after a dialog closes is not the player's: grabbing the mouse back,
+        // the game turns the head by however far the pointer was from the middle of the
+        // window — to the Done button at the foot of the dialog, typically. On a live client
+        // that threw the pointer to the bottom edge, out of sight. The turn is taken into the
+        // anchor instead, so the pointer stays where the player left it.
+        dialogLook?.let { (atYaw, atPitch) ->
+            if (Math.abs(wrapDegrees(yaw - atYaw)) < 0.01f && Math.abs(pitch - atPitch) < 0.01f) return false
+            dialogLook = null
+            anchorYaw += wrapDegrees(yaw - atYaw)
+            anchorPitch += pitch - atPitch
+            // And the head levelled again, as on opening, so there is room to move both ways.
+            runCatching { org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable { reanchor() }) }
+        }
         val turnedX = wrapDegrees(yaw - anchorYaw)
         val turnedY = pitch - anchorPitch
         val speed = sensitivity()
@@ -423,6 +437,7 @@ class PageSession(
         onSubmit: (String) -> Unit,
     ) {
         if (closed) return
+        dialogLook = currentLook()
         Prompt.show(
             plugin,
             player,
@@ -435,6 +450,18 @@ class PageSession(
             say("prompt.cancel"),
             onSubmit,
         )
+    }
+
+    /**
+     * Where the player was looking when a dialog took the mouse, until the first look after
+     * it closes. See [readAim].
+     */
+    @Volatile
+    private var dialogLook: Pair<Float, Float>? = null
+
+    private fun currentLook(): Pair<Float, Float>? {
+        aim.look(player.uniqueId)?.let { return it[0] to it[1] }
+        return runCatching { player.location }.getOrNull()?.let { it.yaw to it.pitch }
     }
 
     fun scroll(direction: Int) {

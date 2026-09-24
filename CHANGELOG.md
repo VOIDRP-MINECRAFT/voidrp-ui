@@ -3,6 +3,17 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.17
+
+**The pointer stays put after a prompt.** A dialog takes the mouse, and when it closes the
+game grabs it back and turns the head by however far the pointer was from the middle of the
+window — to the Done button at the foot of the dialog, usually. On a live client that threw
+the pointer to the bottom edge of the page, out of sight, after every price typed into a
+market form. The first look after a dialog is now taken into the anchor, so the pointer stays
+where the player left it, and the head is levelled again as on opening.
+
+- `/vui debug cursor` says where the pointer is and what it is over.
+
 ## 0.3.16
 
 **A page could hang the server.** A spacer that fills, in a card with padding, in a grid: the
