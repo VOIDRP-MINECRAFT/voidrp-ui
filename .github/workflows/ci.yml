@@ -29,7 +29,7 @@ jobs:
       - name: Build
         run: ./gradlew shadowJar
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with:
           name: voidrp-ui
           path: build/libs/*-all.jar
