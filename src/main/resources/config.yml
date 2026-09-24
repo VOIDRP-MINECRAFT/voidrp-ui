@@ -35,6 +35,12 @@ pack:
   legacy: true
   # The second pack's address — needed only when you host the archives yourself (url set).
   legacy-url: ""
+  # When you host the archives yourself: the folder your web server serves them from. The
+  # plugin copies both archives there on every start. Every build changes the pack, and a
+  # copy left behind pack.url is an old archive with a new hash — players are told only that
+  # the pack failed to load. At start the plugin also downloads what the addresses serve and
+  # says in the log if it is not the pack it just built.
+  publish-dir: ""
   # Send the pack when a player joins.
   send-on-join: true
   # true = players cannot join without accepting the pack.

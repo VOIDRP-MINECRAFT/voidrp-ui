@@ -179,6 +179,15 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             }
         }
 
+        // A server hosting the archives itself gets them put where its web server serves
+        // from. Every build changes the pack, and a copy behind pack.url left as it was is an
+        // old archive with a new hash: the client downloads it, the hash does not match, and
+        // the player is told only that one of one packs failed to load.
+        config.getString("pack.publish-dir")?.takeIf { it.isNotBlank() }?.let { dir ->
+            publishPacks(File(dir), listOfNotNull(packFile, legacyFile))
+        }
+        checkHostedPacks()
+
         // Serving the pack ourselves is what makes this plugin drop-in: no zip to host,
         // nothing to keep in step with the build.
         if (config.getString("pack.url").isNullOrBlank() && config.getBoolean("pack.serve.enabled", true)) {
@@ -360,6 +369,72 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             source.use { input -> target.outputStream().use { input.copyTo(it) } }
             logger.info("Theme $name written to theme.yml — edit it there, it is yours now.")
         }
+    }
+
+    /** Copies the built archives into [dir], each replaced in one step so no one downloads half. */
+    private fun publishPacks(dir: File, files: List<File>) {
+        runCatching {
+            dir.mkdirs()
+            files.forEach { file ->
+                val target = File(dir, file.name)
+                val temporary = File(dir, ".${file.name}.tmp")
+                file.copyTo(temporary, overwrite = true)
+                java.nio.file.Files.move(
+                    temporary.toPath(),
+                    target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                )
+            }
+            logger.info("Pack published to ${dir.path}: ${files.joinToString { it.name }}")
+        }.onFailure {
+            logger.warning("Could not publish the pack to ${dir.path}: ${it.message}")
+        }
+    }
+
+    /**
+     * Fetches what pack.url and pack.legacy-url actually serve and says so if it is not the
+     * pack just built.
+     *
+     * The client's own message for a mismatch is "failed to load 1 of 1 packs", which says
+     * nothing about why; the server knows exactly what is wrong and can say it in the log.
+     * Done off the main thread — it is a download.
+     */
+    private fun checkHostedPacks() {
+        val checks = listOfNotNull(
+            config.getString("pack.url")?.takeIf { it.isNotBlank() }?.let { Triple(it, packHash, packFile) },
+            config.getString("pack.legacy-url")?.takeIf { it.isNotBlank() && legacyFile != null }
+                ?.let { Triple(it, legacyHash, legacyFile!!) },
+        )
+        if (checks.isEmpty()) return
+        server.scheduler.runTaskAsynchronously(this, Runnable {
+            val http = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .followRedirects(java.net.http.HttpClient.Redirect.NORMAL)
+                .build()
+            checks.forEach { (url, expected, file) ->
+                runCatching {
+                    val request = java.net.http.HttpRequest.newBuilder(java.net.URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(30)).build()
+                    val body = http.send(request, java.net.http.HttpResponse.BodyHandlers.ofByteArray())
+                    if (body.statusCode() != 200) {
+                        logger.warning("$url answers ${body.statusCode()}: players will not get the pack.")
+                        return@runCatching
+                    }
+                    val served = java.security.MessageDigest.getInstance("SHA-1").digest(body.body())
+                        .joinToString("") { "%02x".format(it) }
+                    if (served.equals(expected, ignoreCase = true)) {
+                        logger.info("$url serves the pack just built.")
+                    } else {
+                        logger.warning(
+                            "$url serves a different pack (sha1 $served) from the one just built " +
+                                "($expected). Players will see \"failed to load\". Copy ${file.path} " +
+                                "there, or set pack.publish-dir to the folder it is served from."
+                        )
+                    }
+                }.onFailure { logger.warning("Could not check $url: ${it.message}") }
+            }
+        })
     }
 
     fun sendPack(player: Player) = sendPack(player, older = wantsLegacy(player))

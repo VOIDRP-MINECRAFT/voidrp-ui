@@ -3,6 +3,19 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.9
+
+**A pack hosted elsewhere stays the pack that was built.** A server that serves the archives
+from its own address (`pack.url`) got a new pack with every update of the plugin, while the
+copy behind that address stayed as it was: an old archive under a new hash. The client
+downloaded it, the hash did not match, and the player was told only "failed to load 1 of 1
+packs" — which is exactly what happened on the first join after 0.3.8 went live.
+
+- `pack.publish-dir` — the folder the web server serves the archives from. Both are copied
+  there on every start, each replaced in one step so no one downloads half of one.
+- At start the plugin downloads what `pack.url` and `pack.legacy-url` serve and says in the
+  log whether it is the pack just built — and if not, which file to copy where.
+
 ## 0.3.8
 
 - A paragraph no longer ends with one short word on a line of its own. "Meet at spawn at 8"
