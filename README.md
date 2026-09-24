@@ -5,7 +5,6 @@
 [![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![Modrinth](https://img.shields.io/badge/Modrinth-download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/voidrp-ui)
 [![Hangar](https://img.shields.io/badge/Hangar-download-1A73E8)](https://hangar.papermc.io/mironoouv/VoidRP-UI)
-[![SpigotMC](https://img.shields.io/badge/SpigotMC-download-ED8106)](https://www.spigotmc.org/resources/voidrp-ui.139079/)
 
 Real interfaces on a **vanilla Minecraft client**. No mods, no Forge, nothing for the
 player to install: they join with the client they already have, accept the server's
@@ -59,8 +58,7 @@ shown. No repacking to add a button.
 ## Installing
 
 1. Download the jar from [Modrinth](https://modrinth.com/plugin/voidrp-ui),
-   [Hangar](https://hangar.papermc.io/mironoouv/VoidRP-UI),
-   [SpigotMC](https://www.spigotmc.org/resources/voidrp-ui.139079/) or
+   [Hangar](https://hangar.papermc.io/mironoouv/VoidRP-UI) or
    [releases](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest) — it is the same
    file everywhere. It needs **Paper**; it does not run on Spigot itself.
 2. Drop it into `plugins/` and restart the server.
