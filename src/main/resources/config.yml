@@ -126,13 +126,14 @@ input:
   # the cursor crosses a card is felt as the cursor stuttering. By default the highlight is
   # drawn on the cursor's own bar and the page stays as it is.
   redraw-on-hover: false
-  # Keep the page on the first boss bar.
+  # Keep other plugins' boss bars off the screen while a page is open.
   #
   # A page rides a boss bar, and bars stack in the order the client first saw them — so a
-  # bar another plugin was already showing puts the page a line lower, which shows as a
-  # strip of the world along the top. With PacketEvents installed the plugin sends those
-  # bars again when a page opens, and they land underneath it instead. Nothing is hidden:
-  # a bar keeps its id and its own plugin goes on updating it. It flickers once.
+  # bar another plugin was already showing would push the page a line down, and anything
+  # below it would be drawn across the page. With PacketEvents installed, other bars are
+  # held back while a page is open, the way the game's own menus cover the HUD, and come
+  # back when it closes exactly as they are by then: a timer that ticked on while the page
+  # was open is shown at its new value. The owning plugin is never told.
   bar-priority: true
 
 # Interface sounds. An empty name means silence.

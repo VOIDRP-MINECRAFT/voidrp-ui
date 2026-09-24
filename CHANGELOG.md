@@ -68,6 +68,17 @@ through ViaVersion, which is how most servers see one — and it had never worke
 The screen setup frame sat exactly on the edges of the 1.21.6 window, which is what showed
 the placement itself was right and the fault was in the fonts.
 
+**Other plugins' boss bars stay out of the page.** With an event timer showing, the page kept
+its place — the bar was replayed below ours — but a bar below ours is a line further down
+the screen, and its title came out across the middle of the page. Now those bars are held
+back while a page is open, the way the game's own menus cover the HUD: every packet for
+them is kept, and when the last page closes they come back as they are by then. On a live
+client, a timer renamed from "10 min left" to "2 min left" while the page was open came back
+reading "2 min left". Going from one page to the next does not flash them in between.
+
+Changes to other plugins' bars are tracked even when nothing is held back, so a replayed
+bar is no longer a picture of how it looked when it was first sent.
+
 ## 0.3.4
 
 **The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a

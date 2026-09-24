@@ -234,7 +234,17 @@ class PageManager(
                 aim,
                 { viewportOf(player) },
                 { key -> messages.text(key) },
-            ) { over -> sessions.remove(over.player.uniqueId, over) }
+            ) { over ->
+                sessions.remove(over.player.uniqueId, over)
+                // A tick later, and only if no page took its place: going from one page to
+                // the next closes one session and opens another, and putting the bars back
+                // in between would flash them across the screen.
+                runCatching {
+                    plugin.server.scheduler.runTask(plugin, Runnable {
+                        if (over.player.isOnline && !isOpen(over.player)) bars.showOthers(over.player)
+                    })
+                }
+            }
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
         // first, the pointer's bar could be created before the page's — and then the page
@@ -243,7 +253,7 @@ class PageManager(
         sessions[player.uniqueId] = session
         // Now that the page's own bars exist, anything another plugin was already showing
         // is sent again so that it lands underneath them rather than pushing the page down.
-        if (plugin.config.getBoolean("input.bar-priority", true)) bars.demoteOthers(player)
+        if (plugin.config.getBoolean("input.bar-priority", true)) bars.hideOthers(player)
         return true
     }
 
