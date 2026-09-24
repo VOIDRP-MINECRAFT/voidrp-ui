@@ -200,6 +200,26 @@ class PageSession(
     }
 
     /**
+     * Something other than the player has turned them — a teleport that sets a direction, a
+     * respawn — so the aim is taken from where they now face, and the pointer stays where it
+     * was on the page.
+     *
+     * The pointer is the turn since the page opened, so a teleport that swings the player
+     * round swings the pointer with it: on a live client, coming back from death left it
+     * against the left edge of the screen. The pitch is levelled again, as on opening, so
+     * there is as much room below as above.
+     */
+    fun reanchor() {
+        if (closed) return
+        val location = runCatching { player.location }.getOrNull() ?: return
+        val speed = sensitivity()
+        if (speed <= 0.0) return
+        player.setRotation(location.yaw, 0f)
+        anchorYaw = location.yaw - ((pointer.targetX - viewport.width / 2) / speed).toFloat()
+        anchorPitch = 0f - ((pointer.targetY - Shaders.CANVAS_HEIGHT / 2) / speed).toFloat()
+    }
+
+    /**
      * Puts the cursor where the player is aiming.
      *
      * The position is read straight off the current look — the turn since the page opened,

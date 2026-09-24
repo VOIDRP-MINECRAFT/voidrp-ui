@@ -322,6 +322,18 @@ class PageManager(
     @EventHandler(priority = EventPriority.LOWEST)
     fun onScroll(event: PlayerItemHeldEvent) {
         val session = session(event.player) ?: return
+        // Not every change of held slot is the player's. Moving between worlds or coming
+        // back from death, the client and the server settle which slot is held, and that
+        // arrives as an ordinary change — on a live client, a page that listens for number
+        // keys was pressed "4" by a teleport back from the Nether. A slot that has not
+        // changed is no input at all, and neither is anything the world sends while it is
+        // settling after the move.
+        if (event.newSlot == event.previousSlot) return
+        val settledAt = settling[event.player.uniqueId]
+        if (settledAt != null && System.currentTimeMillis() - settledAt < SETTLE_MS) {
+            if (traceClicks) plugin.logger.info("slot ${event.player.name}: ${event.previousSlot} → ${event.newSlot}, ignored while settling")
+            return
+        }
         val raw = event.newSlot - event.previousSlot
         val step = when {
             raw > 4 -> raw - 9
@@ -334,6 +346,45 @@ class PageManager(
             session.page.usesKeys -> session.key(event.newSlot + 1)
             step != 0 -> session.scroll(if (step > 0) 1 else -1)
         }
+    }
+
+    /** When each player last changed world or came back from death. */
+    private val settling = java.util.concurrent.ConcurrentHashMap<java.util.UUID, Long>()
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onChangedWorld(event: org.bukkit.event.player.PlayerChangedWorldEvent) {
+        settling[event.player.uniqueId] = System.currentTimeMillis()
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onRespawn(event: org.bukkit.event.player.PlayerRespawnEvent) {
+        settling[event.player.uniqueId] = System.currentTimeMillis()
+    }
+
+    /**
+     * Death closes the page, the way it closes the game's own menus. Left open, the page
+     * went on being drawn behind the death screen with the Respawn button lying across it,
+     * and nothing on it could be used.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onDeath(event: org.bukkit.event.entity.PlayerDeathEvent) {
+        if (session(event.player) != null) close(event.player)
+    }
+
+    /**
+     * A teleport that turns the player takes the pointer with it unless the aim is taken
+     * again. Done a tick later, once the player is where the teleport put them and facing
+     * the way it turned them.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    fun onTeleport(event: org.bukkit.event.player.PlayerTeleportEvent) {
+        val to = event.to
+        val from = event.from
+        val yaw = ((to.yaw - from.yaw) % 360f + 540f) % 360f - 180f
+        val turned = Math.abs(yaw) > 1f || Math.abs(to.pitch - from.pitch) > 1f
+        if (!turned && to.world == from.world) return
+        val player = event.player
+        plugin.server.scheduler.runTask(plugin, Runnable { session(player)?.reanchor() })
     }
 
     /** Crouching goes back a page, or closes the last one — like the escape key. */
@@ -363,10 +414,14 @@ class PageManager(
 
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
+        settling.remove(event.player.uniqueId)
         close(event.player)
     }
 
     companion object {
+
+        /** How long after a change of world or a respawn the held slot is left to settle. */
+        const val SETTLE_MS = 1500L
 
         /** How often the pointer is drawn when nothing says otherwise. */
         const val DEFAULT_FRAME_RATE = 85

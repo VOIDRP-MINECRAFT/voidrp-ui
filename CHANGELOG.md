@@ -3,6 +3,26 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.10
+
+**What happens to an open page when something happens to the player.** Tried on a live client
+for the first time, and three things were wrong:
+
+- **Death left the page up behind the death screen**, with the Respawn button lying across
+  it and nothing on it usable. Death closes the page now, the way it closes the game's own
+  menus — and other plugins' boss bars come back with it.
+- **A teleport that turns the player took the pointer with it.** The pointer is the turn
+  since the page opened, so a plugin's `/spawn` facing north swung it to wherever that put
+  it; coming back from death it sat against the left edge. The aim is taken again after such
+  a teleport, the pitch levelled as on opening, and the pointer stays where it was.
+- **A trip to the Nether pressed a number key.** Changing world, the client and the server
+  settle which hotbar slot is held, and that arrives as an ordinary change of slot — a page
+  that listens for number keys was pressed "4" by a teleport back. A slot that has not
+  changed is no input, and neither is any change within a second and a half of a change of
+  world or a respawn.
+
+A plain teleport between worlds was tried too: the page stays, and so does the pointer.
+
 ## 0.3.9
 
 **A pack hosted elsewhere stays the pack that was built.** A server that serves the archives
