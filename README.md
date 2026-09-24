@@ -23,7 +23,7 @@ Every rectangle, letter and icon in it travels as one line of text in an invisib
 bar. The pictures further down are drawn with `./gradlew preview`, which puts the same
 pages on disk without starting the game.
 
-![The cursor moving over the page on a vanilla client](docs/cursor.webp)
+![The cursor moving over the page on a vanilla client](docs/cursor.gif)
 
 The same page, recorded as it is used: the player turns their head, the cursor follows, and
 whatever it is over lights up. Recorded at real speed on a test client with no graphics
