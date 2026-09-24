@@ -32,6 +32,7 @@ override fun view(): View = screen(style = Theme.scrim, align = Align.CENTER, ch
 | `chip(text, style)` | a pill: a version, a mode, a state |
 | `emptyState(title, hint, icon)` | nothing to show — an invitation, not an apology |
 | `notice(text, tone, width)` | a line with a colour: `Tone.INFO`, `GOOD`, `WARN`, `BAD` |
+| `skeleton(width, height, radius)` | a dim bar standing in for something still loading — see "Data that arrives later" in [page.md](page.md) |
 
 ## Things to press
 

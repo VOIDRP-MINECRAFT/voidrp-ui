@@ -14,6 +14,15 @@ crosses onto something else: moving along a row sends nothing but the pointer.
 - **A tooltip stays where it appeared** while the pointer is on the same thing, instead of
   following it. Over something taller than a row it catches up once the pointer has gone 120
   units away.
+- **`refresh()`, `push`, `back` and `close` are safe from any thread.** A page that fetches
+  what it shows gets its answer on some other thread; called from there, the page used to be
+  laid out and sent right there, racing the server thread. Such calls now wait for the next
+  tick. The pointer and the highlight, drawn by both the frame thread and the server thread,
+  are sent under a lock: the two could pass each other and leave a stale highlight on screen.
+- **`Page.onOpen()`** — called once when a page is put on screen, before it is first drawn:
+  the place to start fetching. **`skeleton()`** — a dim bar to stand in for what is still on
+  its way. The example shop now loads its balance this way. See "Data that arrives later" in
+  `docs/page.md`.
 - A page now takes two bars instead of three, so the shop's scroll sends the list with the
   footer under it: 11 KB instead of 7 in 0.3.12, still down from 17 before that. Hovering
   is far more frequent than scrolling, and this is the trade that pays for it.

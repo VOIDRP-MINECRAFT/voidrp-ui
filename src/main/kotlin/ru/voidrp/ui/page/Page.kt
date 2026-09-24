@@ -92,8 +92,8 @@ abstract class Page {
     /**
      * What to show next to the cursor, usually depending on [hovered].
      *
-     * Tooltips ride the cursor's own boss bar, which is sent every frame anyway, so one
-     * follows the mouse without the page being redrawn.
+     * Tooltips ride a boss bar of their own, with the highlight, so one appears without
+     * the page being redrawn.
      */
     open fun tooltip(): View? = null
 
@@ -127,6 +127,15 @@ abstract class Page {
     /** The player scrolled; [direction] is 1 down the list and −1 up. */
     open fun onScroll(direction: Int) {}
 
+    /**
+     * The page has been put on screen — opened, or pushed on top of another. Called once,
+     * before it is first drawn.
+     *
+     * The place to start fetching what it shows. Do the fetching off the server thread and
+     * call [refresh] when the answer is in: that is safe from any thread.
+     */
+    open fun onOpen() {}
+
     /** The page is going away, whether the player closed it or something else did. */
     open fun onClose() {}
 
@@ -150,7 +159,13 @@ abstract class Page {
         session?.prompt(title, label, initial, hint, maxLength, onSubmit)
     }
 
-    /** Draw the page again, because something it shows has changed. */
+    /**
+     * Draw the page again, because something it shows has changed.
+     *
+     * Safe from any thread — like [push], [back] and [close], a call from off the server
+     * thread is carried out on the next tick. So a page can fetch what it shows
+     * asynchronously and simply call this when the answer arrives.
+     */
     fun refresh() {
         session?.refresh()
     }

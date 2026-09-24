@@ -21,6 +21,7 @@ import ru.voidrp.ui.widget.button
 import ru.voidrp.ui.widget.eyebrow
 import ru.voidrp.ui.widget.scrollFromBar
 import ru.voidrp.ui.widget.scrolled
+import ru.voidrp.ui.widget.skeleton
 import ru.voidrp.ui.widget.stepper
 import ru.voidrp.ui.widget.tooltipPanel
 
@@ -67,7 +68,20 @@ open class ShopPage : Page() {
 
     private var offset = 0
     private var amount = 1
-    private var balance = 12_400
+    /**
+     * What the player has, or null while it is on its way. A real shop asks its economy
+     * plugin or a web service; this one pretends to, off the server thread, to show the
+     * page drawing a placeholder and filling it in.
+     */
+    @Volatile
+    private var balance: Int? = null
+
+    override fun onOpen() {
+        java.util.concurrent.CompletableFuture.delayedExecutor(700, java.util.concurrent.TimeUnit.MILLISECONDS).execute {
+            balance = 12_400
+            refresh()
+        }
+    }
 
     private fun list() = Scroll(
         width = Size.Fixed(inner),
@@ -105,13 +119,15 @@ open class ShopPage : Page() {
                             gap = 2,
                             children = listOf(
                                 eyebrow("Balance"),
-                                RichText(
-                                    spans = listOf(
-                                        Span(balance.toString(), Theme.INK, TextFonts.Weight.SEMIBOLD),
-                                        Span(" coins", Theme.INK_DIM, size = Theme.TEXT_CAPTION),
-                                    ),
-                                    size = Theme.TEXT_H3,
-                                ),
+                                balance?.let {
+                                    RichText(
+                                        spans = listOf(
+                                            Span(it.toString(), Theme.INK, TextFonts.Weight.SEMIBOLD),
+                                            Span(" coins", Theme.INK_DIM, size = Theme.TEXT_CAPTION),
+                                        ),
+                                        size = Theme.TEXT_H3,
+                                    )
+                                } ?: skeleton(Size.Fixed(107), Theme.TEXT_H3 + 4),
                             ),
                         ),
                     ),
@@ -208,12 +224,13 @@ open class ShopPage : Page() {
 
             else -> {
                 val offer = offers.firstOrNull { it.item == id } ?: return
+                val have = balance ?: return
                 val total = offer.price * amount
-                if (balance >= total) {
-                    balance -= total
+                if (have >= total) {
+                    balance = have - total
                     player.sendMessage("Bought ${offer.name} ×$amount for $total")
                 } else {
-                    player.sendMessage("Short by ${total - balance}")
+                    player.sendMessage("Short by ${total - have}")
                 }
             }
         }

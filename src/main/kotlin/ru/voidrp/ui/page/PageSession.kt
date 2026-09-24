@@ -188,6 +188,7 @@ class PageSession(
         // line, and the pointer with it.
         runCatching { renderer.clearOrphans(player) }
         page.session = this
+        page.onOpen()
         sounds.open(player)
         anchorYaw = player.location.yaw
         // The look is levelled once, on opening. Pitch stops at straight down, so a page
@@ -365,16 +366,18 @@ class PageSession(
      */
     /** Opens another page on top of this one; crouching, or back(), returns here. */
     fun push(next: Page) {
-        if (closed) return
+        if (closed || elsewhere { push(next) }) return
         stack.addLast(page)
         page = next
         next.session = this
+        next.onOpen()
         render()
     }
 
     /** Goes back to the page underneath, and says whether there was one. */
     fun back(): Boolean {
         if (closed || stack.isEmpty()) return false
+        if (elsewhere { back() }) return true
         val previous = stack.removeLast()
         page.onClose()
         page.session = null
@@ -469,7 +472,7 @@ class PageSession(
      * next: the only picture that mattered was the last one anyway.
      */
     fun refresh() {
-        if (closed) return
+        if (closed || elsewhere { refresh() }) return
         val tick = currentTick()
         if (tick != renderedAtTick) {
             renderedAtTick = tick
@@ -608,8 +611,34 @@ class PageSession(
         tooltip = next
     }
 
+    /**
+     * Hands a call made off the server thread over to it, and says whether it did.
+     *
+     * A page that loads what it shows — prices from a web service, a player's stats — gets
+     * its answer on some other thread and calls [refresh] from there. Drawn right there, the
+     * page was laid out and sent at the same moment as the server thread might be doing the
+     * same, and whichever finished last won. Now every such call waits for the next tick.
+     */
+    private fun elsewhere(work: () -> Unit): Boolean {
+        val primary = runCatching { org.bukkit.Bukkit.isPrimaryThread() }.getOrDefault(true)
+        if (primary) return false
+        runCatching { org.bukkit.Bukkit.getScheduler().runTask(plugin, Runnable { work() }) }
+        return true
+    }
+
+    /**
+     * Held while the pointer and what it is over are being sent.
+     *
+     * Two threads draw them: the frames, at eighty-five a second, and the server thread,
+     * whenever the page changes. Without this the two could pass each other — one decides
+     * the highlight needs sending and is overtaken by the other, whose newer highlight then
+     * arrives first — and the stale one stayed on screen, since as far as the session knew
+     * the right one had already gone.
+     */
+    private val drawing = Any()
+
     /** Sends the pointer, and what it is over when that has changed. */
-    private fun draw() {
+    private fun draw() = synchronized(drawing) {
         drawHover()
         val lift = cursorLift()
         renderer.cursor(player, GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
@@ -670,7 +699,7 @@ class PageSession(
     val isClosed: Boolean get() = closed
 
     fun close() {
-        if (closed) return
+        if (closed || elsewhere { close() }) return
         closed = true
         forget(this)
         sounds.close(player)

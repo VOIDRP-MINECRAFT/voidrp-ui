@@ -121,6 +121,34 @@ The fills that must reach the edges of the window even when the screen shape was
 little wrong. The engine paints them first and wider than the canvas. Only colour goes
 there — no text, no buttons. Why it is needed at all is in [responsive](responsive.md).
 
+## Data that arrives later
+
+A page that shows prices from a web service or a player's stats should not hold the server
+thread while it waits. Start the fetch in `onOpen()`, draw placeholders until the answer is
+in, and call `refresh()` when it arrives. `refresh()` is safe from any thread, and so are
+`push`, `back` and `close`: a call made off the server thread is carried out on the next tick.
+
+```kotlin
+class MarketPage(private val api: MarketApi) : Page() {
+
+    @Volatile private var prices: List<Price>? = null
+
+    override fun onOpen() {
+        api.prices().thenAccept { prices = it; refresh() }   // any thread
+    }
+
+    override fun view(): View = screen(children = listOf(
+        Panel(style = Theme.page, width = Size.Fixed(640), gap = Theme.SPACE_2, children =
+            prices?.map { row(it) }
+                // The size of what will replace them, so nothing jumps when it arrives.
+                ?: List(6) { skeleton(height = 48, radius = Theme.R_MD) }
+        ),
+    ))
+}
+```
+
+If the player closes the page before the answer arrives, the `refresh()` is simply ignored.
+
 ## Opening a page from your own plugin
 
 ```kotlin

@@ -615,6 +615,15 @@ fun emptyState(
     },
 )
 
+/**
+ * A dim bar standing in for something still on its way — a price, a name, a row of a list.
+ *
+ * A page that fetches what it shows draws these first, the size of what will replace them,
+ * so nothing jumps when the answer arrives.
+ */
+fun skeleton(width: Size = Size.Fill, height: Int = Theme.TEXT_BODY, radius: Int = Theme.R_SM): View =
+    Panel(style = Style(background = Paint(Theme.LINE, 0.08), radius = radius), width = width, height = Size.Fixed(height))
+
 /** How a notice is meant to be read. */
 enum class Tone { INFO, GOOD, WARN, BAD }
 
