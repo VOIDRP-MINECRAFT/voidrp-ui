@@ -1,0 +1,29 @@
+# Weekly dependency updates, one grouped PR per ecosystem.
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    # The game platform follows the server's Minecraft version and major versions are
+    # upgraded by hand; Dependabot only brings minor and patch updates of the rest.
+    ignore:
+      - dependency-name: "io.papermc.paper:*"
+      - dependency-name: "org.spigotmc:*"
+      - dependency-name: "net.neoforged*"
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      gradle:
+        patterns: ["*"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      github_actions:
+        patterns: ["*"]
