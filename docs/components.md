@@ -55,7 +55,7 @@ Everything pressable highlights itself: it knows `hovered` and takes a brighter 
 |---|---|
 | `statTile(label, value, icon, style, width, accent)` | a number with a word under it — what a dashboard is made of |
 | `progress(caption, value, valueText, colour, width)` | a bar with a caption and a value |
-| `tooltipPanel(title, lines, width)` | the tooltip beside the cursor — return it from `tooltip()` |
+| `tooltipPanel(title, lines, width)` | a tooltip — return it from `tooltip()`; it goes under the hovered row or tile |
 
 ## What it looks like in a page
 
