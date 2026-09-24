@@ -352,8 +352,12 @@ class PageManager(
         }
         if (traceClicks) plugin.logger.info("slot ${event.player.name}: ${event.previousSlot} → ${event.newSlot}")
         when {
-            step == 1 || step == -1 -> session.scroll(step)
+            // A page that listens for keys gets every change as one. Pressing "2" with slot
+            // 1 held is a step of one, exactly what a notch of the wheel sends, so read as
+            // scrolling it never reached the page: on a live client the guide's keys worked
+            // only out of order. For such a page the held slot simply is its choice.
             session.page.usesKeys -> session.key(event.newSlot + 1)
+            step == 1 || step == -1 -> session.scroll(step)
             step != 0 -> session.scroll(if (step > 0) 1 else -1)
         }
     }

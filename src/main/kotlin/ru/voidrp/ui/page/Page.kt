@@ -117,9 +117,17 @@ abstract class Page {
      * tabs and modes, which is what number keys are good for in an interface.
      *
      * Only reaches pages that ask for it with [usesKeys], because the game sends the same
-     * packet for a number key and for the wheel.
+     * packet for a number key and for the wheel. On such a page the wheel steps through the
+     * slots and arrives here too, and [onScroll] is not called: the held slot is the page's
+     * choice. A page that can also be switched another way — a tab clicked with the mouse —
+     * moves the slot along with [holdKey], so the keys carry on from where it is.
      */
     open fun onKey(key: Int) {}
+
+    /** Moves the player's hotbar to slot [key], 1 to 9. See [onKey]. */
+    protected fun holdKey(key: Int) {
+        runCatching { player.inventory.heldItemSlot = (key - 1).coerceIn(0, 8) }
+    }
 
     /** Whether hotbar slots reach [onKey] instead of being read as scrolling. */
     open val usesKeys: Boolean get() = false

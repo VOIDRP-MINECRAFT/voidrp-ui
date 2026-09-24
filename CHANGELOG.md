@@ -3,6 +3,26 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.15
+
+Found building the first real pages for a server, on a live client.
+
+- **A column of text beside an icon no longer overlaps itself.** A row measured each child
+  against the whole row, so a column of text next to an icon was measured as one line and
+  drawn as two in the room it was really given — the second line lay over the heading, and
+  whatever came after the row started too high. Each child is now measured at the width it
+  gets.
+- **The icon beside it keeps its size.** A child that fills a row claimed its whole text on
+  one line, the row came up short, and its neighbours were squeezed to make up for it. It now
+  claims only what it cannot do without, the way `flex: 1` does, and takes the rest.
+- **Children that fill a row come out the same size** — two cards side by side are a pair —
+  unless one cannot be drawn that narrow. "Русский" and "English" were different widths.
+- **Number keys reach a page that asks for them, in any order.** Pressing "2" with slot 1
+  held is a step of one, exactly what the wheel sends, and it was read as scrolling: keys
+  worked only out of order. On a page with `usesKeys` every change of slot is now a key, the
+  wheel steps through them, and `holdKey(n)` moves the hotbar when the page is switched
+  another way.
+
 ## 0.3.14
 
 **Plugins written in Kotlin against this one work.** The jar carried Kotlin inside it, renamed

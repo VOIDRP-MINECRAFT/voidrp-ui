@@ -434,18 +434,20 @@ object Layout {
         }
         var along = 0
         var across = 0
+        // Across a row, each child as tall as it comes out at the width it will be given.
+        val given = if (panel.direction == Direction.ROW) allocate(panel, panel.children, innerWidth, innerHeight) else null
         // Only what stands in the flow. A dropdown's open list is an Overlay: it takes no
         // room, so it must not earn a gap either — with one the panel came out four units
         // taller than it draws, and in a row of centred cells the open list sat two units
         // higher than the closed one beside it.
         var counted = 0
-        panel.children.forEach { child ->
-            if (!child.inFlow()) return@forEach
+        panel.children.forEachIndexed { index, child ->
+            if (!child.inFlow()) return@forEachIndexed
             counted++
             val size = measure(child, innerWidth, innerHeight)
-            if (panel.direction == Direction.ROW) {
+            if (given != null) {
                 along += size.width
-                across = maxOf(across, size.height)
+                across = maxOf(across, measure(child, given[index], innerHeight).height)
             } else {
                 along += size.height
                 across = maxOf(across, size.width)
@@ -879,18 +881,13 @@ object Layout {
         arrangeLine(panel, panel.children, x, y, width, height, out, regions)
     }
 
-    /** One line of children: the ordinary case, and each line of a wrapped row. */
-    private fun arrangeLine(
-        panel: Panel,
-        children: List<View>,
-        x: Int,
-        y: Int,
-        width: Int,
-        height: Int,
-        out: MutableList<Node>,
-        regions: MutableList<Region>,
-    ) {
-        if (children.isEmpty()) return
+    /**
+     * How much of the panel's length each child gets: what it wants, the leftovers shared
+     * among those that grow, or the shortfall taken from those that shrink. Measuring a
+     * panel and laying it out both ask this, so the height a row reports is the height its
+     * children really come out at.
+     */
+    private fun allocate(panel: Panel, children: List<View>, width: Int, height: Int): List<Int> {
         val row = panel.direction == Direction.ROW
         val span = if (row) width else height
 
@@ -898,10 +895,15 @@ object Layout {
         // A greedy child is measured against no space along this axis, so it asks only for
         // what it holds — otherwise it would claim the whole row for itself and then be
         // handed the leftovers on top, pushing everything after it off the panel.
+        //
+        // Across a row, the least it can be drawn at: a column of text next to an icon wanted
+        // its whole text on one line, the row came out too short for that, and the icon was
+        // squeezed to make up the difference. It is `flex: 1` — the rest of the row goes to
+        // it anyway, so all it has to claim is the room it cannot do without.
         val wanted = children.map { child ->
             val greedy = child.growsAlong(panel.direction)
             val size = when {
-                row && greedy -> measure(child, 0, height)
+                row && greedy -> measure(child, 1, height)
                 greedy -> measure(child, width, 0)
                 else -> measure(child, width, height)
             }
@@ -947,12 +949,50 @@ object Layout {
         } else {
             val spare = span - used
             if (greedy.isNotEmpty() && spare > 0) {
-                val share = spare / greedy.size
-                greedy.forEachIndexed { position, index ->
-                    sizes[index] += if (position == greedy.lastIndex) spare - share * greedy.lastIndex else share
+                // Shared so that they come out the same size — two cards side by side are a
+                // pair — except where one cannot be drawn that narrow, which keeps what it
+                // needs while the rest share what is left. Handing out only the spare, on top
+                // of what each held, made "Русский" wider than "English" beside it.
+                var pool = spare + greedy.sumOf { wanted[it] }
+                val open = greedy.toMutableList()
+                while (true) {
+                    val equal = pool / open.size
+                    val firm = open.filter { wanted[it] > equal }
+                    if (firm.isEmpty()) {
+                        open.forEachIndexed { position, index ->
+                            sizes[index] = if (position == open.lastIndex) pool - equal * open.lastIndex else equal
+                        }
+                        break
+                    }
+                    firm.forEach { index ->
+                        sizes[index] = wanted[index]
+                        pool -= wanted[index]
+                    }
+                    open.removeAll(firm)
+                    if (open.isEmpty()) break
                 }
             }
         }
+
+        return sizes
+    }
+
+    /** One line of children: the ordinary case, and each line of a wrapped row. */
+    private fun arrangeLine(
+        panel: Panel,
+        children: List<View>,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        out: MutableList<Node>,
+        regions: MutableList<Region>,
+    ) {
+        if (children.isEmpty()) return
+        val row = panel.direction == Direction.ROW
+        val span = if (row) width else height
+
+        val sizes = allocate(panel, children, width, height)
 
         val leftover = (span - (sizes.sum() + panel.gap * (children.size - 1))).coerceAtLeast(0)
         var cursor = when (panel.justify) {
@@ -991,7 +1031,11 @@ object Layout {
                 return@forEachIndexed
             }
             val alongSize = sizes[index]
-            val crossWanted = measure(child, width, height).let { if (row) it.height else it.width }
+            // How tall it is at the width it was actually given. Measured against the whole
+            // row instead, a column of text beside an icon reported one line where it draws
+            // two, and the second was laid over the first.
+            val crossWanted = (if (row) measure(child, alongSize, height) else measure(child, width, height))
+                .let { if (row) it.height else it.width }
             val crossSpan = if (row) height else width
             // Never wider than what it is inside. A child with a size of its own, in a
             // panel that had to give up room, would otherwise stick out sideways and lie
