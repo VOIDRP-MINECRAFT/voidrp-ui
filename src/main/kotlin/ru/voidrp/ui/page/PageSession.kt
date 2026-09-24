@@ -589,7 +589,7 @@ class PageSession(
 
         val canvas = viewport
         val size = Layout.measure(view, canvas.width, canvas.height)
-        val left = (x + TOOLTIP_OFFSET).coerceAtMost(canvas.width - size.width - 4).coerceAtLeast(4)
+        val left = (x + TooltipPlacement.OFFSET).coerceAtMost(canvas.width - size.width - 4).coerceAtLeast(4)
         val top = tooltipTop(y, size.height, canvas.height)
         // Drawn on the pointer's bar, which sits a line lower than the page's, so it is
         // lifted by that much — and cannot go above that bar's own top.
@@ -607,16 +607,8 @@ class PageSession(
      * something so tall that going round it would take the tooltip away from the pointer
      * altogether.
      */
-    private fun tooltipTop(y: Int, height: Int, canvasHeight: Int): Int {
-        val region = under
-        val fallback = (y + TOOLTIP_OFFSET).coerceAtMost(canvasHeight - height - 4).coerceAtLeast(4)
-        if (region == null || region.height > TOOLTIP_AROUND_MAX) return fallback
-        val below = region.y + region.height + TOOLTIP_GAP
-        if (below + height <= canvasHeight - 4) return below
-        val above = region.y - TOOLTIP_GAP - height
-        if (above >= 4) return above
-        return fallback
-    }
+    private fun tooltipTop(y: Int, height: Int, canvasHeight: Int): Int =
+        TooltipPlacement.top(under?.let { it.y to it.height }, y, height, canvasHeight)
 
     /** Whether this session is over; a closed one answers to nothing. */
     val isClosed: Boolean get() = closed
@@ -660,15 +652,8 @@ class PageSession(
         /** How far the cursor moves before a tooltip is laid out again. */
         const val TOOLTIP_STEP = 6
 
-        /** How far from the cursor a tooltip sits, so the pointer does not cover it. */
-        const val TOOLTIP_OFFSET = 16
 
-        /** How far a tooltip keeps from the edge of what it describes. */
-        const val TOOLTIP_GAP = 6
 
-        /** Taller than this, a hovered thing is a panel rather than a row, and the tooltip
-         *  follows the pointer instead of going round it. */
-        const val TOOLTIP_AROUND_MAX = 160
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f
