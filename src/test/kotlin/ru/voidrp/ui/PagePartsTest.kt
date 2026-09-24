@@ -56,7 +56,7 @@ class PagePartsTest {
         fun pieces(): List<List<ru.voidrp.ui.render.Node>> {
             val placement = Layout.centred(page.view(), 1820, Shaders.CANVAS_HEIGHT)
             assertTrue(placement.cuts.isNotEmpty(), "the shop's list left no cut in the page")
-            return PageParts.split(placement.nodes.map(PageParts::weight), placement.cuts, 3)
+            return PageParts.split(placement.nodes.map(PageParts::weight), placement.cuts, ru.voidrp.ui.render.BossBarRenderer.PAGE_BARS)
                 .map { placement.nodes.subList(it.first, it.last + 1) }
         }
         val before = pieces()

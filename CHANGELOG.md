@@ -3,6 +3,21 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.13
+
+**Moving the pointer sends the pointer and nothing else.** The highlight around what the
+pointer is over and its tooltip rode the pointer's own bar, so every frame of movement over a
+shop row sent them again — 3.4 KB, 85 times a second, about 290 KB/s per player, where the
+pointer alone is 130 bytes. They now have a bar of their own and go only when the pointer
+crosses onto something else: moving along a row sends nothing but the pointer.
+
+- **A tooltip stays where it appeared** while the pointer is on the same thing, instead of
+  following it. Over something taller than a row it catches up once the pointer has gone 120
+  units away.
+- A page now takes two bars instead of three, so the shop's scroll sends the list with the
+  footer under it: 11 KB instead of 7 in 0.3.12, still down from 17 before that. Hovering
+  is far more frequent than scrolling, and this is the trade that pays for it.
+
 ## 0.3.12
 
 **A page is spread over three boss bars, and a scroll sends only the list.** A bar's title

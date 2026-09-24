@@ -20,11 +20,20 @@ arbitrary:
 ### Several bars, not one
 
 A title is replaced whole, so everything on a bar travels again whenever any of it
-changes. A page is therefore spread over **three bars**, with the pointer on a fourth:
+changes. A page is therefore spread over **two bars**; the third carries the highlight
+and tooltip for what the pointer is over, and the fourth the pointer itself.
+
+The highlight and tooltip used to ride the pointer's bar, so every frame of movement over a
+shop row sent them again: 3.4 KB, 85 times a second, where the pointer alone is 130 bytes.
+On their own bar they go when the pointer crosses onto something else, and the tooltip
+stays where it appeared instead of following the pointer.
+
+The page is split like this:
 
 - The layout marks where a scrolling list and whatever stands above the page (a menu)
   begin and end in the list of shapes. The page is cut there, so a scroll sends the list
-  again and nothing else — for the shop that is 7 KB instead of 17.
+  again and not the rest of it — for the shop that is 11 KB instead of 17 (the list and the
+  footer under it, which share a bar).
 - Pieces are always runs of the page in its own order. Bars are drawn one after another,
   so a piece stitched together from two places would put something on top of what it was
   meant to be under.

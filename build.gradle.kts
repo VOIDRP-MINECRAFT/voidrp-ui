@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.voidrp"
-version = "0.3.12"
+version = "0.3.13"
 
 kotlin {
     // Paper 26.2's own API is Java 25, so it takes a 25 compiler to read it...

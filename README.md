@@ -183,7 +183,7 @@ chip("New")                                         // label
 
 A tooltip is the page's `tooltip()`: return a `View` and it appears the moment the player
 points at the region. It goes under a row or a tile rather than beside the cursor, so it
-never covers what it describes, and follows the cursor across anything taller.
+never covers what it describes, and stays put while the cursor moves over the same thing.
 
 ```kotlin
 override fun tooltip(): View? =
@@ -399,12 +399,12 @@ players', `VOIDRP_IMAGES` at its `images` and the server's own pictures are draw
 
 | | |
 |---|---|
-| A page | 3 ms to lay out and encode, ~90 KB on the wire — only when something changed |
-| A cursor frame | 0.02 ms and a few dozen bytes, 85 times a second — hundreds of players per core |
+| A page | 3 ms to lay out and encode, ~90 KB on the wire when it opens; after that only the piece that changed — a scroll of the shop's list is ~11 KB |
+| A cursor frame | 0.02 ms and ~130 bytes, 85 times a second — hundreds of players per core. The highlight and tooltip go only when the cursor crosses onto something else |
 | The pack | 1.2 MB, downloaded once on the first join |
 
-A page is sent again only when the page itself changed: hovering is drawn on the cursor's
-bar and never touches it.
+A page is sent again only when the page itself changed, and then only the piece of it that
+did: hovering is drawn on a bar of its own and never touches it.
 
 ## How it works
 
@@ -468,7 +468,7 @@ The details, and the rakes — in [docs/internals.md](docs/internals.md).
   With PacketEvents installed, other plugins' bars are held back while a page is open and
   come back when it closes. Without it the server cannot see them at all: a bar another
   plugin is already showing puts the page 19 units down. A page itself takes four bars
-  (three for the page, one for the pointer) — the most every client is sure to draw.
+  (two for the page, one for the highlight and tooltip, one for the pointer) — the most every client is sure to draw.
 - Client shader packs (Iris, OptiFine) replace world rendering and leave the interface
   vanilla, so pages survive them. Mods that touch the text shaders themselves do not.
 

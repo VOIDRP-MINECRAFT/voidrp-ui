@@ -37,17 +37,25 @@ class BossBarRenderer(
         private const val BUSY_PAGE = 20_000
 
         /**
-         * How many bars a page is spread over; the pointer has one more of its own.
+         * How many bars a page is spread over. After them come one for what the pointer is
+         * over — its highlight and tooltip — and one for the pointer itself.
          *
-         * Four is what every client draws: the boss bar list stops at a third of the
+         * Four in all is what every client draws: the boss bar list stops at a third of the
          * screen's height, each bar takes nineteen units of it starting at twelve, and no
          * GUI scale leaves the screen shorter than 240 — so bars at 12, 31, 50 and 69 always
          * fit, and a fifth at 88 does not on a large scale.
          */
-        const val PAGE_BARS = 3
+        const val PAGE_BARS = 2
+
+        /** Where the hover bar is in the stack, counting from the top. */
+        const val HOVER_BAR = PAGE_BARS
+
+        /** And the pointer's, last so it is drawn over everything. */
+        const val CURSOR_BAR = PAGE_BARS + 1
     }
 
     private val pages = mutableMapOf<UUID, List<BossBar>>()
+    private val hovers = mutableMapOf<UUID, BossBar>()
     private val cursors = mutableMapOf<UUID, BossBar>()
 
     fun render(player: Player, nodes: List<Node>, centre: Int = 0) =
@@ -87,6 +95,18 @@ class BossBarRenderer(
     }
 
     /**
+     * Sends what the pointer is over: the highlight around it and its tooltip.
+     *
+     * Its own bar, because it changes when the pointer crosses into something else and not
+     * when it moves: riding the pointer's bar, a highlight and a tooltip went out with every
+     * frame — three and a half kilobytes, eighty-five times a second, to say nothing new.
+     */
+    fun hover(player: Player, title: Component) {
+        bars(player)
+        hovers[player.uniqueId]!!.name(title)
+    }
+
+    /**
      * The page's bars, made the first time any of them is needed — all of them, and the
      * pointer's, in the order they are drawn.
      *
@@ -98,6 +118,7 @@ class BossBarRenderer(
         pages[player.uniqueId]?.let { return it }
         val made = List(PAGE_BARS) { bar(player) }
         pages[player.uniqueId] = made
+        hovers[player.uniqueId] = bar(player)
         cursors[player.uniqueId] = bar(player)
         return made
     }
@@ -111,6 +132,7 @@ class BossBarRenderer(
 
     fun clear(player: Player) {
         pages.remove(player.uniqueId)?.forEach { runCatching { player.hideBossBar(it) } }
+        hovers.remove(player.uniqueId)?.let { runCatching { player.hideBossBar(it) } }
         cursors.remove(player.uniqueId)?.let { runCatching { player.hideBossBar(it) } }
     }
 
@@ -134,6 +156,12 @@ class BossBarRenderer(
                 }
             }
         }
+        for (entry in hovers.entries) {
+            try {
+                org.bukkit.Bukkit.getPlayer(entry.key)?.hideBossBar(entry.value)
+            } catch (ignored: Throwable) {
+            }
+        }
         for (entry in cursors.entries) {
             try {
                 org.bukkit.Bukkit.getPlayer(entry.key)?.hideBossBar(entry.value)
@@ -141,6 +169,7 @@ class BossBarRenderer(
             }
         }
         pages.clear()
+        hovers.clear()
         cursors.clear()
     }
 
@@ -155,8 +184,9 @@ class BossBarRenderer(
     fun clearOrphans(player: Player) {
         val ours = pages[player.uniqueId].orEmpty()
         val cursor = cursors[player.uniqueId]
+        val hover = hovers[player.uniqueId]
         for (bar in player.activeBossBars()) {
-            if (ours.any { it === bar } || bar === cursor) continue
+            if (ours.any { it === bar } || bar === cursor || bar === hover) continue
             if (bar.color() != BossBar.Color.WHITE || bar.progress() != 0f) continue
             try {
                 player.hideBossBar(bar)

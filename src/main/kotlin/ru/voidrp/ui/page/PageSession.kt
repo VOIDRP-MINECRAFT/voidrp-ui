@@ -166,7 +166,7 @@ class PageSession(
             "readings every ${Math.round(pointer.gap * 1000)}ms, " +
             "last ${pointer.age(now)}ms ago ($believed% believed) · " +
             "walking at ${Math.round(Math.hypot(pointer.speedX, pointer.speedY))} units/s · " +
-            "page sent $sent times in $sentParts bar updates, $unchanged asks came out the same, $merged folded into a tick"
+            "page sent $sent times in $sentParts bar updates, hover sent $hoverSends times, $unchanged asks came out the same, $merged folded into a tick"
     }
 
     var hovered: String? = null
@@ -275,10 +275,13 @@ class PageSession(
      * where a y cannot go. Those few are left to the page, which has no such offset.
      */
     private fun fitsOnCursorBar(region: Layout.Region?): Boolean =
-        region == null || region.y - cursorLift() >= -ru.voidrp.ui.pack.Shaders.SHIFT
+        region == null || region.y - hoverLift() >= -ru.voidrp.ui.pack.Shaders.SHIFT
 
-    /** How far the pointer's bar is below the first one: it comes after all of the page's. */
-    private fun cursorLift(): Int = cursorBarOffset() * BossBarRenderer.PAGE_BARS
+    /** How far the hover bar is below the first one: it comes after all of the page's. */
+    private fun hoverLift(): Int = cursorBarOffset() * BossBarRenderer.HOVER_BAR
+
+    /** And the pointer's, which comes last. */
+    private fun cursorLift(): Int = cursorBarOffset() * BossBarRenderer.CURSOR_BAR
 
     /**
      * Where the aim says the pointer should be, read fresh.
@@ -455,8 +458,6 @@ class PageSession(
 
     /** The tooltip as the page last described it; re-laid out as the cursor moves. */
     private var tooltip: ru.voidrp.ui.layout.View? = null
-    private var tooltipEncoded: Component? = null
-    private var tooltipAt = Int.MIN_VALUE
 
     /**
      * The page says it has changed; send it again, at most once a tick.
@@ -503,6 +504,7 @@ class PageSession(
      */
     private var sent = 0
     private var sentParts = 0
+    private var hoverSends = 0
     private var unchanged = 0
     private var merged = 0
 
@@ -604,74 +606,65 @@ class PageSession(
         val next = page.tooltip()
         if (next == tooltip) return
         tooltip = next
-        tooltipEncoded = null
     }
 
-    /** Sends what is already encoded, with the pointer on top. */
+    /** Sends the pointer, and what it is over when that has changed. */
     private fun draw() {
+        drawHover()
         val lift = cursorLift()
-        val line = Component.text()
-        halo(lift)?.let { line.append(it) }
-        tooltipAt(cursorX, cursorY, lift)?.let { line.append(it) }
-        line.append(GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
-        renderer.cursor(player, line.build())
+        renderer.cursor(player, GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
     }
 
-    /** A thin outline around whatever the pointer is over, drawn with the pointer. */
-    private fun halo(lift: Int): Component? {
-        val region = under ?: return null
-        val paint = Paint(Theme.VIOLET, 0.55)
-        // Anything too close to the top of the screen belongs to the page: lifted onto
-        // this bar it would land above the canvas, where a y cannot go, and each piece of
-        // the outline would be clamped on its own until the shape came apart.
-        if (!fitsOnCursorBar(region)) return null
-        val top = region.y - lift
-        val height = region.height
-        val nodes = mutableListOf<ru.voidrp.ui.render.Node>()
+    /**
+     * What the hover bar was last sent for: the region, the tooltip, where the tooltip was
+     * pinned, and the canvas. Anything else and the bar is sent again.
+     */
+    private var hoverSent: List<Any?>? = null
+
+    /** Where the tooltip was pinned. See [TooltipPin]. */
+    private val pin = TooltipPin()
+
+    /**
+     * The highlight around what the pointer is over, and its tooltip — sent only when one of
+     * them changes, on a bar of their own.
+     *
+     * The tooltip is pinned where the pointer was when it appeared — see [TooltipPin] —
+     * so moving over the same thing sends nothing but the pointer.
+     */
+    private fun drawHover() {
+        val region = under?.takeIf { fitsOnCursorBar(it) }
+        val view = tooltip
+        pin.update(region?.id, region?.height ?: 0, view, cursorX, cursorY)
+        val key = listOf(region, view, pin.x, pin.y, viewport)
+        if (key == hoverSent) return
+        hoverSent = key
+
+        val lift = hoverLift()
+        val nodes = mutableListOf<Node>()
+        region?.let { halo(it, nodes) }
+        view?.let { tooltipNodes(it, nodes) }
+        renderer.hover(player, GlyphEncoder.encode(nodes, viewport.width / 2, lift))
+        hoverSends++
+    }
+
+    /** A thin outline around whatever the pointer is over, with a wash inside it. */
+    private fun halo(region: Layout.Region, nodes: MutableList<Node>) {
         // A wash inside the outline, so that what the pointer is on reads at a glance now
         // that the page itself no longer changes underneath it.
-        Painter.fill(region.x, top, region.width, height, region.radius, Paint(Theme.VIOLET, 0.16), nodes)
+        Painter.fill(region.x, region.y, region.width, region.height, region.radius, Paint(Theme.VIOLET, 0.16), nodes)
         // Along the panel's own corners. A square drawn around a rounded card is the first
         // thing anyone notices, and the cursor lands on rounded cards all day.
-        Painter.outline(region.x, top, region.width, height, region.radius, 1, paint, nodes)
-        return GlyphEncoder.encode(nodes, viewport.width / 2)
+        Painter.outline(region.x, region.y, region.width, region.height, region.radius, 1, Paint(Theme.VIOLET, 0.55), nodes)
     }
 
-    /**
-     * Lays the tooltip out beside the cursor, keeping it on screen.
-     *
-     * Re-done only when the cursor has actually moved a few units, because at sixty frames
-     * a second the difference between following the mouse and chasing it is not worth the
-     * work.
-     */
-    private fun tooltipAt(x: Int, y: Int, lift: Int): Component? {
-        val view = tooltip ?: return null
-        val moved = Math.abs(x + y * 2 - tooltipAt) >= TOOLTIP_STEP
-        tooltipEncoded?.takeIf { !moved }?.let { return it }
-        tooltipAt = x + y * 2
-
+    /** The tooltip, laid out beside where it was pinned and kept on screen. */
+    private fun tooltipNodes(view: ru.voidrp.ui.layout.View, nodes: MutableList<Node>) {
         val canvas = viewport
         val size = Layout.measure(view, canvas.width, canvas.height)
-        val left = (x + TooltipPlacement.OFFSET).coerceAtMost(canvas.width - size.width - 4).coerceAtLeast(4)
-        val top = tooltipTop(y, size.height, canvas.height)
-        // Drawn on the pointer's bar, which sits a line lower than the page's, so it is
-        // lifted by that much — and cannot go above that bar's own top.
-        val placement = Layout.place(view, left, top, size.width, size.height)
-        return GlyphEncoder.encode(placement.nodes, canvas.width / 2, lift).also { tooltipEncoded = it }
+        val left = (pin.x + TooltipPlacement.OFFSET).coerceAtMost(canvas.width - size.width - 4).coerceAtLeast(4)
+        val top = TooltipPlacement.top(under?.let { it.y to it.height }, pin.y, size.height, canvas.height)
+        nodes += Painter.flatten(Layout.place(view, left, top, size.width, size.height).nodes)
     }
-
-    /**
-     * Where a tooltip goes up and down, in page units.
-     *
-     * Beside the pointer, it covered the very thing it was describing: in a shop the pointer
-     * sits in the middle of a row and the tooltip, down and to the right of it, lay over that
-     * row's price. So for anything the size of a row or a tile it goes under what is
-     * hovered — or over it, when there is no room below — and only follows the pointer for
-     * something so tall that going round it would take the tooltip away from the pointer
-     * altogether.
-     */
-    private fun tooltipTop(y: Int, height: Int, canvasHeight: Int): Int =
-        TooltipPlacement.top(under?.let { it.y to it.height }, y, height, canvasHeight)
 
     /** Whether this session is over; a closed one answers to nothing. */
     val isClosed: Boolean get() = closed
@@ -711,9 +704,6 @@ class PageSession(
 
         /** Swings this close together are the same press still being held: a drag. */
         const val DRAG_GAP_MS = 200L
-
-        /** How far the cursor moves before a tooltip is laid out again. */
-        const val TOOLTIP_STEP = 6
 
 
 

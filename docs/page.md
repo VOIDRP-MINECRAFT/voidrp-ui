@@ -88,15 +88,17 @@ override fun tooltip(): View? = when (hovered) {
 }
 ```
 
-It is asked for the moment the hovered region changes and rides on the cursor's own boss
-bar, which is sent every frame anyway, so the page is not redrawn for it. It goes under a
-row or a tile — over it, when there is no room below — so it never covers the thing it
-describes, and it follows the cursor across anything taller than a row.
+It is asked for the moment the hovered region changes and rides a boss bar of its own,
+together with the highlight, so the page is not redrawn for it. It goes under a row or a
+tile — over it, when there is no room below — so it never covers the thing it describes.
+It appears beside where the cursor was and **stays there** while the cursor moves over the
+same thing: moving along a row sends nothing but the cursor. Over something taller than a
+row it catches up once the cursor has gone 120 units from it.
 
 ## Hovering without a redraw
 
-The highlight under the cursor is drawn by the engine on the cursor's bar: the page stays
-as it is. That is on purpose — a page travels whole (about 90 KB for the home page), and
+The highlight under the cursor is drawn by the engine on a bar of its own: the page stays
+as it is. That is on purpose — a page is tens of kilobytes (about 90 KB for the home page), and
 redrawing it every time the cursor crosses a card would be felt as the cursor stuttering.
 
 If a page really needs its **contents** to change on hover, rather than just be
