@@ -59,6 +59,11 @@ shown. No repacking to add a button.
 2. Drop it into `plugins/` and restart the server.
 3. That is all.
 
+Worth adding, but not needed: [PacketEvents](https://modrinth.com/plugin/packetevents). With
+it the cursor answers up to 50 ms sooner, a player on an older client is handed the right
+pack straight away, and other plugins' boss bars stay off a page while it is open. See
+[below](#if-the-server-has-packetevents).
+
 The first page a player opens starts with screen setup — a frame on the edge of the canvas
 that they line up with their own monitor. Five seconds, once in their life; why it is
 needed at all is in [responsive](docs/responsive.md), and it is turned off with
