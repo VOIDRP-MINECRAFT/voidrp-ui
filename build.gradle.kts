@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.20"
-    id("com.gradleup.shadow") version "8.3.10"
+    id("com.gradleup.shadow") version "8.3.11"
     `maven-publish`
 }
 
@@ -63,7 +63,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.124-stable")
     // Paper ships Gson at runtime; we only need it to read our own width table.
-    compileOnly("com.google.code.gson:gson:2.11.0")
+    compileOnly("com.google.code.gson:gson:2.14.0")
     // Optional: read the player's look the moment it arrives instead of on the next tick.
     compileOnly("com.github.retrooper:packetevents-spigot:2.13.0")
     // Not in the jar: the server fetches it at start (`libraries:` in plugin.yml). Shaded and
@@ -78,7 +78,7 @@ dependencies {
     // The tests read the pack we build and add up a line the way the client would.
     testImplementation(kotlin("test"))
     testImplementation("io.papermc.paper:paper-api:26.2.build.124-stable")
-    testImplementation("com.google.code.gson:gson:2.11.0")
+    testImplementation("com.google.code.gson:gson:2.14.0")
 }
 
 /**
