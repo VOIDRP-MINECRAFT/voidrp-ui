@@ -9,18 +9,21 @@ class ShopPage : Page() {
     private var tab = "weapons"
     private var scroll = 0
 
+    private fun list() = Scroll(children = items(), offset = scroll, height = Size.Fixed(360), id = "list")
+
     override fun view(): View = screen(style = Theme.scrim, align = Align.CENTER, children = listOf(
-        Panel(style = Theme.card, children = listOf(
+        Panel(style = Theme.card, width = Size.Fixed(640), children = listOf(
             tabs("tab", listOf("weapons" to "Weapons", "food" to "Food"), tab),
-            Scroll(children = items(), offset = scroll, id = "list"),
+            list(),
         )),
     ))
 
     override fun onClick(id: String, button: Button) {
-        if (id.startsWith("tab:")) { tab = id.removePrefix("tab:"); refresh() }
+        if (id.startsWith("tab:")) { tab = id.removePrefix("tab:"); scroll = 0; refresh() }
     }
 
-    override fun onScroll(direction: Int) { scroll += direction * 40; refresh() }
+    // A row at a time, and never past either end — see "Scrolling" in layout.md.
+    override fun onScroll(direction: Int) { scroll = scrolled(list(), direction, 640, 360); refresh() }
 }
 ```
 
@@ -76,7 +79,7 @@ prompt(title = "Price", label = "How much?", initial = "100") { answer ->
 The game's own text field opens (the page stays on screen) and the answer arrives in the
 callback. It reads as a field on the page rather than a detour through chat.
 
-## A tooltip beside the cursor
+## A tooltip for what is hovered
 
 ```kotlin
 override fun tooltip(): View? = when (hovered) {
@@ -85,8 +88,10 @@ override fun tooltip(): View? = when (hovered) {
 }
 ```
 
-The tooltip rides on the cursor's own boss bar, which is sent every frame anyway — so it
-follows the mouse without the page being redrawn.
+It is asked for the moment the hovered region changes and rides on the cursor's own boss
+bar, which is sent every frame anyway, so the page is not redrawn for it. It goes under a
+row or a tile — over it, when there is no room below — so it never covers the thing it
+describes, and it follows the cursor across anything taller than a row.
 
 ## Hovering without a redraw
 

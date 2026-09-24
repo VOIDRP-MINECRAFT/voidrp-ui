@@ -158,8 +158,9 @@ progress(0.7)                                       // progress bar
 chip("New")                                         // label
 ```
 
-A tooltip is the page's `tooltip()`: return a `View` and it is drawn beside the cursor for
-as long as the player keeps pointing at the region.
+A tooltip is the page's `tooltip()`: return a `View` and it appears the moment the player
+points at the region. It goes under a row or a tile rather than beside the cursor, so it
+never covers what it describes, and follows the cursor across anything taller.
 
 ```kotlin
 override fun tooltip(): View? =
@@ -178,6 +179,11 @@ shader had a different name. Without PacketEvents the version is unknown, so the
 pack is tried first — a client that cannot apply it says so, and the older one follows at
 once. The worst a player sees is a second loading bar.
 
+And it lets the plugin **keep other plugins' boss bars off a page**. A page rides a boss
+bar, so an event timer or a TPS meter would otherwise sit on top of the page or push it
+down. While a page is open those bars are held back, the way the game's own menus cover the
+HUD, and when it closes they come back as they are by then.
+
 ## Two client versions
 
 | Client | What it gets |
@@ -185,10 +191,14 @@ once. The worst a player sees is a second loading bar.
 | 26.2 and newer | `voidrp-ui.zip` — the `text.vsh` shader |
 | 1.21.6 – 26.1.2 | `voidrp-ui-legacy.zip` — the `rendertype_text.vsh` shader |
 
-The pack for older clients differs by exactly one file: the vertex shader under its old
-name. It carries no fragment shader — the patched one only exists for 26.2, and without it
-a client throws away anything under a tenth of opacity. Which is why the faintest level of
-the palette is an eighth anyway, and both versions draw the same page.
+The pack for older clients differs in two ways. The vertex shader goes under its old name,
+and there is no fragment shader, because the patched one only exists for 26.2 and without
+it a client throws away anything under a tenth of opacity. That is why the faintest level
+of the palette is an eighth anyway. And its item pictures leave out the 193 textures that
+1.21.6 does not have: a client asked for a file it has never heard of drops the whole icon
+font, so each of those becomes a space of the same width and the page does not move.
+
+Both are tried on real clients, 26.2 and 1.21.6 through ViaVersion, and draw the same page.
 
 Both are built at startup, served from the built-in server, and need no configuration. If
 the second one is not needed because everybody is on one version, `pack.legacy: false`
@@ -431,11 +441,10 @@ The details, and the rakes — in [docs/internals.md](docs/internals.md).
   and until they do the server's own setting is used. Nothing is ever distorted by this:
   the unit is square, and a wrong shape costs margins at the edges or clipped decoration —
   what matters stays inside the 4:3 safe band.
-- A page rides a **boss bar**, and bars stack in the order the client received them. If
-  another plugin is already showing one when the page opens, ours is second and the whole
-  page moves 19 units down. The plugin clears its own leftovers; other people's it can
-  neither see nor remove — the server has no idea what is on the client's screen. On a
-  server with a permanent bar (TPS, events) that bar is worth hiding while a page is open.
+- A page rides a **boss bar**, and bars stack in the order the client received them.
+  With PacketEvents installed, other plugins' bars are held back while a page is open and
+  come back when it closes. Without it the server cannot see them at all: a bar another
+  plugin is already showing puts the page 19 units down.
 - Client shader packs (Iris, OptiFine) replace world rendering and leave the interface
   vanilla, so pages survive them. Mods that touch the text shaders themselves do not.
 
