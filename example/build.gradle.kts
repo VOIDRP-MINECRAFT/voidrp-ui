@@ -14,15 +14,17 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.6-R0.1-SNAPSHOT")
 
-    // Интерфейсы. Плагин стоит на сервере — нам нужны только его классы при компиляции.
+    // The interface. The plugin itself is on the server; all this needs is its classes to
+    // compile against. The version is the release tag, "v" included — that is how JitPack
+    // names it.
     //
-    // Собирая рядом с исходниками VoidRP UI, укажите свежий jar:
-    //   ./gradlew build -PvoidrpUi=../build/libs/voidrp-ui-0.2.0.jar
+    // Building next to the VoidRP UI sources instead, point at a fresh jar:
+    //   ./gradlew build -PvoidrpUi=../build/libs/voidrp-ui-0.3.7.jar
     val local = findProperty("voidrpUi") as String?
     if (local != null) {
         compileOnly(files(local))
     } else {
-        compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:0.2.0")
+        compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.7")
     }
 }
 

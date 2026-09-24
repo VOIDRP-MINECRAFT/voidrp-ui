@@ -117,9 +117,13 @@ Building against it through [JitPack](https://jitpack.io):
 repositories { maven("https://jitpack.io") }
 
 dependencies {
-    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:main-SNAPSHOT")
+    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.7")
 }
 ```
+
+The version is the release tag, `v` included — that is how JitPack names it. `main-SNAPSHOT`
+follows the latest commit instead. [`example/`](example/) is a whole plugin built this way,
+with its own Gradle wrapper, so it builds wherever it is copied to.
 
 The jar targets **Java 21** even though it compiles against the Paper 26.2 API, so that it
 loads on a 1.21.6 server, which usually runs on 21.

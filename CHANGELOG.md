@@ -3,6 +3,21 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.7
+
+**The library can be built against.** Installing it through JitPack, as the README says, had
+never worked: JitPack has no JDK 25, so it asks the toolchain resolver for one, and the
+resolver this build pinned (foojay 0.8.0) reaches for a field Gradle 9 removed. The build
+failed in a second, for every version. It is on foojay 1.0.0 now, and the README pins a
+release tag rather than whatever is on `main`.
+
+**The example is a plugin that builds.** It had no Gradle wrapper, so "copy the folder and
+build it" needed a Gradle installed by hand; it depended on version `0.2.0`, which JitPack
+never had (the tag is `v0.2.0`); and its code and messages were still in Russian. It has a
+wrapper now — `gradlew.bat` too, and so does the library — depends on `v0.3.7`, and is in
+English. It also had the frame down the sides of a wide screen fixed in 0.3.5: its bleed
+now comes from `bleedOf(Theme.scrim)`.
+
 ## 0.3.6
 
 **Tooltips appear when something is hovered.** A tooltip was asked of the page only when the

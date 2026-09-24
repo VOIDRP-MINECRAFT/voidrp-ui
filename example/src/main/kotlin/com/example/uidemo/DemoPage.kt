@@ -10,7 +10,6 @@ import ru.voidrp.ui.layout.Text
 import ru.voidrp.ui.layout.View
 import ru.voidrp.ui.page.Button
 import ru.voidrp.ui.page.Page
-import ru.voidrp.ui.style.Paint
 import ru.voidrp.ui.style.Theme
 import ru.voidrp.ui.widget.Tone
 import ru.voidrp.ui.widget.button
@@ -21,20 +20,21 @@ import ru.voidrp.ui.widget.statTile
 import ru.voidrp.ui.widget.tabs
 
 /**
- * Страница отвечает на один вопрос: как я выгляжу прямо сейчас.
+ * A page answers one question: what do I look like right now.
  *
- * Состояние — обычные поля класса. Поменяли поле, позвали [refresh] — движок собрал
- * описание заново и отправил игроку. Никакого «обновить вон тот элемент» нет, поэтому
- * разойтись с данными интерфейсу нечем.
+ * State is ordinary fields. Change one, call [refresh], and the engine builds the description
+ * again and sends it to the player. There is no "update that element over there", so the
+ * interface has no way of drifting out of step with the data.
  */
 class DemoPage(private val who: String) : Page() {
 
     private var tab = "stats"
     private var clicks = 0
 
-    // Заливки, которые обязаны доставать до краёв окна, даже если формат экрана угадан
-    // неточно. Содержимое туда не выносим — только цвет.
-    override val bleed = listOf(Paint(0x000000, 0.9))
+    // Fills that have to reach the edges of the window even when the screen's shape was
+    // guessed a little wrong. Colour only, never content — and every layer the screen style
+    // paints, or the strips come out a shade apart from the page and read as a frame.
+    override val bleed get() = bleedOf(Theme.scrim)
 
     override fun view(): View = screen(
         style = Theme.scrim,
@@ -42,22 +42,22 @@ class DemoPage(private val who: String) : Page() {
         align = Align.CENTER,
         children = listOf(
             Panel(
-                // Заполнить экран, но не растягиваться в простыню на ультравайде.
+                // Fill the screen, but do not stretch into a bedsheet on an ultrawide.
                 width = Size.Fill,
                 maxWidth = 900,
                 gap = Theme.SPACE_4,
                 children = listOf(
                     card(
-                        "Привет, $who",
+                        "Hello, $who",
                         icon = "user",
                         trailing = tabs(
                             "tab",
-                            listOf("stats" to "Статистика", "about" to "О сервере"),
+                            listOf("stats" to "Statistics", "about" to "About"),
                             tab,
                         ),
                         children = listOf(
                             if (tab == "stats") stats() else about(),
-                            button("Нажать ещё раз", "click", Theme.buttonPrimary, Size.Fixed(260)),
+                            button("Press again", "click", Theme.buttonPrimary, Size.Fixed(260)),
                         ),
                     ),
                 ),
@@ -66,14 +66,14 @@ class DemoPage(private val who: String) : Page() {
     )
 
     private fun stats(): View = Grid(
-        // Три колонки на обычном экране, две на узком: холст всегда 1024 в высоту, так что
-        // на узком экране карточки делают уже, а не переносят в лишние ряды.
+        // Three columns on an ordinary screen, two on a narrow one: the canvas is always 1024
+        // tall, so a narrow screen gets narrower cards rather than extra rows.
         columns = viewport.by(compact = 2, regular = 3),
         gap = Theme.SPACE_2,
         children = listOf(
-            statTile("Нажатий", clicks.toString(), "zap", accent = Theme.GOLD),
-            statTile("Экран", "${viewport.width}", "grid"),
-            statTile("Онлайн", "1", "users"),
+            statTile("Presses", clicks.toString(), "zap", accent = Theme.GOLD),
+            statTile("Screen", "${viewport.width}", "grid"),
+            statTile("Online", "1", "users"),
         ),
     )
 
@@ -82,12 +82,12 @@ class DemoPage(private val who: String) : Page() {
         width = Size.Fill,
         children = listOf(
             Text(
-                "Эта страница нарисована ванильным клиентом: ни модов, ни лаунчера — " +
-                    "только ресурспак, который сервер выдал сам.",
+                "This page is drawn by a vanilla client: no mods, no launcher — " +
+                    "only the resource pack the server handed out itself.",
                 Theme.TEXT_BODY,
                 Theme.INK_SOFT,
             ),
-            notice("Всё, что вы видите, — одна строка текста в невидимом босс-баре", Tone.INFO),
+            notice("Everything you see is one line of text in an invisible boss bar", Tone.INFO),
         ),
     )
 

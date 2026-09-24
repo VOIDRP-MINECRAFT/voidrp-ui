@@ -1,4 +1,4 @@
-// Отдельный проект: эту папку можно скопировать куда угодно и собрать саму по себе.
+// A project of its own: this folder can be copied anywhere and built by itself.
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }

@@ -7,15 +7,15 @@ import org.bukkit.plugin.java.JavaPlugin
 import ru.voidrp.ui.api.VoidRpUi
 
 /**
- * Пример плагина на VoidRP UI: одна команда, одна страница.
+ * An example plugin on VoidRP UI: one command, one page.
  *
- * Плагину не нужно ничего, кроме сервиса — ни ресурспака, ни шрифтов, ни рендера. Всё это
- * уже делает VoidRP UI; здесь только то, что показывать.
+ * It needs nothing but the service — no resource pack, no fonts, no rendering. VoidRP UI does
+ * all of that already; what is here is only what to show.
  */
 class UiDemoPlugin : JavaPlugin() {
 
     override fun onEnable() {
-        logger.info("Готово: /uidemo открывает страницу.")
+        logger.info("Ready: /uidemo opens the page.")
     }
 
     override fun onCommand(
@@ -25,15 +25,15 @@ class UiDemoPlugin : JavaPlugin() {
         args: Array<out String>,
     ): Boolean {
         val player = sender as? Player ?: run {
-            sender.sendMessage("Команда только для игроков.")
+            sender.sendMessage("Players only.")
             return true
         }
-        // Сервис появляется, когда VoidRP UI включён. Если его нет, мы это переживаем.
+        // The service exists once VoidRP UI is enabled. Without it, this plugin says so and carries on.
         val ui = VoidRpUi.get() ?: run {
-            player.sendMessage("VoidRP UI не установлен.")
+            player.sendMessage("VoidRP UI is not installed.")
             return true
         }
-        // false означает, что у игрока ещё нет ресурспака — ему об этом уже сказали.
+        // false means the player does not have the resource pack yet — they have been told already.
         ui.open(player, DemoPage(player.name))
         return true
     }
