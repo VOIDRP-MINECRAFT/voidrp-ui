@@ -3,6 +3,14 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## Unreleased
+
+- The screen question is labelled "Screen setup · asked once" rather than "Step 1 of 1",
+  which is not a step in anything, and its English hint uses English quotation marks. The
+  first-join flow itself was walked on a live client: the question comes before the first
+  page, the brackets sit in the corners of a 16:9 window, Done opens the page and the
+  answer is kept in `screens.yml`.
+
 ## 0.3.7
 
 **The library can be built against.** Installing it through JitPack, as the README says, had

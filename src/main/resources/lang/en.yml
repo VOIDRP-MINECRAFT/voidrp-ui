@@ -20,13 +20,13 @@ page:
 
 # The screen setup page — the one page every player sees.
 screen-page:
-  eyebrow: "Step 1 of 1 · screen setup"
+  eyebrow: "Screen setup · asked once"
   title: "Line the frame up with your screen"
   text: "The game never tells the server how big your window is, so you choose the shape — once. The brackets should sit in the corners of your screen."
   narrower: "←  narrower"
   wider: "wider  →"
   fine: "Fine tuning — eight units a press"
-  invisible: "No frame at all? Your screen is narrower than the server thinks — press «narrower»."
+  invisible: "No frame at all? Your screen is narrower than the server thinks — press “narrower”."
   done: "Done"
   server: "Use the server's"
 
