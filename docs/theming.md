@@ -125,10 +125,11 @@ frames, no packets and no server thread, and it runs at the client's frame rate 
 at ours.
 
 It asks the text shader for one thing more than it otherwise would — the client's own
-globals, where the time of day lives — and a client that will not have that refuses the
-whole pack rather than that one line. So it starts off: `effects.particles: true` in the
-config, open a page, and see. With it off the same `Particles` are drawn as a still field
-and the shader is left exactly as it was, so a page written with them works either way.
+time of day — and a client that would not give it would refuse the whole pack rather than
+that one line. It is on by default since it was tried on real clients at both ends of the
+supported range, 26.2 and 1.21.6, and moved on both. `effects.particles: false` turns it
+off: the same `Particles` are then drawn as a still field and the shader is left exactly as
+it was, so a page written with them works either way.
 
 ## Changing it while the server runs
 

@@ -79,6 +79,10 @@ reading "2 min left". Going from one page to the next does not flash them in bet
 Changes to other plugins' bars are tracked even when nothing is held back, so a replayed
 bar is no longer a picture of how it looked when it was first sent.
 
+**The background moves out of the box.** `effects.particles` shipped off in case a client
+refused the shader it needs. Tried on real clients at both ends of the supported range —
+26.2 and 1.21.6 — the pack loads on both and the specks drift on both, so it is on now.
+
 ## 0.3.4
 
 **The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a

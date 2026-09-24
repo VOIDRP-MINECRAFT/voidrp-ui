@@ -149,7 +149,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         )
 
         // Baked into the shader, so it is decided before the pack is built.
-        ru.voidrp.ui.pack.Shaders.particles = config.getBoolean("effects.particles", false)
+        ru.voidrp.ui.pack.Shaders.particles = config.getBoolean("effects.particles", true)
 
         packFile = File(dataFolder, "voidrp-ui.zip")
         packHash = PackBuilder(

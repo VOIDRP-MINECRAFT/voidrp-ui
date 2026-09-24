@@ -86,11 +86,11 @@ effects:
   # nothing after the page is sent. No frames, no packets, no server thread.
   #
   # It asks the text shader for one thing more than it otherwise would — the client's own
-  # globals, where the time of day lives. If a client will not have that, it refuses the
-  # whole pack rather than that one line, which is why this starts off: turn it on, open a
-  # page, and see. With it off the same specks are drawn as a still field and the shader is
-  # left exactly as it was.
-  particles: false
+  # time of day — and a client that refused that would refuse the whole pack. It shipped off
+  # for that reason until both ends of the supported range were tried on real clients: 26.2
+  # and 1.21.6 both take it, and on both the field moves. Turn it off if a client ever
+  # refuses the pack; the same specks are then drawn standing still.
+  particles: true
 
 # Input
 input:
