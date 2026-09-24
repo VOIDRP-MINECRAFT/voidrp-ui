@@ -40,8 +40,8 @@ package ru.voidrp.ui.input
  *    far that reading moved ([prediction]). Only while readings keep coming: the first one
  *    after a silence has no pace to carry on, and once a reading is late the hand has
  *    stopped and the pointer walks back onto the aim over one gap rather than snapping.
- *    At the default it is 45 ms behind a moving hand instead of 65, and passes a sudden
- *    stop by about 10 units at an ordinary pace.
+ *    At the default it is 36 ms behind a moving hand instead of 65, and passes a sudden
+ *    stop by about 14 units at an ordinary pace.
  *
  * Nothing here knows about a player or a canvas: it is arithmetic, and it is tested as such,
  * against six invented hands and one recorded one.
@@ -66,8 +66,9 @@ class Pointer(
     /**
      * How far past the last reading the walk aims, as a share of how far that reading
      * moved. The dial between close to the hand and quiet at a stop: at 0 the pointer never
-     * passes the aim and sits 65 ms behind, at 0.35 it is 45 ms behind and overshoots an
-     * ordinary stop by 10 units, at 0.75 21 ms and up to 56 on a fast flick.
+     * passes the aim and sits 65 ms behind, at 0.35 45 ms and 10 units past an ordinary
+     * stop, at the default 0.5 36 ms and 14 units, at 0.75 21 ms and up to 56 on a fast
+     * flick. Played side by side, 0.35 and 0.5 could not be told apart; 0.5 is closer.
      */
     var prediction: Double = PREDICTION,
 ) {
@@ -226,7 +227,7 @@ class Pointer(
         const val SMOOTHING_MAX = 3.0
 
         /** How far past the last reading the walk aims by default. See the constructor. */
-        const val PREDICTION = 0.35
+        const val PREDICTION = 0.5
 
         /** And the range it is worth setting to: past one it overshoots every stop. */
         const val PREDICTION_MIN = 0.0

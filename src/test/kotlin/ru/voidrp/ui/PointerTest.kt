@@ -206,7 +206,7 @@ class PointerTest {
         // Walked evenly, the pointer is a whole reading behind a moving hand, and on a
         // normal ping the lead has already used up the room smoothing leaves — so only
         // carrying the movement on brings it closer. Measured: 65 ms behind without it,
-        // 45 with the default, for 10 units past a stop at an ordinary pace.
+        // 36 with the default, for 14 units past a stop at an ordinary pace.
         fun sweep(prediction: Double): Pair<Double, Double> {
             val speed = 600.0
             val pointer = Pointer(400.0, 512.0, 0L, prediction = prediction)

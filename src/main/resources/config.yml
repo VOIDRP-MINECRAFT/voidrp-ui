@@ -127,10 +127,11 @@ input:
   # the readings stop, and the pointer settles back onto the aim within a reading.
   #
   #   0     never past the aim: 65 ms behind a moving hand
-  #   0.35  the default: 45 ms behind; a sudden stop overshoots by about 10 units at an
-  #         ordinary pace and 26 on a fast flick, and settles back within 75 ms
+  #   0.35  45 ms behind; a sudden stop overshoots by about 10 units
+  #   0.5   the default: 36 ms behind; a sudden stop overshoots by about 14 units at an
+  #         ordinary pace and 38 on a fast flick, and settles back within 75 ms
   #   0.75  21 ms behind; 20 to 56 units past a stop, which starts to read as a bounce
-  prediction: 0.35
+  prediction: 0.5
   # How often the pointer is drawn, in frames a second.
   #
   # The client reports where it is looking twenty times a second, and that is the ceiling on
