@@ -3,6 +3,19 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.16
+
+**A page could hang the server.** A spacer that fills, in a card with padding, in a grid: the
+grid measures its cells against "no limit", the card took its padding off that, and the
+spacer read what was left as a real height — 268 million units. Encoding a rectangle that
+tall ran a recursion out of stack on the server thread, which stood still for ten seconds
+first. Found on a live client, on the first page that did it.
+
+- "No limit" survives being handed through padding: anything within half of it still means
+  "as much as you like".
+- The encoder draws only what can be on the screen, whatever it is given, so no layout
+  mistake can take the server down through it again.
+
 ## 0.3.15
 
 Found building the first real pages for a server, on a live client.

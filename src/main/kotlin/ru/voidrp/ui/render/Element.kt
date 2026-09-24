@@ -131,6 +131,12 @@ object GlyphEncoder {
 
     private const val Y_MAX = (1 shl Shaders.Y_BITS) - 1
 
+    /** How far past the canvas's left edge anything is drawn — the bleed, and room to spare. */
+    private const val DRAWN_MARGIN = 1024
+
+    /** And how far right: wider than any window a unit can be square on. */
+    private const val DRAWN_WIDTH = 8192
+
     /**
      * The line being built, and what makes it small enough to send.
      *
@@ -233,8 +239,17 @@ object GlyphEncoder {
         // letter at the pen — so it is sent as an ordinary static shape instead.
         val drifts = rect.drift && Shaders.particles
 
+        // Only what can be on the screen. A rectangle is cut into pieces a few hundred units
+        // at most, and one that ran millions of units long — a layout mistake, but one that
+        // happened — was cut by a recursion that ran out of stack and took the server
+        // thread down with it.
+        val left = rect.x.coerceAtLeast(-DRAWN_MARGIN)
+        val top = rect.y.coerceAtLeast(-Shaders.SHIFT)
+        val right = minOf(rect.x.toLong() + rect.width, DRAWN_WIDTH.toLong()).toInt()
+        val bottom = minOf(rect.y.toLong() + rect.height, (Shaders.CANVAS_HEIGHT + Shaders.SHIFT).toLong()).toInt()
+        if (right <= left || bottom <= top) return penIn
         val tiles = mutableListOf<Tile>()
-        tile(rect.x, rect.y, rect.width, rect.height, tiles)
+        tile(left, top, right - left, bottom - top, tiles)
         for (piece in tiles) {
             val colour = TextColor.color(pack(piece.top, fill, drifts))
             line.add(Glyphs.moveBy(piece.left - pen) + Glyphs.rect(piece.w, piece.h), shapeFont(level), colour)

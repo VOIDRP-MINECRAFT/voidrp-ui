@@ -467,12 +467,23 @@ object Layout {
      */
     const val UNBOUNDED = Int.MAX_VALUE / 8
 
+    /**
+     * Whether a length handed down means "as much as you like".
+     *
+     * Not equality with [UNBOUNDED]: a panel takes its padding and border off what it was
+     * given before handing the rest to its children, and a card in a grid cell passed on
+     * "unbounded less forty". A spacer that fills inside it took that as a real height —
+     * 268 million units — and the page that drew it hung the server for ten seconds before
+     * running out of stack.
+     */
+    private fun unbounded(length: Int): Boolean = length >= UNBOUNDED / 2
+
     private fun resolve(size: Size, content: Int, available: Int): Int = when (size) {
         is Size.Fixed -> size.value
         is Size.Percent -> (available * size.fraction).toInt().coerceIn(0, available)
         // Never smaller than what it holds: measuring a greedy child against no space at
         // all is how its own size is found, below.
-        is Size.Fill -> if (available >= UNBOUNDED) content else maxOf(content, available)
+        is Size.Fill -> if (unbounded(available)) content else maxOf(content, available)
         is Size.Auto -> content
     }
 
@@ -814,7 +825,7 @@ object Layout {
 
     /** Whether this panel actually wraps here — only a row, and only with a width to fill. */
     private fun Panel.wraps(width: Int): Boolean =
-        wrap && direction == Direction.ROW && width in 1 until UNBOUNDED
+        wrap && direction == Direction.ROW && width > 0 && !unbounded(width)
 
     /** Whether this view gives up room when the row it is in is too small. */
     private fun View.shrinks(): Boolean = this !is Panel || shrink
