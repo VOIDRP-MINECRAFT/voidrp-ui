@@ -136,7 +136,7 @@ Building against it through [JitPack](https://jitpack.io):
 repositories { maven("https://jitpack.io") }
 
 dependencies {
-    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.12")
+    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.13")
 }
 ```
 
