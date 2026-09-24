@@ -45,9 +45,9 @@ class ServerImageTest {
         ServerImages.HEIGHTS.forEach { height ->
             val ours = ServerImages.advance("banner", height)
             val theirs = simulator.advanceOf(ServerImages.fontName(height), ServerImages.glyph("banner")!!)
-            if (ours != theirs) wrong += "на высоте $height: у нас $ours, у клиента $theirs"
+            if (ours != theirs) wrong += "at height $height: ours $ours, the client's $theirs"
         }
-        assertTrue(wrong.isEmpty(), "картинка сервера разъезжается:\n" + wrong.joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "the server picture drifts:\n" + wrong.joinToString("\n"))
     }
 
     @Test
@@ -70,6 +70,6 @@ class ServerImageTest {
             Viewport.DEFAULT.width,
             Viewport.HEIGHT,
         ).nodes
-        assertEquals(0, simulator.width(GlyphEncoder.encode(nodes)), "строка с картинкой не сошлась")
+        assertEquals(0, simulator.width(GlyphEncoder.encode(nodes)), "the line with a picture is off balance")
     }
 }

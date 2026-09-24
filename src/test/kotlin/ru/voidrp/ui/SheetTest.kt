@@ -24,7 +24,7 @@ class SheetTest {
         rows: Int,
         expected: (Int, Int) -> java.awt.image.BufferedImage,
     ): String? {
-        val image = ImageIO.read(ByteArrayInputStream(sheet)) ?: return "картинка не читается"
+        val image = ImageIO.read(ByteArrayInputStream(sheet)) ?: return "the picture cannot be read"
         val cellWidth = image.width / columns
         val cellHeight = image.height / rows
         for (row in 0 until rows) for (column in 0 until columns) {
@@ -32,7 +32,7 @@ class SheetTest {
             for (y in 0 until cellHeight) for (x in 0 until cellWidth) {
                 val got = image.getRGB(column * cellWidth + x, row * cellHeight + y)
                 val ours = if (x < want.width && y < want.height) want.getRGB(x, y) else 0
-                if (got != ours) return "ячейка $column,$row расходится в точке $x,$y"
+                if (got != ours) return "cell $column,$row differs at $x,$y"
             }
         }
         return null
@@ -45,10 +45,10 @@ class SheetTest {
             listOf(Glyphs.MIN_ALPHA_LEVEL, 8, Glyphs.ALPHA_LEVELS).forEach { level ->
                 cellsMatch(Corners.sheet(radius, level), Glyphs.Corner.entries.size, 2) { column, row ->
                     Corners.image(radius, Glyphs.Corner.entries[column], row == 1, level)
-                }?.let { wrong += "радиус $radius, ступень $level: $it" }
+                }?.let { wrong += "radius $radius, level $level: $it" }
             }
         }
-        assertTrue(wrong.isEmpty(), "лист уголков собран неверно:\n" + wrong.take(3).joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "the corner sheet is laid out wrong:\n" + wrong.take(3).joinToString("\n"))
     }
 
     @Test
@@ -66,13 +66,13 @@ class SheetTest {
                 for (y in 0 until size) for (x in 0 until size) {
                     val ours = if (x < want.width && y < want.height) want.getRGB(x, y) else 0
                     if (image.getRGB(atX + x, atY + y) != ours) {
-                        wrong += "$name на размере $size: расходится в точке $x,$y"
+                        wrong += "$name at size $size: differs at $x,$y"
                         return@forEachIndexed
                     }
                 }
             }
         }
-        assertTrue(wrong.isEmpty(), "лист иконок собран неверно:\n" + wrong.take(3).joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "the icon sheet is laid out wrong:\n" + wrong.take(3).joinToString("\n"))
     }
 
     @Test
@@ -82,7 +82,7 @@ class SheetTest {
         Glyphs.GLOW_RADII.forEach { radius ->
             cellsMatch(Glow.cornerSheet(radius, level), Glyphs.Corner.entries.size, 1) { column, _ ->
                 Glow.image(Glyphs.GlowPart.CORNER, Glyphs.Corner.entries[column], 1, level, radius)
-            }?.let { wrong += "углы ореола радиуса $radius: $it" }
+            }?.let { wrong += "halo corners of radius $radius: $it" }
         }
         listOf(
             Glyphs.GlowPart.HORIZONTAL to Glyphs.Corner.TOP_LEFT,
@@ -95,8 +95,8 @@ class SheetTest {
             val rows = if (horizontal) Glyphs.GLOW_STEPS.size else 1
             cellsMatch(Glow.sideSheet(part, corner, level), columns, rows) { column, row ->
                 Glow.image(part, corner, Glyphs.GLOW_STEPS[if (horizontal) row else column], level)
-            }?.let { wrong += "стороны $part/$corner: $it" }
+            }?.let { wrong += "sides $part/$corner: $it" }
         }
-        assertTrue(wrong.isEmpty(), "лист теней собран неверно:\n" + wrong.take(3).joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "the shadow sheet is laid out wrong:\n" + wrong.take(3).joinToString("\n"))
     }
 }

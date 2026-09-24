@@ -166,7 +166,7 @@ class ClientSimulator(pack: File) {
             val file = File.createTempFile("voidrp-ui-entry", ".zip").apply { deleteOnExit() }
             PackBuilder().build(file)
             return ZipFile(file).use { zip ->
-                val entry = zip.getEntry(path) ?: error("В паке нет $path")
+                val entry = zip.getEntry(path) ?: error("The pack has no $path")
                 zip.getInputStream(entry).readBytes().toString(Charsets.UTF_8)
             }
         }

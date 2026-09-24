@@ -26,22 +26,22 @@ class PaletteTest {
         // came out brown.
         listOf(0x141033, 0x0F1526, 0x1B1140, 0x05060D).forEach { rgb ->
             val (r, g, b) = shown(rgb)
-            assertTrue(b >= r, "#%06x стал тёплым: r=$r g=$g b=$b".format(rgb))
+            assertTrue(b >= r, "#%06x turned warm: r=$r g=$g b=$b".format(rgb))
         }
     }
 
     @Test
     fun `an accent keeps its hue`() {
         val (r, g, b) = shown(0x8B7BFF)
-        assertTrue(b > r && r > g, "акцент перестал быть фиолетовым: r=$r g=$g b=$b")
+        assertTrue(b > r && r > g, "the accent is no longer violet: r=$r g=$g b=$b")
     }
 
     @Test
     fun `gold and green do not swap places`() {
         val (gr, gg, gb) = shown(0xFBBF24)
-        assertTrue(gr > gg && gg > gb, "золото не золотое: r=$gr g=$gg b=$gb")
+        assertTrue(gr > gg && gg > gb, "gold is not gold: r=$gr g=$gg b=$gb")
         val (er, eg, eb) = shown(0x34D399)
-        assertTrue(eg > er && eg > eb, "зелёный не зелёный: r=$er g=$eg b=$eb")
+        assertTrue(eg > er && eg > eb, "green is not green: r=$er g=$eg b=$eb")
     }
 
     @Test
@@ -57,7 +57,7 @@ class PaletteTest {
             )
             if (distance(rgb, ours) > distance(rgb, plain) + 1e-9) worse++
         }
-        assertTrue(worse == 0, "$worse цветов легли дальше, чем при простом округлении")
+        assertTrue(worse == 0, "$worse colours landed further away than plain rounding puts them")
     }
 
     @Test
@@ -87,7 +87,7 @@ class PaletteTest {
         val rects = out.filterIsInstance<ru.voidrp.ui.render.Rect>()
         val floor = Palette.composite(rects.first().paint, backdrop)
         val shades = rects.drop(1).sortedBy { it.x }.map { Palette.composite(it.paint, floor) }
-        assertTrue(shades.size > 8, "полос всего ${shades.size} — затухание вышло слишком грубым")
+        assertTrue(shades.size > 8, "only ${shades.size} stripes — the fade came out too coarse")
         val worst = shades.zipWithNext().maxOf { (a, b) ->
             maxOf(
                 Math.abs((a shr 16 and 0xFF) - (b shr 16 and 0xFF)),
@@ -95,7 +95,7 @@ class PaletteTest {
                 Math.abs((a and 0xFF) - (b and 0xFF)),
             )
         }
-        assertTrue(worst <= 6, "между соседними полосами $worst единиц — это видно полосой")
+        assertTrue(worst <= 6, "$worst units between neighbouring stripes — that shows as a band")
     }
 
     private fun distance(a: Int, b: Int): Double {

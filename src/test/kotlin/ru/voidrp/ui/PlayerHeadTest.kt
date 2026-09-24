@@ -32,7 +32,7 @@ class PlayerHeadTest {
     fun `a face is taken from either shape of skin`() {
         listOf(true, false).forEach { tall ->
             PlayerHeads.loadForTest("steve", skin(tall))
-            assertTrue(PlayerHeads.has("steve"), "лицо не вырезано из скина ${if (tall) "64×64" else "64×32"}")
+            assertTrue(PlayerHeads.has("steve"), "no face was cut out of the ${if (tall) "64×64" else "64×32"} skin")
         }
     }
 
@@ -44,9 +44,9 @@ class PlayerHeadTest {
         PlayerHeads.SIZES.forEach { size ->
             val ours = PlayerHeads.advance("steve", size)
             val theirs = client.advanceOf(PlayerHeads.fontName(size), PlayerHeads.glyph("steve")!!)
-            if (ours != theirs) wrong += "на размере $size: у нас $ours, у клиента $theirs"
+            if (ours != theirs) wrong += "at size $size: ours $ours, the client's $theirs"
         }
-        assertTrue(wrong.isEmpty(), "голова разъезжается:\n" + wrong.joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "the head drifts:\n" + wrong.joinToString("\n"))
     }
 
     @Test
@@ -58,6 +58,6 @@ class PlayerHeadTest {
             Viewport.DEFAULT.width,
             Viewport.HEIGHT,
         ).nodes
-        assertEquals(0, client.width(GlyphEncoder.encode(nodes)), "строка с головой не сошлась")
+        assertEquals(0, client.width(GlyphEncoder.encode(nodes)), "the line with a head is off balance")
     }
 }

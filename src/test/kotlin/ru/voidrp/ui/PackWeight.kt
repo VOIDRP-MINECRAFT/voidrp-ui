@@ -16,6 +16,6 @@ object PackWeight {
         val target = File(args.firstOrNull() ?: "build/pack/voidrp-ui.zip")
         target.parentFile?.mkdirs()
         val hash = PackBuilder().build(target)
-        println("${target.path}: ${target.length() / 1024} КБ, sha1 $hash")
+        println("${target.path}: ${target.length() / 1024} KB, sha1 $hash")
     }
 }

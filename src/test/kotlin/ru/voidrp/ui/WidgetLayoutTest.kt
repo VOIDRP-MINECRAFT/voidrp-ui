@@ -40,8 +40,8 @@ class WidgetLayoutTest {
         val page = Blank()
         val placement = Layout.place(page.iconButton("home", "b", size = 42), 0, 0, 42, 42)
         val icon = placement.nodes.filterIsInstance<Sprite>().single()
-        assertEquals(9, icon.x, "иконка не по центру по горизонтали")
-        assertEquals(9, icon.y, "иконка не по центру по вертикали")
+        assertEquals(9, icon.x, "the icon is not centred horizontally")
+        assertEquals(9, icon.y, "the icon is not centred vertically")
     }
 
     @Test
@@ -51,18 +51,18 @@ class WidgetLayoutTest {
         // On a 36-unit tab that was eighteen units above the word and five below.
         val page = Blank()
         listOf<Pair<String, View>>(
-            "кнопка" to page.button("Primary", "b", height = 44),
-            "вкладка" to page.button("All", "t", Theme.buttonGhost, height = 36),
-            "список" to page.select("m", listOf("Survival"), 0, open = false, width = Size.Fixed(230)),
+            "button" to page.button("Primary", "b", height = 44),
+            "tab" to page.button("All", "t", Theme.buttonGhost, height = 36),
+            "menu" to page.select("m", listOf("Survival"), 0, open = false, width = Size.Fixed(230)),
         ).forEach { (name, view) ->
-            val height = if (name == "вкладка") 36 else if (name == "кнопка") 44 else 40
+            val height = if (name == "tab") 36 else if (name == "button") 44 else 40
             val label = Layout.place(view, 0, 0, 230, height).nodes.filterIsInstance<Label>().first()
             val cell = TextFonts.sheet(label.weight, label.size).cellHeight
             val above = label.y
             val below = height - (label.y + cell)
             assertTrue(
                 Math.abs(above - below) <= 2,
-                "$name: текст не по центру — сверху $above, снизу $below",
+                "$name: the caption is off centre — $above above, $below below",
             )
         }
     }
@@ -77,7 +77,7 @@ class WidgetLayoutTest {
         val labels = Layout.place(rich, 0, 0, 400, 60).nodes.filterIsInstance<Label>()
         assertEquals(2, labels.size)
         val bottoms = labels.map { it.y + TextFonts.sheet(it.weight, it.size).cellHeight }
-        assertEquals(bottoms[0], bottoms[1], "куски строки стоят на разных базовых линиях")
+        assertEquals(bottoms[0], bottoms[1], "pieces of the line sit on different baselines")
     }
 
     @Test
@@ -91,11 +91,11 @@ class WidgetLayoutTest {
         val nodes = Layout.place(scroll, 0, 0, 300, 100).nodes
 
         val outside = nodes.filterIsInstance<Rect>().filter { it.y + it.height > 100 || it.y < 0 }
-        assertTrue(outside.isEmpty(), "список вылез за своё окно: ${outside.take(3)}")
+        assertTrue(outside.isEmpty(), "the list spills out of its window: ${outside.take(3)}")
 
         // Two whole rows fit in a hundred units; the third would show two of its forty.
         val labels = nodes.filterIsInstance<Label>().map { it.text }
-        assertEquals(listOf("Row 1", "Row 2"), labels, "в окне не те строки")
+        assertEquals(listOf("Row 1", "Row 2"), labels, "the window shows the wrong rows")
     }
 
     @Test
@@ -117,9 +117,9 @@ class WidgetLayoutTest {
         val chipLabel = placement.nodes.filterIsInstance<Label>().single { it.text == "MC 26.2" }
         assertTrue(
             chipLabel.x + TextFonts.sheet(chipLabel.weight, chipLabel.size).width("MC 26.2") <= 300,
-            "чип вылез за ряд",
+            "the chip spills out of the row",
         )
-        assertTrue(wanted > 0 && chipLabel.text == "MC 26.2", "чип потерял текст")
+        assertTrue(wanted > 0 && chipLabel.text == "MC 26.2", "the chip lost its text")
         assertEquals(page.hovered, null)
     }
 }

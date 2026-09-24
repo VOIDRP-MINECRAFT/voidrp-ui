@@ -24,7 +24,7 @@ class IconWidthTest {
     fun `shipped icon widths match the client's textures`() {
         val jar = System.getenv("VOIDRP_CLIENT_JAR")?.let(::File)?.takeIf { it.isFile }
         if (jar == null) {
-            println("VOIDRP_CLIENT_JAR не задан — проверка ширин иконок пропущена")
+            println("VOIDRP_CLIENT_JAR is not set — icon width check skipped")
             return
         }
 
@@ -35,7 +35,7 @@ class IconWidthTest {
                 val entry = zip.getEntry("assets/minecraft/textures/$name.png") ?: return@forEach
                 val image = zip.getInputStream(entry).use { ImageIO.read(it) }
                 if (image.width != 16 || image.height != 16) {
-                    wrong += "$name: текстура ${image.width}×${image.height}, а в таблице она есть"
+                    wrong += "$name: a ${image.width}×${image.height} texture, yet it is in the table"
                     return@forEach
                 }
                 var ink = 0
@@ -48,11 +48,11 @@ class IconWidthTest {
                 checked++
                 // The table is stated at size 16, where one texture pixel is one unit.
                 val ours = Icons.advance(name, 16) - 1
-                if (ours != ink) wrong += "$name: у нас $ours, на текстуре $ink"
+                if (ours != ink) wrong += "$name: ours $ours, the texture's $ink"
             }
         }
 
-        assertTrue(checked > 100, "проверено всего $checked иконок — jar не тот?")
-        assertTrue(wrong.isEmpty(), "ширины разошлись с текстурами:\n" + wrong.take(10).joinToString("\n"))
+        assertTrue(checked > 100, "only $checked icons checked — is it the wrong jar?")
+        assertTrue(wrong.isEmpty(), "widths disagree with the textures:\n" + wrong.take(10).joinToString("\n"))
     }
 }

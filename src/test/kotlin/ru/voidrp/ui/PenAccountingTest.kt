@@ -45,21 +45,22 @@ class PenAccountingTest {
         val missing = client.missingGlyphs(line)
         assertTrue(
             missing.isEmpty(),
-            "$name: в шрифте нет глифов ${missing.take(5).map { (font, code) -> "$font/0x%04x".format(code) }}",
+            "$name: the font has no glyphs ${missing.take(5).map { (font, code) -> "$font/0x%04x".format(code) }}",
         )
-        assertEquals(0, client.width(line), "$name: строка не нулевой ширины — страница уедет вбок")
+        assertEquals(0, client.width(line), "$name: the line is not zero wide — the page will slide sideways")
     }
 
     @Test
     fun `a rectangle lands where it was put`() {
         val line = GlyphEncoder.encode(listOf(Rect(500, 100, 64, 32, Paint(0xFFFFFF))))
-        assertEquals(500, client.penBeforeFirstDrawn(line), "прямоугольник встанет не на свой x")
+        assertEquals(500, client.penBeforeFirstDrawn(line), "the rectangle will not land on its x")
     }
 
     @Test
     fun `a label lands where it was put`() {
+        // The label is deliberately Russian: Cyrillic is what the pages mostly draw.
         val line = GlyphEncoder.encode(listOf(Label(320, 40, "Привет, мир", Theme.TEXT_LEAD)))
-        assertEquals(320, client.penBeforeFirstDrawn(line), "надпись встанет не на свой x")
+        assertEquals(320, client.penBeforeFirstDrawn(line), "the label will not land on its x")
     }
 
     @Test
@@ -67,13 +68,15 @@ class PenAccountingTest {
         val sizes = listOf(1, 2, 3, 7, 12, 64, 100, 255, 333, 512, 750, 1024, 1820)
         sizes.forEach { width ->
             listOf(1, 2, 12, 48, 300, 1024).forEach { height ->
-                assertBalanced("прямоугольник ${width}x$height", listOf(Rect(10, 10, width, height)))
+                assertBalanced("rectangle ${width}x$height", listOf(Rect(10, 10, width, height)))
             }
         }
     }
 
     @Test
     fun `text balances at every size and weight`() {
+        // The samples are deliberately Russian and mixed: Cyrillic, Latin, digits and
+        // punctuation each have widths of their own to get right.
         val samples = listOf(
             "Съешь ещё этих мягких французских булок",
             "VoidRP: Origins — 42 из 200",
@@ -82,7 +85,7 @@ class PenAccountingTest {
         TextFonts.SIZES.forEach { size ->
             TextFonts.Weight.entries.forEach { weight ->
                 samples.forEach { text ->
-                    assertBalanced("текст $size/$weight", listOf(Label(0, 0, text, size, weight = weight)))
+                    assertBalanced("text $size/$weight", listOf(Label(0, 0, text, size, weight = weight)))
                 }
             }
         }
@@ -93,13 +96,14 @@ class PenAccountingTest {
         // What the layout measures has to be what the client draws, or a panel sized to
         // its text comes out too tight or too loose.
         TextFonts.SIZES.forEach { size ->
+            // Deliberately Russian, with Latin and digits alongside, for the same reason.
             val text = "Магазин 1234 — ЙЦУКЕН jklm"
             val ours = TextFonts.width(text, TextFonts.Weight.REGULAR, size)
             val line = GlyphEncoder.encode(listOf(Label(0, 0, text, size)))
             // The line ends by returning the pen, so the drawn part is the balance of it.
             val drawn = client.width(line) - 0
-            assertEquals(0, drawn, "строка не сбалансирована")
-            assertTrue(ours > 0, "ширина текста $size должна быть больше нуля")
+            assertEquals(0, drawn, "the line does not balance")
+            assertTrue(ours > 0, "text at size $size should be wider than zero")
         }
     }
 
@@ -108,7 +112,7 @@ class PenAccountingTest {
         listOf("diamond", "golden_apple", "netherite_ingot", "beacon", "elytra").forEach { item ->
             ru.voidrp.ui.pack.Icons.SIZES.forEach { size ->
                 val nodes = Layout.place(Image(item, size), 0, 0, size, size).nodes
-                assertBalanced("иконка $item/$size", nodes)
+                assertBalanced("icon $item/$size", nodes)
             }
         }
     }
@@ -125,7 +129,7 @@ class PenAccountingTest {
                 )
             )
         )
-        assertEquals(0, client.width(line), "курсор сдвинет страницу")
+        assertEquals(0, client.width(line), "the pointer will shift the page")
     }
 
     @Test
@@ -138,21 +142,21 @@ class PenAccountingTest {
         val paths = ClientSimulator.packPaths()
         assertTrue(
             "assets/minecraft/shaders/core/text.vsh" in paths,
-            "нет вершинного шейдера",
+            "no vertex shader",
         )
         assertTrue(
             "assets/minecraft/shaders/core/text.fsh" in paths,
-            "нет фрагментного шейдера — тогда клиент выбросит всё слабее 0.1",
+            "no fragment shader — then the client discards everything fainter than 0.1",
         )
         assertTrue(
             paths.none { it.startsWith("legacy_shaders/") },
-            "в паке оверлей, от которого 26.2 отказывается целиком",
+            "the pack has an overlay, which makes 26.2 reject it whole",
         )
         val meta = ClientSimulator.packEntry("pack.mcmeta")
-        assertTrue("\"overlays\"" !in meta, "pack.mcmeta объявляет оверлей")
+        assertTrue("\"overlays\"" !in meta, "pack.mcmeta declares an overlay")
         assertTrue(
             "\"min_inclusive\": ${PackBuilder.FORMAT_MODERN_MIN}" in meta,
-            "pack.mcmeta обещает версии, на которых страница не нарисуется:\n$meta",
+            "pack.mcmeta promises versions the page will not draw on:\n$meta",
         )
     }
 
@@ -174,25 +178,25 @@ class PenAccountingTest {
         }
         assertTrue(
             "assets/minecraft/shaders/core/rendertype_text.vsh" in paths,
-            "нет шейдера под старым именем — страница не нарисуется",
+            "no shader under the old name — the page will not draw",
         )
         assertTrue(
             "assets/minecraft/shaders/core/text.vsh" !in paths,
-            "старому клиенту уехал шейдер, который он не читает",
+            "the older client was sent a shader it does not read",
         )
         assertTrue(
             paths.count { it.startsWith("assets/voidrp/font/") } > 20,
-            "в старом паке нет шрифтов — это уже не тот же пак",
+            "the older pack has no fonts — it is no longer the same pack",
         )
         assertTrue(
             "\"min_inclusive\": ${PackBuilder.FORMAT_OLDEST}" in meta &&
                 "\"max_inclusive\": ${PackBuilder.FORMAT_LEGACY_MAX}" in meta,
-            "старый пак обещает не те версии:\n$meta",
+            "the older pack promises the wrong versions:\n$meta",
         )
         assertEquals(
             PackBuilder.FORMAT_MODERN_MIN,
             PackBuilder.FORMAT_LEGACY_MAX + 1,
-            "между паками остался зазор: клиенту такой версии не подойдёт ни один",
+            "a gap is left between the packs: a client of that version gets neither",
         )
     }
 
@@ -212,10 +216,10 @@ class PenAccountingTest {
                     type == Character.UPPERCASE_LETTER.toInt() ||
                     type == Character.OTHER_LETTER.toInt() ||
                     type == Character.MODIFIER_LETTER.toInt()
-                if (!letter) wrong += "U+%04X — тип %d".format(code, type)
+                if (!letter) wrong += "U+%04X — type %d".format(code, type)
             }
         }
-        assertTrue(wrong.isEmpty(), "распорки не буквы:\n" + wrong.joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "spacers that are not letters:\n" + wrong.joinToString("\n"))
     }
 
     @Test
@@ -226,30 +230,30 @@ class PenAccountingTest {
         val illegal = ClientSimulator.packPaths().filterNot { path ->
             path.all { it.isDigit() || it in 'a'..'z' || it in "_-./" }
         }
-        assertTrue(illegal.isEmpty(), "недопустимые пути в паке: ${illegal.take(5)}")
+        assertTrue(illegal.isEmpty(), "illegal paths in the pack: ${illegal.take(5)}")
     }
 
     @Test
     fun `each thing a style can add balances on its own`() {
         val cases = mapOf(
-            "только фон" to ru.voidrp.ui.style.Style(background = Paint(0x8B7BFF, 0.5)),
-            "скругление" to ru.voidrp.ui.style.Style(background = Paint(0x8B7BFF, 0.5), radius = 12),
-            "рамка" to ru.voidrp.ui.style.Style(
+            "background only" to ru.voidrp.ui.style.Style(background = Paint(0x8B7BFF, 0.5)),
+            "rounding" to ru.voidrp.ui.style.Style(background = Paint(0x8B7BFF, 0.5), radius = 12),
+            "border" to ru.voidrp.ui.style.Style(
                 background = Paint(0x8B7BFF, 0.5),
                 border = ru.voidrp.ui.style.Border(1, Paint(0x96A8DC, 0.2)),
                 radius = 12,
             ),
-            "светлая кромка" to ru.voidrp.ui.style.Style(
+            "highlight" to ru.voidrp.ui.style.Style(
                 background = Paint(0x8B7BFF, 0.5),
                 radius = 12,
                 highlight = Paint(0xFFFFFF, 0.06),
             ),
-            "тень" to ru.voidrp.ui.style.Style(
+            "shadow" to ru.voidrp.ui.style.Style(
                 background = Paint(0x8B7BFF, 0.5),
                 radius = 12,
                 shadow = ru.voidrp.ui.style.Shadow(offsetY = 8, paint = Paint(0x000000, 0.4)),
             ),
-            "свечение" to ru.voidrp.ui.style.Style(
+            "glow" to ru.voidrp.ui.style.Style(
                 background = Paint(0x8B7BFF, 0.5),
                 radius = 12,
                 glow = Paint(0x8B7BFF, 0.3),
@@ -273,19 +277,19 @@ class PenAccountingTest {
             piece(100, 300, ru.voidrp.ui.pack.Glyphs.GlowPart.CORNER, ru.voidrp.ui.pack.Glyphs.Corner.BOTTOM_LEFT, 1),
             piece(300, 300, ru.voidrp.ui.pack.Glyphs.GlowPart.CORNER, ru.voidrp.ui.pack.Glyphs.Corner.BOTTOM_RIGHT, 1),
         )
-        assertEquals(0, client.width(GlyphEncoder.encode(corners)), "углы ореола")
+        assertEquals(0, client.width(GlyphEncoder.encode(corners)), "halo corners")
 
         val horizontals = listOf(128, 128, 4).mapIndexed { index, step ->
             piece(100 + index * 128, 200, ru.voidrp.ui.pack.Glyphs.GlowPart.HORIZONTAL, ru.voidrp.ui.pack.Glyphs.Corner.TOP_LEFT, step)
         }
-        assertEquals(0, client.width(GlyphEncoder.encode(horizontals)), "верхняя сторона")
+        assertEquals(0, client.width(GlyphEncoder.encode(horizontals)), "top side")
 
         val verticals = listOf(128, 8, 4).mapIndexed { index, step ->
             piece(100, 200 + index * 64, ru.voidrp.ui.pack.Glyphs.GlowPart.VERTICAL, ru.voidrp.ui.pack.Glyphs.Corner.TOP_LEFT, step)
         }
-        assertEquals(0, client.width(GlyphEncoder.encode(verticals)), "левая сторона")
+        assertEquals(0, client.width(GlyphEncoder.encode(verticals)), "left side")
 
-        assertEquals(0, client.width(GlyphEncoder.encode(corners + horizontals + verticals)), "всё вместе")
+        assertEquals(0, client.width(GlyphEncoder.encode(corners + horizontals + verticals)), "all together")
         assertEquals(0, spread - spread, "")
     }
 
@@ -301,7 +305,7 @@ class PenAccountingTest {
                     )
                 )
                 val width = client.width(line)
-                if (width != 0) wrong += "$part/$corner/$step/r$radius на ступени $level: строка шириной $width"
+                if (width != 0) wrong += "$part/$corner/$step/r$radius at level $level: a line $width wide"
             }
         }
         assertTrue(wrong.isEmpty(), wrong.take(5).joinToString("\n"))
@@ -326,9 +330,9 @@ class PenAccountingTest {
             )
             val nodes = Layout.centred(page, Viewport.DEFAULT.width, Viewport.HEIGHT).nodes
             val width = client.width(GlyphEncoder.encode(nodes))
-            if (width != 0) wrong += "радиус $radius: строка шириной $width"
+            if (width != 0) wrong += "radius $radius: a line $width wide"
         }
-        assertTrue(wrong.isEmpty(), "ореол вокруг скругления:\n" + wrong.joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "halo around a rounding:\n" + wrong.joinToString("\n"))
     }
 
     @Test
@@ -345,11 +349,11 @@ class PenAccountingTest {
                     ru.voidrp.ui.pack.Glyphs.glow(part, corner, step, radius),
                 )
                 if (ours != theirs) {
-                    wrong += "$part/$corner/$step/r$radius на ступени $level: у нас $ours, у клиента $theirs"
+                    wrong += "$part/$corner/$step/r$radius at level $level: ours $ours, the client's $theirs"
                 }
             }
         }
-        assertTrue(wrong.isEmpty(), "шаг ореола разошёлся:\n" + wrong.take(6).joinToString("\n"))
+        assertTrue(wrong.isEmpty(), "halo advance disagrees:\n" + wrong.take(6).joinToString("\n"))
     }
 
     @Test
@@ -362,16 +366,16 @@ class PenAccountingTest {
         // So every page is laid out for every shape anyone plays on, and nothing may fall
         // outside. This is the test a responsive layout is worth having.
         val pages = mapOf<String, (Viewport) -> View>(
-            "главная" to { screen -> ru.voidrp.ui.page.HomePage().also { it.viewportHint = screen }.view() },
-            "магазин" to { screen -> ru.voidrp.ui.page.ShopPage().also { it.viewportHint = screen }.view() },
-            "демо" to { screen -> ru.voidrp.ui.page.DemoPage().also { it.viewportHint = screen }.view() },
-            "демо с открытым списком" to { screen ->
+            "home" to { screen -> ru.voidrp.ui.page.HomePage().also { it.viewportHint = screen }.view() },
+            "shop" to { screen -> ru.voidrp.ui.page.ShopPage().also { it.viewportHint = screen }.view() },
+            "demo" to { screen -> ru.voidrp.ui.page.DemoPage().also { it.viewportHint = screen }.view() },
+            "demo with the menu open" to { screen ->
                 ru.voidrp.ui.page.DemoPage()
                     .also { it.viewportHint = screen; it.onClick("mode", ru.voidrp.ui.page.Button.LEFT) }
                     .view()
             },
-            "лист состояний" to { screen -> StatesSheet().also { it.viewportHint = screen }.view() },
-            "лист состояний 2" to { screen -> StatesSheet(part = 2).also { it.viewportHint = screen }.view() },
+            "states sheet" to { screen -> StatesSheet().also { it.viewportHint = screen }.view() },
+            "states sheet 2" to { screen -> StatesSheet(part = 2).also { it.viewportHint = screen }.view() },
         )
         val outside = mutableListOf<String>()
         Viewport.PRESETS.forEach { (shape, screen) ->
@@ -391,7 +395,7 @@ class PenAccountingTest {
                 }
             }
         }
-        assertTrue(outside.isEmpty(), "за краем экрана:\n" + outside.take(8).joinToString("\n"))
+        assertTrue(outside.isEmpty(), "off the edge of the screen:\n" + outside.take(8).joinToString("\n"))
     }
 
     @Test
@@ -407,11 +411,11 @@ class PenAccountingTest {
             screen.height,
         ).nodes
         val line = GlyphEncoder.encode(nodes, screen.width / 2)
-        assertEquals(0, client.width(line), "строка не нулевой ширины — страница уедет вбок")
+        assertEquals(0, client.width(line), "the line is not zero wide — the page will slide sideways")
         assertEquals(
             -screen.width / 2,
             client.penBeforeFirstDrawn(line),
-            "страница начинается не от левого края экрана",
+            "the page does not start at the left edge of the screen",
         )
     }
 
@@ -421,7 +425,7 @@ class PenAccountingTest {
         // that is open, a slider at nought and at full, a list part way down.
         listOf(null, "hover:button").forEach { hover ->
             assertBalanced(
-                "лист состояний" + (hover?.let { " с наведением" } ?: ""),
+                "states sheet" + (hover?.let { " with hover" } ?: ""),
                 Layout.centred(
                     StatesSheet(hover).view(),
                     Viewport.DEFAULT.width,
@@ -434,7 +438,7 @@ class PenAccountingTest {
     @Test
     fun `the home page balances`() {
         assertBalanced(
-            "главная",
+            "home",
             Layout.centred(
                 ru.voidrp.ui.page.HomePage().view(),
                 Viewport.DEFAULT.width,
@@ -446,7 +450,7 @@ class PenAccountingTest {
     @Test
     fun `the shop page balances`() {
         assertBalanced(
-            "магазин",
+            "shop",
             Layout.centred(
                 ru.voidrp.ui.page.ShopPage().view(),
                 Viewport.DEFAULT.width,
@@ -458,7 +462,7 @@ class PenAccountingTest {
     @Test
     fun `the demo page balances`() {
         assertBalanced(
-            "демо",
+            "demo",
             Layout.centred(
                 ru.voidrp.ui.page.DemoPage().view(),
                 Viewport.DEFAULT.width,
@@ -469,7 +473,7 @@ class PenAccountingTest {
 
     @Test
     fun `a whole page balances`() {
-        assertBalanced("страница", Layout.centred(samplePage(), Viewport.DEFAULT.width, Viewport.HEIGHT).nodes)
+        assertBalanced("page", Layout.centred(samplePage(), Viewport.DEFAULT.width, Viewport.HEIGHT).nodes)
     }
 
     @Test
@@ -487,14 +491,16 @@ class PenAccountingTest {
                         direction = Direction.ROW,
                         gap = 12,
                         align = Align.CENTER,
+                        // "Row", deliberately Russian, like the text a real list carries.
                         children = listOf(Image("diamond", 32), Text("Строка $index")),
                     )
                 },
             )
-            assertBalanced("список, смещение $offset", Layout.place(scroll, 40, 40, 600, 200).nodes)
+            assertBalanced("list, offset $offset", Layout.place(scroll, 40, 40, 600, 200).nodes)
         }
     }
 
+    /** A page shaped like a real one; its text is deliberately Russian, as theirs is. */
     private fun samplePage() = Panel(
         width = Size.Fixed(Viewport.DEFAULT.width),
         height = Size.Fixed(Viewport.HEIGHT),

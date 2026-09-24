@@ -22,18 +22,20 @@ class ViewportTest {
     @Test
     fun `a screen is read however the player spells it`() {
         assertEquals(1820, Viewport.parse("16:9")!!.width, "16:9")
-        assertEquals(1820, Viewport.parse("1920x1080")!!.width, "то же самое разрешением")
-        assertEquals(1820, Viewport.parse(" 16 : 9 ")!!.width, "с пробелами")
+        assertEquals(1820, Viewport.parse("1920x1080")!!.width, "the same, as a resolution")
+        assertEquals(1820, Viewport.parse(" 16 : 9 ")!!.width, "with spaces")
         assertEquals(1365, Viewport.parse("4:3")!!.width, "4:3")
         assertEquals(1280, Viewport.parse("5:4")!!.width, "5:4")
-        assertEquals(1931, Viewport.parse("1920x1018")!!.width, "окно с заголовком — не 16:9")
-        assertEquals(1931, Viewport.parse("1931")!!.width, "точная ширина в единицах")
+        assertEquals(1931, Viewport.parse("1920x1018")!!.width, "a window with a title bar — not 16:9")
+        assertEquals(1931, Viewport.parse("1931")!!.width, "an exact width in units")
     }
 
     @Test
     fun `nonsense is refused rather than guessed at`() {
+        // "экран" (screen) is deliberately Russian: a word, not a format, in the players' own
+        // language, which is the likeliest nonsense to arrive.
         listOf("", "экран", "16:0", "0:9", "-3", "10", "99999", "16:9:4").forEach {
-            assertNull(Viewport.parse(it), "«$it» приняли за формат экрана")
+            assertNull(Viewport.parse(it), "«$it» was taken for a screen format")
         }
     }
 
@@ -55,11 +57,11 @@ class ViewportTest {
         Viewport.PRESETS.values.forEach { screen ->
             assertTrue(
                 screen.safeWidth <= screen.width,
-                "безопасная полоса шире самого экрана ${screen.width}",
+                "the safe band is wider than the screen itself, ${screen.width}",
             )
             assertTrue(
                 screen.safeWidth >= minOf(screen.width, Viewport.parse("4:3")!!.width),
-                "безопасная полоса уже, чем 4:3, на экране ${screen.width}",
+                "the safe band is narrower than 4:3 on a screen of ${screen.width}",
             )
         }
     }
@@ -82,8 +84,8 @@ class ViewportTest {
             screen.height,
         )
         val body = placement.regions.single { it.id == "body" }
-        assertEquals(1278, body.width, "панель переросла свой предел")
-        assertEquals((screen.width - 1278) / 2, body.x, "панель не встала по центру")
+        assertEquals(1278, body.width, "the panel outgrew its limit")
+        assertEquals((screen.width - 1278) / 2, body.x, "the panel is not centred")
     }
 
     @Test
@@ -104,17 +106,17 @@ class ViewportTest {
         val placement = Layout.place(panel, 0, 0, 700, 400)
         val cells = (0..3).map { index -> placement.regions.single { it.id == "cell$index" } }
 
-        assertEquals(0, cells[0].x, "первая карточка не у левого края")
-        assertEquals(310, cells[1].x, "вторая не встала за первой через зазор")
-        assertEquals(0, cells[2].x, "третья не перенеслась на новую строку")
-        assertEquals(310, cells[3].x, "четвёртая не встала рядом с третьей")
+        assertEquals(0, cells[0].x, "the first card is not at the left edge")
+        assertEquals(310, cells[1].x, "the second does not follow the first after the gap")
+        assertEquals(0, cells[2].x, "the third did not wrap onto a new line")
+        assertEquals(310, cells[3].x, "the fourth is not next to the third")
 
-        assertEquals(cells[0].y, cells[1].y, "первая строка разъехалась по высоте")
-        assertEquals(60, cells[2].y, "вторая строка не на высоте строки плюс её зазор")
-        assertEquals(cells[2].y, cells[3].y, "вторая строка разъехалась по высоте")
+        assertEquals(cells[0].y, cells[1].y, "the first line is uneven in height")
+        assertEquals(60, cells[2].y, "the second line is not one line plus its gap down")
+        assertEquals(cells[2].y, cells[3].y, "the second line is uneven in height")
 
         // And the panel itself knows how tall it came out: two rows of 40 and one 20 gap.
-        assertEquals(100, Layout.measure(panel, 700, 400).height, "панель не той высоты")
+        assertEquals(100, Layout.measure(panel, 700, 400).height, "the panel is the wrong height")
     }
 
     @Test
@@ -125,14 +127,14 @@ class ViewportTest {
             0, 0, 700, 400,
         )
         // Without wrap the row still fits itself into the width it was given, by squeezing.
-        assertEquals(1, plain.regions.map { it.y }.distinct().size, "строка без wrap всё же перенеслась")
+        assertEquals(1, plain.regions.map { it.y }.distinct().size, "a row without wrap wrapped anyway")
     }
 
     @Test
     fun `counting columns never asks for none`() {
         val narrow = Viewport.parse("4:3")!!
         assertTrue(narrow.columns(ideal = 260, min = 2, max = 5, gap = 12) in 2..5)
-        assertEquals(2, narrow.columns(ideal = 10_000, min = 2, max = 5), "не меньше минимума")
-        assertEquals(5, narrow.columns(ideal = 1, min = 2, max = 5), "не больше максимума")
+        assertEquals(2, narrow.columns(ideal = 10_000, min = 2, max = 5), "no fewer than the minimum")
+        assertEquals(5, narrow.columns(ideal = 1, min = 2, max = 5), "no more than the maximum")
     }
 }
