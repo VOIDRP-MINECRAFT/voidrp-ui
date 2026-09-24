@@ -306,6 +306,7 @@ object Layout {
         val space = sheet.spaceAdvance
         val out = mutableListOf<String>()
         explicit.forEach { paragraph ->
+            val para = mutableListOf<String>()
             val line = StringBuilder()
             // Width is carried along rather than measured again for every word: measuring
             // the whole line once per word made laying out a page of text quadratic.
@@ -320,7 +321,7 @@ object Layout {
                     return@forEach
                 }
                 if (line.isNotEmpty()) {
-                    out += line.toString()
+                    para += line.toString()
                     line.setLength(0)
                     width = 0
                 }
@@ -330,16 +331,39 @@ object Layout {
                 while (restWidth > availableWidth && rest.length > 1) {
                     var cut = rest.length
                     while (cut > 1 && sheet.width(rest.take(cut)) > availableWidth) cut--
-                    out += rest.take(cut)
+                    para += rest.take(cut)
                     rest = rest.drop(cut)
                     restWidth = sheet.width(rest)
                 }
                 line.append(rest)
                 width = restWidth
             }
-            out += line.toString()
+            para += line.toString()
+            out += withoutWidow(para, sheet, availableWidth)
         }
         return limit(text, out, availableWidth)
+    }
+
+    /**
+     * Keeps the last word of a paragraph from standing on a line by itself.
+     *
+     * Filled greedily, "Meet at spawn at 8" came out as a full line and an "8" underneath
+     * it, alone at the start of a card. When the last line is one short word, the word before
+     * it is brought down to keep it company — provided the two fit, and the line above keeps
+     * a word of its own.
+     */
+    private fun withoutWidow(para: List<String>, sheet: TextFonts.Sheet, availableWidth: Int): List<String> {
+        if (para.size < 2) return para
+        val last = para.last()
+        val above = para[para.size - 2]
+        if (' ' in last || last.isEmpty()) return para
+        if (sheet.width(last) * 3 > availableWidth) return para
+        val split = above.lastIndexOf(' ')
+        if (split <= 0) return para
+        val moved = above.substring(split + 1)
+        val joined = "$moved $last"
+        if (sheet.width(joined) > availableWidth) return para
+        return para.dropLast(2) + above.substring(0, split) + joined
     }
 
     /** One line, cut to fit and ended in an ellipsis if it had to be. */

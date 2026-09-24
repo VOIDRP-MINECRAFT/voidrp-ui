@@ -5,6 +5,10 @@ arrive with a minor bump and are named here outright.
 
 ## Unreleased
 
+- A paragraph no longer ends with one short word on a line of its own. "Meet at spawn at 8"
+  came out on a live client as a full line and an "8" under it, alone at the start of a
+  card; the word before is now brought down to keep it company whenever the two fit. A test
+  walks every width at which the sentence breaks.
 - The screen question is labelled "Screen setup · asked once" rather than "Step 1 of 1",
   which is not a step in anything, and its English hint uses English quotation marks. The
   first-join flow itself was walked on a live client: the question comes before the first
