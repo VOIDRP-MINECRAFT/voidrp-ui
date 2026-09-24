@@ -23,6 +23,13 @@ Every rectangle, letter and icon in it travels as one line of text in an invisib
 bar. The pictures further down are drawn with `./gradlew preview`, which puts the same
 pages on disk without starting the game.
 
+![The cursor moving over the page on a vanilla client](docs/cursor.webp)
+
+The same page, recorded as it is used: the player turns their head, the cursor follows, and
+whatever it is over lights up. Recorded at real speed on a test client with no graphics
+card, which draws about twenty-five frames a second — a player's own client draws the
+pointer at whatever rate their screen runs.
+
 ## Why
 
 A server interface in Minecraft is a chest full of items. Anything richer needs a client
