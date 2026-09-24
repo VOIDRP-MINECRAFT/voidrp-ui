@@ -1,10 +1,14 @@
-# VoidRP UI
+<p align="center"><img src=".github/assets/banner.jpg" alt="VoidRP UI" width="100%"></p>
+
+<div align="center">
 
 [![Build and tests](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml/badge.svg)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/VOIDRP-MINECRAFT/voidrp-ui?label=release)](https://github.com/VOIDRP-MINECRAFT/voidrp-ui/releases/latest)
 [![MIT licence](https://img.shields.io/badge/licence-MIT-blue)](LICENSE)
 [![Modrinth](https://img.shields.io/badge/Modrinth-download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/voidrp-ui)
 [![Hangar](https://img.shields.io/badge/Hangar-download-1A73E8)](https://hangar.papermc.io/mironoouv/VoidRP-UI)
+
+</div>
 
 Real interfaces on a **vanilla Minecraft client**. No mods, no Forge, nothing for the
 player to install: they join with the client they already have, accept the server's
