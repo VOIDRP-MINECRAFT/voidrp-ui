@@ -229,7 +229,17 @@ class PageSession(
             // things. The highlight rides the pointer's own bar instead, where it costs a
             // few glyphs and arrives at frame rate. A page that really does need to be
             // rebuilt when the pointer moves over it can ask for it.
-            if (redrawOnHover() || page.redrawsOnHover || handedToPage) render()
+            if (redrawOnHover() || page.redrawsOnHover || handedToPage) {
+                render()
+            } else {
+                // The tooltip belongs to what is hovered, not to the page, and it rides the
+                // pointer's bar — so it is asked for here, without drawing the page again.
+                // It used to be asked for only when the page was drawn, which for a page
+                // that does not redraw on hover meant never: on a live client the shop's
+                // tooltips appeared only after a scroll happened to redraw the page.
+                takeTooltip()
+                draw()
+            }
         }
     }
 
@@ -539,7 +549,7 @@ class PageSession(
         val lift = cursorBarOffset()
         val line = Component.text()
         halo(lift)?.let { line.append(it) }
-        tooltipAt(cursorX, cursorY - lift)?.let { line.append(it) }
+        tooltipAt(cursorX, cursorY, lift)?.let { line.append(it) }
         line.append(GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
         renderer.cursor(player, line.build())
     }
@@ -571,7 +581,7 @@ class PageSession(
      * a second the difference between following the mouse and chasing it is not worth the
      * work.
      */
-    private fun tooltipAt(x: Int, y: Int): Component? {
+    private fun tooltipAt(x: Int, y: Int, lift: Int): Component? {
         val view = tooltip ?: return null
         val moved = Math.abs(x + y * 2 - tooltipAt) >= TOOLTIP_STEP
         tooltipEncoded?.takeIf { !moved }?.let { return it }
@@ -579,10 +589,33 @@ class PageSession(
 
         val canvas = viewport
         val size = Layout.measure(view, canvas.width, canvas.height)
-        val left = (x + TOOLTIP_OFFSET).coerceAtMost(canvas.width - size.width - 4)
-        val top = (y + TOOLTIP_OFFSET).coerceAtMost(canvas.height - size.height - 4)
-        val placement = Layout.place(view, left.coerceAtLeast(4), top.coerceAtLeast(4), size.width, size.height)
+        val left = (x + TOOLTIP_OFFSET).coerceAtMost(canvas.width - size.width - 4).coerceAtLeast(4)
+        val top = tooltipTop(y, size.height, canvas.height)
+        // Drawn on the pointer's bar, which sits a line lower than the page's, so it is
+        // lifted by that much — and cannot go above that bar's own top.
+        val placement = Layout.place(view, left, (top - lift).coerceAtLeast(0), size.width, size.height)
         return GlyphEncoder.encode(placement.nodes, canvas.width / 2).also { tooltipEncoded = it }
+    }
+
+    /**
+     * Where a tooltip goes up and down, in page units.
+     *
+     * Beside the pointer, it covered the very thing it was describing: in a shop the pointer
+     * sits in the middle of a row and the tooltip, down and to the right of it, lay over that
+     * row's price. So for anything the size of a row or a tile it goes under what is
+     * hovered — or over it, when there is no room below — and only follows the pointer for
+     * something so tall that going round it would take the tooltip away from the pointer
+     * altogether.
+     */
+    private fun tooltipTop(y: Int, height: Int, canvasHeight: Int): Int {
+        val region = under
+        val fallback = (y + TOOLTIP_OFFSET).coerceAtMost(canvasHeight - height - 4).coerceAtLeast(4)
+        if (region == null || region.height > TOOLTIP_AROUND_MAX) return fallback
+        val below = region.y + region.height + TOOLTIP_GAP
+        if (below + height <= canvasHeight - 4) return below
+        val above = region.y - TOOLTIP_GAP - height
+        if (above >= 4) return above
+        return fallback
     }
 
     /** Whether this session is over; a closed one answers to nothing. */
@@ -629,6 +662,13 @@ class PageSession(
 
         /** How far from the cursor a tooltip sits, so the pointer does not cover it. */
         const val TOOLTIP_OFFSET = 16
+
+        /** How far a tooltip keeps from the edge of what it describes. */
+        const val TOOLTIP_GAP = 6
+
+        /** Taller than this, a hovered thing is a panel rather than a row, and the tooltip
+         *  follows the pointer instead of going round it. */
+        const val TOOLTIP_AROUND_MAX = 160
 
         fun wrapDegrees(value: Float): Float {
             var wrapped = value % 360f

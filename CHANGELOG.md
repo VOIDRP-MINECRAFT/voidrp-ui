@@ -3,6 +3,25 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.6
+
+**Tooltips appear when something is hovered.** A tooltip was asked of the page only when the
+page was drawn, and a page that does not redraw on hover — which is every page, by default —
+never drew it: on a live client the shop's tooltips turned up only when a scroll happened to
+redraw the page with the pointer on a row. It is asked for the moment the hover changes now,
+and rides the pointer's bar as before, without drawing the page again.
+
+**And they no longer cover what they describe.** Put beside the pointer, down and to the
+right, a tooltip lay over the hovered row's own price. For anything the size of a row or a
+tile it now goes under what is hovered — or over it when there is no room below — and it
+still follows the pointer across a panel too tall to go round.
+
+**A text field opens empty.** The demo kept its placeholder in the same variable as the
+value, so the game's dialog opened with "press to type" already typed and the player had to
+delete it before writing anything. The placeholder is only drawn now, dimmed, while the
+field is empty — and `prompt`'s documentation says `initial` is the value so far, since
+this is the page people copy.
+
 ## 0.3.5
 
 **A page is sent again only when it has changed.** The whole page travels as one boss bar
@@ -95,12 +114,6 @@ window not quite the named shape shows no world at its edges — left out the sc
 second wash, and on a 21:9 window they came out darker than the page by a visible step
 (6,7,15 against 9,11,27). `Page.bleedOf(style)` takes every layer off a style; all three
 pages that ship use it, and the edges now differ from the page by one level in one channel.
-
-**A text field opens empty.** The demo kept its placeholder in the same variable as the
-value, so the game's dialog opened with "press to type" already typed and the player had to
-delete it before writing anything. The placeholder is only drawn now, dimmed, while the
-field is empty — and `prompt`'s documentation says `initial` is the value so far, since
-this is the page people copy.
 
 ## 0.3.4
 
