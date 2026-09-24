@@ -3,7 +3,7 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
-## Unreleased
+## 0.3.8
 
 - A paragraph no longer ends with one short word on a line of its own. "Meet at spawn at 8"
   came out on a live client as a full line and an "8" under it, alone at the start of a

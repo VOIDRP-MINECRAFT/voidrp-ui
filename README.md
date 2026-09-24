@@ -129,7 +129,7 @@ Building against it through [JitPack](https://jitpack.io):
 repositories { maven("https://jitpack.io") }
 
 dependencies {
-    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.7")
+    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.8")
 }
 ```
 
