@@ -135,6 +135,9 @@ abstract class Page {
      *
      * The page stays on screen while the game's own text field is open, so this reads as
      * a field on the page rather than a detour through chat.
+     *
+     * [initial] is what the field already holds — the value so far, not a placeholder. A
+     * hint passed there lands in the dialog as text the player has to delete first.
      */
     fun prompt(
         title: String,

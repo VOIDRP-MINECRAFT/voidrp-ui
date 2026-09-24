@@ -96,6 +96,12 @@ second wash, and on a 21:9 window they came out darker than the page by a visibl
 (6,7,15 against 9,11,27). `Page.bleedOf(style)` takes every layer off a style; all three
 pages that ship use it, and the edges now differ from the page by one level in one channel.
 
+**A text field opens empty.** The demo kept its placeholder in the same variable as the
+value, so the game's dialog opened with "press to type" already typed and the player had to
+delete it before writing anything. The placeholder is only drawn now, dimmed, while the
+field is empty — and `prompt`'s documentation says `initial` is the value so far, since
+this is the page people copy.
+
 ## 0.3.4
 
 **The pointer walks; it no longer pounces.** A recording of a real hand — ten seconds of a

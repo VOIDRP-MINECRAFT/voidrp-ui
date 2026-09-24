@@ -54,7 +54,8 @@ open class DemoPage : Page() {
     private var mode = 0
     private var modeOpen = false
     private var volume = 0.7
-    private var note = "press to type"
+    /** What the player typed; empty until they have. */
+    private var note = ""
     private var lastKey: Int? = null
     private var claimed: String? = null
 
@@ -225,8 +226,12 @@ open class DemoPage : Page() {
                 children = listOf(
                     eyebrow("Note"),
                     // Whatever the player types goes here, so it wraps rather than being
-                    // cut short — the placeholder alone did not fit the card.
-                    Text(note, Theme.TEXT_LEAD, Theme.INK),
+                    // cut short — the placeholder alone did not fit the card. The
+                    // placeholder is only drawn, never stored: kept in the same variable it
+                    // was handed to the game's dialog as the text already typed, and the
+                    // player had to delete it before they could write anything.
+                    if (note.isEmpty()) Text("press to type", Theme.TEXT_LEAD, Theme.INK_DIM)
+                    else Text(note, Theme.TEXT_LEAD, Theme.INK),
                 ),
             ),
         ),
@@ -269,7 +274,7 @@ open class DemoPage : Page() {
                     hint = "The field is the game's own dialog: the page stays on screen.",
                     maxLength = 48,
                 ) { value ->
-                    note = value.ifBlank { "empty" }
+                    note = value.trim()
                     refresh()
                 }
                 return
