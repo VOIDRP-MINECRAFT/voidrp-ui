@@ -164,7 +164,7 @@ loads on a 1.21.6 server, which usually runs on 21.
 |---|---|
 | **Layout** | rows and columns, `gap`, alignment on both axes, `Size.Auto / Fill / Fixed / Percent`, grids, scrolling with a bar |
 | **Style** | background, opacity (16 steps), rounding, borders, padding, soft shadows and glows, a lit top edge — all through theme tokens |
-| **Text** | Inter at seven sizes in three weights, wrapping with an ellipsis, alignment, tracking, differently coloured runs inside one line, a glow behind the letters |
+| **Text** | Inter at seven sizes in three weights — or a face of your own, pixel faces included ([theming](docs/theming.md#a-typeface-of-your-own)) — wrapping with an ellipsis, alignment, tracking, differently coloured runs inside one line, a glow behind the letters |
 | **Heads** | players' faces from the skins in `heads/` — baked into the pack, so the list is fixed |
 | **Pictures** | the server's own PNGs — a logo, a banner — from `images/`, in their own colours and proportions |
 | **Icons** | 788 vanilla items and blocks, with the textures read from the client so the pack pays nothing for them, plus a set of interface icons |

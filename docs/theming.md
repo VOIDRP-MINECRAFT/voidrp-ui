@@ -131,8 +131,35 @@ supported range, 26.2 and 1.21.6, and moved on both. `effects.particles: false` 
 off: the same `Particles` are then drawn as a still field and the shader is left exactly as
 it was, so a page written with them works either way.
 
+## A typeface of your own
+
+The interface is set in Inter unless `theme.yml` says otherwise. Put TrueType files in
+`plugins/VoidRpUI/fonts/` and name them:
+
+```yaml
+font:
+  regular: "MyFace-Regular.ttf"
+  bold: "MyFace-Bold.ttf"   # a weight left out is drawn from the regular file
+  pixel: true               # a face drawn on a grid of pixels
+  sizes: [8, 16, 24, 32]    # the sizes baked, in canvas units
+```
+
+The letters are baked into the pack at every size in `sizes`, and a page asking for a size
+in between gets the nearest one. Set the type scale under `text` to the same numbers, so
+headings and captions land on sizes that exist.
+
+`pixel: true` turns smoothing off, so every pixel of a letter is either lit or dark — a
+smoothed pixel face comes out soft and grey at its edges. It stays sharp only at whole
+multiples of the face's own pixel: an eight-pixel face wants 8, 16, 24 and 32, not 14.
+
+The pack carries the letters, so the face is read once at start: restart the server after
+changing it, and players download the new pack. A file that is not there is reported in
+the log and the interface stays in Inter. Characters a face has no drawing for are left
+out rather than shown as boxes. Mind the face's licence — it travels to every player in
+the pack.
+
 ## Changing it while the server runs
 
 `/vui reload`-style restarts are not needed: the theme is re-read with the config, and the
 next page a player opens is drawn in it. The resource pack does not change — colours travel
-with the page, not with the pack.
+with the page, not with the pack. The one exception is the typeface above.

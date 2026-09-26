@@ -26,6 +26,13 @@ import kotlin.math.roundToInt
  * the encoder makes up the difference with spacer glyphs.
  *
  * Inter is used under the SIL Open Font License; see `font/Inter-OFL.txt` in the jar.
+ *
+ * ### Another face
+ *
+ * A server whose interface should look like something else — a pixel face for pages that
+ * are meant to read as part of the game — names its own files in the `font` section of
+ * `theme.yml`; see [Face]. The face is read once, before the pack is built, because the
+ * sheets travel in the pack.
  */
 object TextFonts {
 
@@ -38,8 +45,93 @@ object TextFonts {
         BOLD("bold", "Inter-Bold.ttf"),
     }
 
-    /** The type scale, in canvas units — which are the site's pixels, near enough. */
-    val SIZES = listOf(10, 12, 14, 16, 20, 28, 40)
+    /**
+     * The typeface the sheets are drawn from, and how.
+     *
+     * [files] names a TrueType file per weight; a weight without one is drawn from the
+     * regular file, and with no files at all the face is the Inter the jar carries.
+     *
+     * [pixel] is for a face drawn on a grid of square pixels. Smoothing is turned off, so
+     * every pixel of a letter is either lit or not — smoothed, a pixel face comes out soft
+     * and grey at its edges. It stays crisp only at sizes that are whole multiples of the
+     * face's own pixel, which is why [sizes] can be given: an eight-pixel face wants
+     * something like 8, 16, 24 and 32.
+     */
+    data class Face(
+        val files: Map<Weight, java.io.File> = emptyMap(),
+        val pixel: Boolean = false,
+        val sizes: List<Int> = INTER_SIZES,
+    ) {
+        init {
+            require(sizes.isNotEmpty() && sizes.all { it > 0 }) { "A face needs at least one size above zero" }
+        }
+
+        /** Where the drawing for [weight] comes from, as a stream for [Font.createFont]. */
+        internal fun open(weight: Weight): java.io.InputStream {
+            val file = files[weight] ?: files[Weight.REGULAR]
+            if (file != null) return file.inputStream()
+            return TextFonts::class.java.getResourceAsStream("/font/${weight.resource}")
+                ?: error("The plugin has no font ${weight.resource}")
+        }
+
+        companion object {
+            /** The face the jar carries. */
+            val INTER = Face()
+
+            /**
+             * Reads the `font` section of `theme.yml`. File names are looked up in
+             * [folder]; a file that is not there is reported and the face falls back to
+             * Inter rather than leaving the pages without text.
+             */
+            fun read(section: org.bukkit.configuration.ConfigurationSection?, folder: java.io.File, warn: (String) -> Unit): Face {
+                if (section == null) return INTER
+                val files = Weight.entries.mapNotNull { weight ->
+                    val name = section.getString(weight.id)?.trim().orEmpty()
+                    if (name.isEmpty()) return@mapNotNull null
+                    val file = java.io.File(folder, name)
+                    if (!file.isFile) {
+                        warn("Font file ${file.path} for ${weight.id} is missing; the interface stays in Inter.")
+                        return INTER
+                    }
+                    weight to file
+                }.toMap()
+                if (files.isNotEmpty() && Weight.REGULAR !in files) {
+                    warn("The font section names no regular file; the interface stays in Inter.")
+                    return INTER
+                }
+                val sizes = section.getIntegerList("sizes").filter { it > 0 }.distinct().sorted()
+                return Face(
+                    files = files,
+                    pixel = section.getBoolean("pixel", false),
+                    sizes = sizes.ifEmpty { INTER_SIZES },
+                )
+            }
+        }
+    }
+
+    /** The sizes the site's type scale uses, in canvas units — the site's pixels, near enough. */
+    val INTER_SIZES = listOf(10, 12, 14, 16, 20, 28, 40)
+
+    /** The face the sheets are drawn from. Set with [use] before the pack is built. */
+    @Volatile
+    var face: Face = Face.INTER
+        private set
+
+    /** The sizes that are baked; a page asking for another gets the nearest. */
+    val SIZES: List<Int> get() = face.sizes
+
+    /**
+     * Draws the sheets from [next] from now on.
+     *
+     * The pack carries the sheets, so this belongs before the pack is built: pages laid
+     * out after a change and a pack built before it would disagree about every width.
+     */
+    @Synchronized
+    fun use(next: Face) {
+        if (next == face) return
+        face = next
+        baked = null
+    }
 
     /** A column of air at the left of every cell, so a leaning letter keeps its tail. */
     private const val LEFT_PAD = 1
@@ -111,12 +203,20 @@ object TextFonts {
      * Widths are asked for a character at a time, several times over while a page is laid
      * out, so this is one of the hottest paths there is: a map keyed by a pair of values
      * allocated a pair on every letter, which cost more than the measuring did.
+     *
+     * Baked on first use and again after [use] names another face.
      */
-    private val sheets: Array<Array<Sheet>> by lazy {
-        Array(Weight.entries.size) { weight ->
-            Array(SIZES.size) { index -> bake(Weight.entries[weight], SIZES[index]) }
+    @Volatile
+    private var baked: Array<Array<Sheet>>? = null
+
+    private val sheets: Array<Array<Sheet>>
+        get() = baked ?: synchronized(this) {
+            baked ?: face.let { current ->
+                Array(Weight.entries.size) { weight ->
+                    Array(current.sizes.size) { index -> bake(current, Weight.entries[weight], current.sizes[index]) }
+                }
+            }.also { baked = it }
         }
-    }
 
     fun all(): List<Sheet> = sheets.flatMap { it.asList() }
 
@@ -160,17 +260,28 @@ object TextFonts {
         )
     }
 
-    /** Draws one weight at one size into a grid of cells and measures every letter. */
-    private fun bake(weight: Weight, size: Int): Sheet {
-        val base = Font.createFont(
-            Font.TRUETYPE_FONT,
-            TextFonts::class.java.getResourceAsStream("/font/${weight.resource}")
-                ?: error("The plugin has no font ${weight.resource}"),
+    /**
+     * How a letter is put on its cell: smoothed for an ordinary face, and pixel for pixel
+     * for a pixel face, whose edges must stay either lit or dark.
+     */
+    private fun hints(g: java.awt.Graphics2D, pixel: Boolean) {
+        g.setRenderingHint(
+            RenderingHints.KEY_TEXT_ANTIALIASING,
+            if (pixel) RenderingHints.VALUE_TEXT_ANTIALIAS_OFF else RenderingHints.VALUE_TEXT_ANTIALIAS_ON,
         )
+        g.setRenderingHint(
+            RenderingHints.KEY_FRACTIONALMETRICS,
+            if (pixel) RenderingHints.VALUE_FRACTIONALMETRICS_OFF else RenderingHints.VALUE_FRACTIONALMETRICS_ON,
+        )
+    }
+
+    /** Draws one weight at one size into a grid of cells and measures every letter. */
+    private fun bake(face: Face, weight: Weight, size: Int): Sheet {
+        val base = face.open(weight).use { Font.createFont(Font.TRUETYPE_FONT, it) }
         val font = base.deriveFont(size.toFloat())
 
         val probe = BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB).createGraphics()
-        probe.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
+        hints(probe, face.pixel)
         probe.font = font
         val frc = probe.fontRenderContext
         val lineMetrics = font.getLineMetrics("Hg", frc)
@@ -206,13 +317,13 @@ object TextFonts {
                 // came out with a gap after it.
                 val cell = BufferedImage(cellWidth, cellHeight, BufferedImage.TYPE_INT_ARGB)
                 val g = cell.createGraphics()
-                g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
-                g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+                hints(g, face.pixel)
                 g.font = font
                 g.color = Color.WHITE
                 g.drawString(char.toString(), LEFT_PAD.toFloat(), ascent.toFloat())
                 g.dispose()
-                embolden(cell)
+                // A pixel face has no partial pixels to fatten.
+                if (!face.pixel) embolden(cell)
 
                 sheet.drawImage(cell, column * cellWidth, row * cellHeight, null)
                 line.append(char)

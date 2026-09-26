@@ -124,10 +124,20 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         // The jar carries a few to start from, and `theme` in the config says which one is
         // written out on the first run. After that the file belongs to the server.
         installTheme()
-        Theme.reload(
-            org.bukkit.configuration.file.YamlConfiguration
-                .loadConfiguration(File(dataFolder, "theme.yml"))
-        )
+        val theme = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(File(dataFolder, "theme.yml"))
+        Theme.reload(theme)
+        // The typeface is baked into the pack, so it is settled before the pack is built.
+        val fonts = File(dataFolder, "fonts").apply { mkdirs() }
+        val face = ru.voidrp.ui.pack.TextFonts.Face.read(theme.getConfigurationSection("font"), fonts) {
+            logger.warning(it)
+        }
+        ru.voidrp.ui.pack.TextFonts.use(face)
+        if (face != ru.voidrp.ui.pack.TextFonts.Face.INTER) {
+            logger.info(
+                "Typeface: ${face.files.values.joinToString(", ") { it.name }}" +
+                    (if (face.pixel) ", pixel" else "") + ", sizes ${face.sizes.joinToString("/")}"
+            )
+        }
         // Anything a server drops in here is in the pack next time it is built.
         val images = File(dataFolder, "images").apply { mkdirs() }
         ru.voidrp.ui.pack.ServerImages.load(images)

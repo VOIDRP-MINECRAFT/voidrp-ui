@@ -30,3 +30,18 @@ radius:
   md: 12
   lg: 16
   xl: 20
+
+# The typeface. Left out, the interface is set in Inter, which the jar carries. To use
+# another, put its TrueType files in plugins/VoidRpUI/fonts/ and name them here; a weight
+# left empty is drawn from the regular file. Read once at start, because the letters are
+# baked into the pack — restart the server after changing it.
+#
+# font:
+#   regular: "MyFace-Regular.ttf"
+#   semibold: ""
+#   bold: "MyFace-Bold.ttf"
+#   # A face drawn on a grid of pixels: no smoothing, so its edges stay sharp.
+#   pixel: true
+#   # Sizes to bake, in canvas units. A pixel face is crisp only at whole multiples of its
+#   # own pixel. Set the type sizes under `text` above to these too.
+#   sizes: [8, 16, 24, 32]
