@@ -81,12 +81,32 @@ class PenAccountingTest {
             "Съешь ещё этих мягких французских булок",
             "VoidRP: Origins — 42 из 200",
             "j i l I W ( ) « » — 1234567890",
+            // Latin beyond ASCII: German umlauts and quotation marks, then western Europe.
+            "Händler „Größe“ Äpfel Öl Übung ß €",
+            "Æøå çñ Élan à là",
         )
         TextFonts.SIZES.forEach { size ->
             TextFonts.Weight.entries.forEach { weight ->
                 samples.forEach { text ->
                     assertBalanced("text $size/$weight", listOf(Label(0, 0, text, size, weight = weight)))
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `accented latin letters are drawn rather than dropped`() {
+        // An unknown character is skipped by the encoder, so a word loses letters without
+        // any error: "Händler" became "Hndler". Every sheet has to know them.
+        val letters = "äöüÄÖÜßéèàçñøåæ„“‚‘€"
+        TextFonts.SIZES.forEach { size ->
+            TextFonts.Weight.entries.forEach { weight ->
+                val missing = letters.filterNot { TextFonts.known(it, weight, size) }
+                assertTrue(missing.isEmpty(), "size $size/$weight has no glyphs for \"$missing\"")
+                assertTrue(
+                    TextFonts.width("Händler", weight, size) > TextFonts.width("Hndler", weight, size),
+                    "the ä in \"Händler\" takes no room at size $size/$weight",
+                )
             }
         }
     }

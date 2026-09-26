@@ -47,15 +47,25 @@ object TextFonts {
     /** Padding character for the tail of the last row; the client is never asked to draw it. */
     private const val BLANK = '\u0000'
 
-    /** Everything a Russian interface needs, plus the punctuation a design reaches for. */
+    /**
+     * Everything a Russian interface needs, the accented Latin letters of western Europe,
+     * and the punctuation a design reaches for.
+     *
+     * A character missing here is not drawn at all: the encoder has no width for it and
+     * leaves it out, so a German "Händler" came out as "Hndler". Latin-1 covers the
+     * accented letters of western Europe.
+     */
     private val CHARSET: List<Char> = buildList {
         for (code in 0x21..0x7E) add(code.toChar())
         for (code in 0x410..0x44F) add(code.toChar())
         add('Ё') // Ё
         add('ё') // ё
+        // Latin-1 without the no-break space and the soft hyphen, which draw nothing.
+        for (code in 0xA1..0xFF) if (code != 0xAD) add(code.toChar())
         // Everything an interface reaches for: dashes, arrows, ticks, the minus sign that
-        // is not a hyphen, and the triangles a dropdown is marked with.
-        "«»—–…·×÷°№±−✓✔✕✖→←↑↓▲▼◀▶•₽©§™".forEach { add(it) }
+        // is not a hyphen, the triangles a dropdown is marked with, and the quotation
+        // marks German and English set.
+        "«»—–…·×÷°№±−✓✔✕✖→←↑↓▲▼◀▶•₽©§™„“”‚‘’‹›€".forEach { add(it) }
     }.distinct()
 
     /** How the client and the encoder each see one character. */
@@ -167,7 +177,10 @@ object TextFonts {
         val ascent = ceil(lineMetrics.ascent.toDouble()).toInt()
         val cellHeight = ascent + ceil(lineMetrics.descent.toDouble()).toInt()
 
-        val advances = CHARSET.associateWith { char ->
+        // A face that has no drawing for a character would put its placeholder box on the
+        // sheet; leaving the character out is honest — it is skipped like any unknown one.
+        val charset = CHARSET.filter { font.canDisplay(it) }
+        val advances = charset.associateWith { char ->
             font.createGlyphVector(frc, char.toString()).getGlyphMetrics(0).advanceX.toDouble()
         }
         // Every cell is the same size, so the widest letter sets the column width; the
@@ -177,13 +190,13 @@ object TextFonts {
         probe.dispose()
 
         val columns = 16
-        val rowCount = (CHARSET.size + columns - 1) / columns
+        val rowCount = (charset.size + columns - 1) / columns
         val image = BufferedImage(cellWidth * columns, cellHeight * rowCount, BufferedImage.TYPE_INT_ARGB)
         val sheet = image.createGraphics()
 
         val metrics = mutableMapOf<Char, Metric>()
         val rows = mutableListOf<String>()
-        CHARSET.chunked(columns).forEachIndexed { row, chunk ->
+        charset.chunked(columns).forEachIndexed { row, chunk ->
             val line = StringBuilder()
             chunk.forEachIndexed { column, char ->
                 // Each letter is drawn on its own before it joins the sheet. Drawing
