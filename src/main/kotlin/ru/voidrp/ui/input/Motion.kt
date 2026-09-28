@@ -33,11 +33,11 @@ object MotionCodec {
      * Five bits a direction: a sign and one of these sixteen. Spaced by about four tenths
      * at most, so a speed is never off by more than a quarter of itself — which the planner
      * then steers out, since it aims at where the pointer should be, not at the speed.
-     * 136 a tick is a flick across a full-HD canvas in under a third of a second.
+     * 160 a tick is a flick across a full-HD canvas in under a third of a second.
      */
     val SPEEDS = doubleArrayOf(
         0.0, 0.5, 1.0, 1.75, 2.75, 4.0, 6.0, 8.5,
-        12.0, 17.0, 24.0, 34.0, 48.0, 68.0, 96.0, 136.0,
+        12.0, 17.0, 24.0, 34.0, 50.0, 75.0, 110.0, 160.0,
     )
 
     /** The sign bit of a speed's code. */
@@ -179,7 +179,7 @@ class MotionPlanner {
         const val CATCH_UP = 2.0
 
         /** Further apart than this, and the pointer jumps rather than chases. */
-        const val SNAP = 48.0
+        const val SNAP = 160.0
 
         /** Slower than this, in units a tick, and the hand has stopped. */
         const val STILL = 0.25
