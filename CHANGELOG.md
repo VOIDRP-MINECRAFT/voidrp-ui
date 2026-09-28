@@ -3,6 +3,43 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.19
+
+**The client moves the pointer itself.** A vanilla client reports where it is looking twenty
+times a second, and a pointer sent frame by frame could only be as smooth as packets happened to
+arrive. Now each reading of the aim becomes a one-tick segment of a schedule — from where the
+last one ended to the new reading, starting at a whole tick of the world's clock a little ahead
+— and the text shader plays it by the client's own clock (`GameTime`), showing each segment only
+in its tick and a hold at the end. When a packet lands no longer matters, so the pointer goes
+through the readings end to end with no jump, the way the client moves an entity between two
+updates, about a tick behind the hand. Clients on the 26.2 pack only (`input.client-motion`);
+older ones are sent every frame as before. Found and measured on a live client with the new
+`/vui debug mtrace` (every reading and every packet for ten seconds) and `/vui debug clock`.
+
+**Each player sets their own pointer** — `/vui cursor`, or `VoidRpUi.cursorSettings(player, then)`
+from a server's own settings page: speed, smooth or frame by frame, and the clock alignment,
+lined up against a ruler. Kept in `cursor.yml`; anything left alone follows the `input` section.
+
+**Experimental: the page in the world.** For whoever holds `voidrp.ui.world` (operators by
+default), the page can be drawn on a text display in front of the player, in a dark room, with
+the crosshair as the pointer — no delay at all, since the client turns the camera itself. The
+text shader's world variant lays the same glyphs on the display's plane. See the README.
+
+From the fork by Noah Teetz:
+
+- Latin-1 letters, German and English quotation marks and the euro sign in the text sheets;
+  accented letters used to vanish without an error.
+- `theme.yml` can name a typeface of its own, pixel faces included; without it nothing changes.
+- Item icons at 48 units.
+- Files under `plugins/VoidRpUI/pack/` go into the resource pack as they are.
+
+Also:
+
+- The aim is read 60 times a second whatever `input.frame-rate` says; that now only limits a
+  pointer sent frame by frame.
+- `input.client-clock-offset` (0.9) and `/vui debug offset`, `/vui debug motion` to compare the two
+  kinds of pointer live.
+
 ## 0.3.18
 
 **The pointer is drawn 40 times a second instead of 85, and moves more evenly for it.** The
