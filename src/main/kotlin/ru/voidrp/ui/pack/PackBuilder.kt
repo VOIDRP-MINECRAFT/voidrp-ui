@@ -48,7 +48,23 @@ class PackBuilder(
      * their client can read.
      */
     private val legacy: Boolean = false,
+    /**
+     * A folder of the server's own pack files, copied into the archive as they are:
+     * `assets/minecraft/textures/gui/container/inventory.png` there replaces the inventory's
+     * picture for every player, beside everything this plugin draws. A path the plugin
+     * writes itself stays the plugin's and is listed in [skipped] instead.
+     */
+    private val extra: File? = null,
 ) {
+
+    /** Extra files that were left out because the plugin writes the same path itself. */
+    val skipped = mutableListOf<String>()
+
+    /** How many extra files went into the last archive. */
+    var extraCount = 0
+        private set
+
+    private val written = mutableSetOf<String>()
 
     companion object {
         /** 1.21.6 — the oldest version we support. */
@@ -174,6 +190,7 @@ class PackBuilder(
                 zip.put("assets/voidrp/font/${sheet.fontName}.json", TextFonts.fontJson(sheet))
                 zip.put("assets/voidrp/textures/${sheet.textureName}", sheet.png)
             }
+            putExtra(zip)
         }
 
         val data = bytes.toByteArray()
@@ -357,7 +374,26 @@ class PackBuilder(
 
     private fun ZipOutputStream.put(path: String, content: String) = put(path, content.toByteArray())
 
+    /** Copies [extra] into the archive, in a fixed order so the SHA-1 stays the same. */
+    private fun putExtra(zip: ZipOutputStream) {
+        extraCount = 0
+        skipped.clear()
+        val root = extra?.takeIf { it.isDirectory } ?: return
+        root.walkTopDown().filter { it.isFile }
+            .map { it to it.relativeTo(root).path.replace(File.separatorChar, '/') }
+            .sortedBy { it.second }
+            .forEach { (file, path) ->
+                if (path in written || path == "pack.mcmeta" || path == "pack.png") {
+                    skipped += path
+                } else {
+                    zip.put(path, file.readBytes())
+                    extraCount++
+                }
+            }
+    }
+
     private fun ZipOutputStream.put(path: String, content: ByteArray) {
+        written += path
         // Fixed timestamps keep the archive byte-identical between restarts, so its SHA-1
         // stays the same and a copy published elsewhere does not go stale.
         val entry = ZipEntry(path).apply {

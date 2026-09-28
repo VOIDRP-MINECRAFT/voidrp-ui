@@ -284,6 +284,14 @@ You give the height; the width follows the picture's own proportions, so a wide 
 stays wide. Unlike an interface icon, a picture keeps its own colours — which is what a
 logo is for. The pack is rebuilt when the plugin reloads, and players download it again.
 
+## Your own pack files
+
+Anything under `plugins/VoidRpUI/pack/` goes into the resource pack as it is, laid out
+like a pack: `pack/assets/minecraft/textures/gui/container/inventory.png` gives every
+player your picture of the inventory. So a server that retextures its screens needs no
+second pack. Paths the plugin writes itself stay the plugin's; the log names any file
+that was left out for that reason.
+
 ## Players' faces
 
 Put a skin at `plugins/VoidRpUI/heads/<name>.png` and a page can draw the face:
