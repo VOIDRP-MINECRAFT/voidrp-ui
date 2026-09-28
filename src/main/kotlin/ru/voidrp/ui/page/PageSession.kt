@@ -868,9 +868,12 @@ class PageSession(
             val (x, y, vx, vy) = handNow(now)
             val plan = planner.plan(x, y, vx, vy, clock, viewport.width.toDouble(), Shaders.CANVAS_HEIGHT.toDouble())
             plannedTick = plan.tick
+            // At rest it goes the ordinary way, to the unit; only a moving pointer needs the
+            // speed, and gives up a little of its height's precision for it.
+            val resting = plan.vx == 0 && plan.vy == 0
             val sprite = Sprite(
                 plan.x, plan.y - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
-                motion = ru.voidrp.ui.render.SpriteMotion(plan.tick, plan.vx, plan.vy),
+                motion = if (resting) null else ru.voidrp.ui.render.SpriteMotion(plan.tick, plan.vx, plan.vy),
             )
             val nodes = if (clockProbe) listOf(sprite) + probe(clock, lift) else listOf(sprite)
             renderer.cursor(player, GlyphEncoder.encode(nodes, viewport.width / 2))

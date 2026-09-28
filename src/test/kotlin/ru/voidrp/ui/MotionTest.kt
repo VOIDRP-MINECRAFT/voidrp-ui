@@ -14,19 +14,19 @@ class MotionTest {
 
     @Test
     fun `every speed code reads back as itself`() {
-        for (code in 0 until 32) {
+        for (code in 0 until 64) {
             if (code == MotionCodec.NEGATIVE) continue   // minus nothing is written as nothing
             assertEquals(code, MotionCodec.code(MotionCodec.speed(code)))
         }
     }
 
     @Test
-    fun `a speed is sent within a quarter of itself`() {
+    fun `a speed is sent within an eighth of itself`() {
         var v = 1.0
-        while (v < 130.0) {
+        while (v < 650.0) {
             val sent = MotionCodec.speed(MotionCodec.code(v))
             // A crawl is judged by how far off it is, the rest by how much of itself.
-            assertTrue(if (v < 2.0) abs(sent - v) < 0.4 else abs(sent - v) / v < 0.25, "$v went as $sent")
+            assertTrue(if (v < 2.0) abs(sent - v) < 0.4 else abs(sent - v) / v < 0.13, "$v went as $sent")
             assertEquals(-sent, MotionCodec.speed(MotionCodec.code(-v)))
             v *= 1.07
         }
@@ -41,10 +41,10 @@ class MotionTest {
         val mark = colour shr 20
         assertTrue(mark in Shaders.MARKER_MOTION_FIRST..Shaders.MARKER_MOTION_LAST)
         val data = ((mark - Shaders.MARKER_MOTION_FIRST) shl 20) or (colour and 0xFFFFF)
-        assertEquals(y.toDouble(), MotionCodec.yOf((data shr 13) and 511).toDouble(), 1.0)
-        assertEquals(1234 % MotionCodec.TICK_WRAP, (data shr 10) and 7)
-        assertEquals(-17.0, MotionCodec.speed((data shr 5) and 31))
-        assertEquals(4.0, MotionCodec.speed(data and 31))
+        assertEquals(y.toDouble(), MotionCodec.yOf((data shr 14) and 255).toDouble(), 2.0)
+        assertEquals(1234 % MotionCodec.TICK_WRAP, (data shr 12) and 3)
+        assertEquals(MotionCodec.speed(MotionCodec.code(-17.0)), MotionCodec.speed((data shr 6) and 63))
+        assertEquals(MotionCodec.speed(MotionCodec.code(4.0)), MotionCodec.speed(data and 63))
     }
 
     @Test
@@ -52,7 +52,7 @@ class MotionTest {
         val colour = GlyphEncoder.packMotion(-57, SpriteMotion(0, 0, 0))
         val mark = colour shr 20
         val data = ((mark - Shaders.MARKER_MOTION_FIRST) shl 20) or (colour and 0xFFFFF)
-        assertEquals(-57.0, MotionCodec.yOf((data shr 13) and 511).toDouble(), 1.0)
+        assertEquals(-57.0, MotionCodec.yOf((data shr 14) and 255).toDouble(), 2.0)
     }
 
     /** Where the shader draws a planned pointer at [clock], as it would on the client. */

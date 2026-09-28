@@ -30,20 +30,22 @@ object MotionCodec {
     /**
      * The speeds a pointer can be sent at, in canvas units per tick, fastest last.
      *
-     * Five bits a direction: a sign and one of these sixteen. Spaced by about four tenths
-     * at most, so a speed is never off by more than a quarter of itself — which the planner
-     * then steers out, since it aims at where the pointer should be, not at the speed.
-     * 160 a tick is a flick across a full-HD canvas in under a third of a second.
+     * Six bits a direction: a sign and one of these thirty-two — nothing, then from half a
+     * unit a tick up to about seven hundred, each a quarter faster than the one before, so
+     * a speed is never off by more than an eighth of itself, which the planner steers out.
+     * The top of it is a flick across a full-HD canvas in three ticks; an earlier table
+     * stopped at 160, the pointer fell behind a fast hand and caught up in one jump.
      */
-    val SPEEDS = doubleArrayOf(
-        0.0, 0.5, 1.0, 1.75, 2.75, 4.0, 6.0, 8.5,
-        12.0, 17.0, 24.0, 34.0, 50.0, 75.0, 110.0, 160.0,
-    )
+    val SPEEDS: DoubleArray = DoubleArray(32) { i ->
+        if (i == 0) 0.0 else Math.round(0.5 * Math.pow(SPEED_RATIO, (i - 1).toDouble()) * 100) / 100.0
+    }
+
+    private const val SPEED_RATIO = 1.273
 
     /** The sign bit of a speed's code. */
-    const val NEGATIVE = 16
+    const val NEGATIVE = 32
 
-    /** The nearest speed that can be sent, as its five-bit code. */
+    /** The nearest speed that can be sent, as its six-bit code. */
     fun code(speed: Double): Int {
         val magnitude = abs(speed)
         var best = 0
@@ -63,21 +65,25 @@ object MotionCodec {
 
     /** What a code stands for, in units a tick. */
     fun speed(code: Int): Double {
-        val magnitude = SPEEDS[code and 15]
+        val magnitude = SPEEDS[code and 31]
         return if (code and NEGATIVE != 0) -magnitude else magnitude
     }
 
     /** How many ticks a place-and-speed stays readable: the tick travels modulo this. */
-    const val TICK_WRAP = 8
+    const val TICK_WRAP = 4
 
-    /** The vertical place travels in steps of this many units, to leave bits for the rest. */
-    const val Y_STEP = 2
+    /**
+     * The vertical place of a moving pointer travels in steps of this many units, to leave
+     * bits for the speed; nobody sees four units on something moving. A pointer at rest is
+     * sent the ordinary way, to the unit.
+     */
+    const val Y_STEP = 4
 
     /** How far above the canvas a moving glyph may be, for the lifted bars below the first. */
     const val Y_SHIFT = 64
 
     /** And how many steps of it there are. */
-    const val Y_STEPS = 512
+    const val Y_STEPS = 256
 
     /** A y, as the step that carries it. */
     fun yStep(y: Int): Int = ((y + Y_SHIFT).toDouble() / Y_STEP).roundToInt().coerceIn(0, Y_STEPS - 1)
@@ -86,13 +92,13 @@ object MotionCodec {
     fun yOf(step: Int): Int = step * Y_STEP - Y_SHIFT
 
     /**
-     * 22 bits: the place's y (9), the tick (3), the speed across (5) and down (5).
+     * 22 bits: the place's y (8), the tick (2), the speed across (6) and down (6).
      *
      * The top two go into which of four markers the glyph carries, the other twenty into
      * its colour, which is why the pointer is always drawn white.
      */
     fun data(yStep: Int, tick: Int, vx: Int, vy: Int): Int =
-        (yStep shl 13) or ((tick and (TICK_WRAP - 1)) shl 10) or ((vx and 31) shl 5) or (vy and 31)
+        ((yStep and 255) shl 14) or ((tick and (TICK_WRAP - 1)) shl 12) or ((vx and 63) shl 6) or (vy and 63)
 }
 
 /**
@@ -196,7 +202,7 @@ class MotionPlanner {
         const val CATCH_UP = 1.5
 
         /** Further apart than this, and the pointer jumps rather than chases. */
-        const val SNAP = 160.0
+        const val SNAP = 480.0
 
         /** Slower than this, in units a tick, and the hand has stopped. */
         const val STILL = 0.25
@@ -209,7 +215,13 @@ class MotionPlanner {
          * whose clock runs behind ours, and two ticks on, after which a pointer whose
          * packets have stopped stands still rather than sailing off the screen.
          */
-        const val ELAPSED_MIN = -1.5
+        const val ELAPSED_MIN = -1.0
         const val ELAPSED_MAX = 2.0
+
+        /**
+         * Where the shader turns an elapsed time read modulo [MotionCodec.TICK_WRAP] into
+         * one before the tick instead: past three ticks is a place from just ahead.
+         */
+        const val ELAPSED_WRAP = 3.0
     }
 }

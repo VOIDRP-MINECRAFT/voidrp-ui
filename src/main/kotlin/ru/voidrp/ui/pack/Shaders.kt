@@ -131,12 +131,12 @@ object Shaders {
         // y (10) followed by the fill colour (10, RGB 3-4-3).
         // (Nothing here may be named "packed" — a reserved word in GLSL that makes strict
         // drivers reject the whole shader while lenient compilers let it pass.)
-        // Canvas units a tick, one for each of the sixteen speed codes (MotionCodec.SPEEDS).
-        const float VOIDRP_SPEEDS[16] = float[16](${ru.voidrp.ui.input.MotionCodec.SPEEDS.joinToString(", ") { "%.2f".format(java.util.Locale.ROOT, it) }});
+        // Canvas units a tick, one for each of the thirty-two speed codes (MotionCodec.SPEEDS).
+        const float VOIDRP_SPEEDS[32] = float[32](${ru.voidrp.ui.input.MotionCodec.SPEEDS.joinToString(", ") { "%.2f".format(java.util.Locale.ROOT, it) }});
 
         float voidrp_speed(int code) {
-            float magnitude = VOIDRP_SPEEDS[code & 15];
-            return (code & 16) != 0 ? -magnitude : magnitude;
+            float magnitude = VOIDRP_SPEEDS[code & 31];
+            return (code & 32) != 0 ? -magnitude : magnitude;
         }
 
         bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill, out bool drifts, out vec3 motion) {
@@ -151,9 +151,9 @@ object Shaders {
             // marker is two bits of it; the colour is the rest, so the pointer is white.
             if (mark >= ${MARKER_MOTION_FIRST} && mark <= ${MARKER_MOTION_LAST}) {
                 int data = ((mark - ${MARKER_MOTION_FIRST}) << 20) | bits;
-                canvasY = float((data >> 13) & 511) * ${ru.voidrp.ui.input.MotionCodec.Y_STEP}.0 - ${ru.voidrp.ui.input.MotionCodec.Y_SHIFT}.0;
+                canvasY = float((data >> 14) & 255) * ${ru.voidrp.ui.input.MotionCodec.Y_STEP}.0 - ${ru.voidrp.ui.input.MotionCodec.Y_SHIFT}.0;
                 fill = vec3(1.0);
-                motion = vec3(float((data >> 10) & 7), voidrp_speed((data >> 5) & 31), voidrp_speed(data & 31));
+                motion = vec3(float((data >> 12) & 3), voidrp_speed((data >> 6) & 63), voidrp_speed(data & 63));
                 return true;
             }
             if (mark < ${MARKER} || mark > ${MARKER_DRIFT_SHIFTED}) {
@@ -220,7 +220,7 @@ object Shaders {
                 // it is a place from a moment ahead of this client's clock. Carried a little
                 // back, and at most two ticks on, so a pointer whose packets stop stands still.
                 float elapsed = mod(GameTime * 24000.0 - motion.x, ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}.0);
-                if (elapsed >= ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP / 2}.0) {
+                if (elapsed >= ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_WRAP}) {
                     elapsed -= ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}.0;
                 }
                 elapsed = clamp(elapsed, ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_MIN}, ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_MAX});
