@@ -74,14 +74,15 @@ class CursorPage(
         children = listOfNotNull(
             eyebrow(say("cursor-page.eyebrow")),
             Text(say("cursor-page.title"), Theme.TEXT_H3, Theme.INK, TextFonts.Weight.BOLD, align = TextAlign.CENTER),
-            setting(
+            // Experimental, offered only to whoever holds voidrp.ui.world.
+            if (worldPossible()) setting(
                 say("cursor-page.where"),
-                say(if (worldPossible()) "cursor-page.where-hint" else "cursor-page.where-unavailable"),
+                say("cursor-page.where-hint"),
                 listOf(
                     button(say("cursor-page.on-screen"), "cur:screen", if (!inWorld) Theme.buttonPrimary else Theme.buttonGhost, height = 40),
                     button(say("cursor-page.in-world"), "cur:world", if (inWorld) Theme.buttonPrimary else Theme.buttonGhost, height = 40),
                 ),
-            ),
+            ) else null,
             setting(
                 say("cursor-page.speed"),
                 say("cursor-page.speed-hint"),

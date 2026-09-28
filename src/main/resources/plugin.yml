@@ -24,3 +24,6 @@ permissions:
   voidrp.ui.debug:
     description: Interface debugging tools
     default: op
+  voidrp.ui.world:
+    description: May choose the experimental page in the world (Pointer settings)
+    default: op

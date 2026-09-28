@@ -834,15 +834,7 @@ class PageSession(
      * Cut at the edges of a scrolling list, a scroll changes one piece: the list goes again
      * and the rest of the page, the heaviest part of it, stays where it is on the screen.
      */
-    /** The page last sent, whole, for drawing it somewhere other than the boss bars. */
-    @Volatile var lastPage: List<Node> = emptyList()
-        private set
-    @Volatile var lastCentre: Int = 0
-        private set
-
     private fun send(page: List<Node>, cuts: List<Int>, centre: Int) {
-        lastPage = page
-        lastCentre = centre
         world?.let {
             // In the world the page is one display: no lines to stack, so no lift either.
             it.page(GlyphEncoder.encode(page, centre))

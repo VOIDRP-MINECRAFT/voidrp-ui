@@ -369,10 +369,6 @@ class PageManager(
     /** Starts a ten-second motion trace on this player's open page; false with none open. */
     fun traceMotion(player: Player): Boolean = session(player)?.let { it.startTrace(); true } ?: false
 
-    /** The open page, whole, as one line of glyphs; null with no page open. */
-    fun pageAsText(player: Player): net.kyori.adventure.text.Component? =
-        session(player)?.let { ru.voidrp.ui.render.GlyphEncoder.encode(it.lastPage, it.lastCentre) }
-
     /** Flips the clock ruler on this player's open page; null with no page open. */
     fun toggleClockProbe(player: Player): Boolean? =
         session(player)?.let { it.clockProbe = !it.clockProbe; it.clockProbe }

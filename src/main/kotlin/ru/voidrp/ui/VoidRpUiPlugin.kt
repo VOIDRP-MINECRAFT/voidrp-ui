@@ -66,7 +66,8 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         bars,
         { player -> ru.voidrp.ui.pack.Shaders.motion && clientMotion && usesModernPack(player) },
         cursorPrefs,
-        { player -> usesModernPack(player) },
+        // Experimental: for the staff to try, not offered to players yet.
+        { player -> usesModernPack(player) && player.hasPermission("voidrp.ui.world") },
     )
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File

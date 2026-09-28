@@ -292,6 +292,32 @@ player your picture of the inventory. So a server that retextures its screens ne
 second pack. Paths the plugin writes itself stay the plugin's; the log names any file
 that was left out for that reason.
 
+## Experimental: the page in the world
+
+![A page standing in the world in front of the player, the crosshair as the pointer](docs/world-mode.png)
+
+> **Experimental, off for players.** Offered only to whoever holds `voidrp.ui.world`
+> (operators by default), in `/vui cursor` → *Where the menu is* → *In the world*. It may
+> change or go away.
+
+On the screen the pointer can only be as good as what the client tells the server: its
+look, twenty times a second. Smooth means a tick behind the hand; close to the hand means
+steps. In the world the question does not arise. The page is drawn on a text display in
+front of the player, inside a dark room so the world does not show round it, and the
+player turns the camera over it — the pointer is the crosshair, moved by the client itself
+at the screen's own rate, with no delay and nothing sent. The server works out what is
+under it from the same look, so clicks land where the player is looking.
+
+It is the same page, the same glyphs and the same shader: the text shader's world variant
+lays the glyphs on the display's plane instead of across the screen, each a hair nearer
+the camera than the one before so overlapping pieces keep the order they were painted in.
+While the page is up the player may look around but not walk away from it.
+
+What is not solved yet: the player's hand and hotbar are drawn over the bottom of the page,
+blocks closer than a few steps can stand inside the dark room, and shader packs (Iris,
+OptiFine) replace the world's text rendering, so with one of those the page belongs on the
+screen.
+
 ## Players' faces
 
 Put a skin at `plugins/VoidRpUI/heads/<name>.png` and a page can draw the face:
@@ -347,6 +373,7 @@ needs them turns on `input.redraw-on-hover: true`.
 | `/vui pack` | everyone | sends the resource pack again |
 | `/vui close` | everyone | closes the page |
 | `/vui screen` | everyone | screen setup: a frame on the edges, one click per shape |
+| `/vui cursor` | everyone | pointer settings: speed, smooth or frame by frame, clock alignment — kept per player |
 | `/vui debug …` | `voidrp.ui.debug` | encoder measurements, layout dumps, cursor and click debugging |
 
 ## Drawing a page without the game
