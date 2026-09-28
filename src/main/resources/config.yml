@@ -137,8 +137,12 @@ input:
   # The client reports where it is looking twenty times a second, and that is the ceiling on
   # knowing where the pointer is — not on drawing it. Between two readings the pointer is
   # reckoned forward, and the more often that is sent the smaller the step from one position
-  # to the next. Each frame is one small packet per player with a page open.
-  frame-rate: 85
+  # to the next — in theory. In play more was worse: at 85 a second on a 60 Hz screen one
+  # frame of the screen takes two of ours and the next none, and the pointer moves in uneven
+  # steps. 40 gives every reading two frames of the same size; 60 three, on a 60+ Hz screen.
+  # Changeable in game with /vui debug fps <n> (saved here). Each frame is one small packet
+  # per player with a page open.
+  frame-rate: 40
   # Whether the page is drawn again when the cursor moves onto something else.
   #
   # A page is one long line; sending it costs tens of kilobytes, and doing that every time

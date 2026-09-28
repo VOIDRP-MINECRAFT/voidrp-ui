@@ -117,6 +117,23 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 )
             }
 
+            // How often the pointer is drawn. Saved, since it is a server-wide choice.
+            "fps" -> {
+                args.getOrNull(1)?.toIntOrNull()?.let {
+                    plugin.pages.frameRate = it
+                    plugin.config.set("input.frame-rate", plugin.pages.frameRate)
+                    plugin.saveConfig()
+                }
+                sender.sendMessage(
+                    Component.text(
+                        "Pointer frames: ${plugin.pages.frameRate} a second (saved). Readings of the aim come " +
+                            "twenty a second, so 40 or 60 gives every reading the same number of frames; " +
+                            "above your screen's refresh rate frames are dropped and the steps come out uneven.",
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
             // How close to the hand the pointer runs, against how far it overshoots a stop.
             "predict" -> {
                 args.getOrNull(1)?.toDoubleOrNull()?.let {
@@ -248,7 +265,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()

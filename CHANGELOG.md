@@ -3,6 +3,18 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.18
+
+**The pointer is drawn 40 times a second instead of 85, and moves more evenly for it.** The
+frames reach the screen at its own refresh rate: at 85 a second on a 60 Hz screen one of its
+frames takes two of ours and the next takes none, so the pointer moved in uneven steps however
+smooth the reckoning between two readings was. Forty is two frames to every reading of the aim,
+each the same size.
+
+- `/vui debug fps <n>` changes the rate with a page open and saves it (`input.frame-rate`,
+  10–144). 60 suits a 60+ Hz screen; 20 is one frame per reading.
+- The frame loop is timed in microseconds, so a rate like 60 is 60 and not 62.
+
 ## 0.3.17
 
 **The pointer stays put after a prompt.** A dialog takes the mouse, and when it closes the

@@ -138,10 +138,32 @@ class PageManager(
      * The client reports its aim twenty times a second and that is the ceiling on *knowing*
      * where the pointer is, but not on drawing it: between two readings the pointer is
      * reckoned forward, and the more often that reckoning is sent the less of a step there
-     * is between one position and the next. Eighty-five is about one frame of a 144 Hz
-     * screen; past that the packets cost more than the smoothness is worth.
+     * is between one position and the next — in theory. In play, more was worse: the frames
+     * reach a 60 Hz screen at 85 a second, so one of its frames takes two of ours and the next
+     * takes none, and the pointer moves in uneven steps however smooth the reckoning is.
+     * Forty is two frames to every reading, each the same size, and on a 60 Hz screen a
+     * frame of ours is never lost. Changeable with a page open (`/vui debug fps`).
      */
-    val frameRate: Int = plugin.config.getInt("input.frame-rate", DEFAULT_FRAME_RATE).coerceIn(20, 144)
+    var frameRate: Int = plugin.config.getInt("input.frame-rate", DEFAULT_FRAME_RATE).coerceIn(MIN_FRAME_RATE, MAX_FRAME_RATE)
+        set(value) {
+            field = value.coerceIn(MIN_FRAME_RATE, MAX_FRAME_RATE)
+            schedule()
+        }
+
+    private var frameTask: java.util.concurrent.ScheduledFuture<*>? = null
+
+    /** (Re)starts the frame loop at [frameRate]. */
+    private fun schedule() {
+        frameTask?.cancel(false)
+        frameTask = frames.scheduleAtFixedRate(
+            {
+                runCatching { sessions.values.forEach { it.frame() } }
+            },
+            0,
+            1_000_000L / frameRate,
+            java.util.concurrent.TimeUnit.MICROSECONDS,
+        )
+    }
 
     /**
      * How many gaps between readings the pointer is given to cover the distance one shows.
@@ -161,20 +183,13 @@ class PageManager(
         .getDouble("input.prediction", ru.voidrp.ui.input.Pointer.PREDICTION)
         .coerceIn(ru.voidrp.ui.input.Pointer.PREDICTION_MIN, ru.voidrp.ui.input.Pointer.PREDICTION_MAX)
 
-    /** Starts drawing frames at about the rate a screen refreshes. */
+    /** Starts drawing frames. */
     fun start() {
         // Now, not in the constructor: by the time a plugin is enabled, the plugins it
         // asked to come first are enabled too.
         readsPackets = runCatching { aim.install() }.getOrDefault(false)
         ordersBars = runCatching { bars.install() }.getOrDefault(false)
-        frames.scheduleAtFixedRate(
-            {
-                runCatching { sessions.values.forEach { it.frame() } }
-            },
-            0,
-            (1000L / frameRate).coerceAtLeast(6L),
-            java.util.concurrent.TimeUnit.MILLISECONDS,
-        )
+        schedule()
     }
 
     fun shutdown() {
@@ -438,6 +453,8 @@ class PageManager(
         const val SETTLE_MS = 1500L
 
         /** How often the pointer is drawn when nothing says otherwise. */
-        const val DEFAULT_FRAME_RATE = 85
+        const val DEFAULT_FRAME_RATE = 40
+        const val MIN_FRAME_RATE = 10
+        const val MAX_FRAME_RATE = 144
     }
 }
