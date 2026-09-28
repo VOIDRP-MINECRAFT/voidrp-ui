@@ -2,6 +2,7 @@ package ru.voidrp.ui.page
 
 import org.bukkit.entity.Player
 import net.kyori.adventure.text.Component
+import ru.voidrp.ui.input.MotionPlanner
 import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
@@ -133,21 +134,6 @@ class PageSession(
     /** The whole tick the last moving pointer was planned in. */
     private var plannedTick = Long.MIN_VALUE
 
-    /**
-     * The hand, as the readings of the aim have it: the last one, when it came, and how fast
-     * the readings have been moving, in units a tick.
-     *
-     * A moving pointer is steered by these rather than by [pointer]'s walk. The walk paces
-     * itself to arrive by the next reading, so its speed is not the hand's: near the end of
-     * a gap it is whatever is left over whatever time is left, and a late reading sent it
-     * soaring. Handed to the client as a speed, that threw the pointer far ahead and the next
-     * packet pulled it back — smooth, and jumping.
-     */
-    private var handX = 0.0
-    private var handY = 0.0
-    private var handAt = 0L
-    private var handVx = 0.0
-    private var handVy = 0.0
 
     /**
      * The clock the client's shader will read when what is sent now lands: the world's clock
@@ -269,7 +255,6 @@ class PageSession(
         // screen is.
         pointer.place((viewport.width / 2).toDouble(), (Shaders.CANVAS_HEIGHT / 2).toDouble())
         planner.reset()
-        handAt = 0L
         render()
     }
 
@@ -449,18 +434,13 @@ class PageSession(
      */
     private fun frameMoving(now: Long, sampled: Boolean, overChanged: Boolean) {
         val clock = clock(now) ?: return
-        if (sampled) takeReading(now)
-        val tick = Math.floor(clock).toLong()
-        val (x, y, vx, vy) = handNow(now)
-        val shown = planner.shown(clock)
-        val off = shown?.let { Math.hypot(it.first - x, it.second - y) } ?: Double.MAX_VALUE
-        val stopping = vx == 0.0 && vy == 0.0 && planner.moving
-        val unsettled = vx != 0.0 || vy != 0.0 || planner.moving || off > 1.0
-        // A speed goes as the nearest of sixteen, a third off at worst, so what the client
-        // draws drifts from where the pointer should be. Corrected as soon as it shows,
-        // rather than once a tick, the drift never builds up into the wobble it used to.
-        val drifted = off > DRIFT_LIMIT
-        val due = clockProbe || sampled || stopping || drifted || (tick != plannedTick && unsettled)
+        val x = pointer.targetX
+        val y = pointer.targetY
+        // Sent when there is somewhere new to go, and when the pointer has stopped short of
+        // where it should be (a speed rounded down, a reading that came late).
+        val resting = planner.resting()
+        val short = resting?.let { Math.hypot(it.first - x, it.second - y) > MotionPlanner.SETTLE } ?: true
+        val due = clockProbe || sampled || (short && !planner.moving(clock) && Math.floor(clock).toLong() != plannedTick)
         when {
             due -> draw()
             overChanged -> synchronized(drawing) { drawHover() }
@@ -511,47 +491,6 @@ class PageSession(
             probeSent = 0
             probeWorst = 0
         }
-    }
-
-    /** A fresh reading: where the hand is, and how fast the readings are moving. */
-    private fun takeReading(now: Long) {
-        val x = pointer.targetX
-        val y = pointer.targetY
-        val gap = (now - handAt) / NANOS_PER_TICK
-        if (handAt != 0L && gap in 0.3..READING_LATE) {
-            val rawX = (x - handX) / gap
-            val rawY = (y - handY) / gap
-            // Half of each new reading: readings land 44 to 99 ms apart, and one taken over
-            // a short gap overstates the speed by as much as it understates the next.
-            handVx += (rawX - handVx) * HAND_EASING
-            handVy += (rawY - handVy) * HAND_EASING
-        } else {
-            handVx = 0.0
-            handVy = 0.0
-        }
-        // Against an edge the readings stop there while the hand goes on: the pointer has
-        // nowhere further to go that way, whatever speed the readings last showed.
-        if ((x <= 0.0 && handVx < 0) || (x >= viewport.width - 1.0 && handVx > 0)) handVx = 0.0
-        if ((y <= 0.0 && handVy < 0) || (y >= Shaders.CANVAS_HEIGHT - 1.0 && handVy > 0)) handVy = 0.0
-        handX = x
-        handY = y
-        handAt = now
-    }
-
-    /**
-     * Where the hand is now and how fast it goes: the last reading carried on by its speed
-     * for at most a tick, and at rest once the readings have stopped coming.
-     */
-    private fun handNow(now: Long): List<Double> {
-        if (handAt == 0L) return listOf(pointer.targetX, pointer.targetY, 0.0, 0.0)
-        val age = (now - handAt) / NANOS_PER_TICK
-        if (age > READING_LATE) return listOf(handX, handY, 0.0, 0.0)
-        // Carried on for half a tick at most: further, and a hand that has just stopped is
-        // overshot by that much and pulled back.
-        val ahead = Math.min(age, AHEAD_MAX)
-        val x = (handX + handVx * ahead).coerceIn(0.0, (viewport.width - 1).toDouble())
-        val y = (handY + handVy * ahead).coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
-        return listOf(x, y, handVx, handVy)
     }
 
 
@@ -865,8 +804,7 @@ class PageSession(
         val now = System.nanoTime()
         val clock = clock(now)
         if (clientMotion() && clock != null) {
-            val (x, y, vx, vy) = handNow(now)
-            val plan = planner.plan(x, y, vx, vy, clock, viewport.width.toDouble(), Shaders.CANVAS_HEIGHT.toDouble())
+            val plan = planner.plan(pointer.targetX, pointer.targetY, clock)
             plannedTick = plan.tick
             // At rest it goes the ordinary way, to the unit; only a moving pointer needs the
             // speed, and gives up a little of its height's precision for it.
@@ -989,23 +927,7 @@ class PageSession(
         /** The clock ruler's scale: units a tick, and a speed the codec carries exactly. */
         private const val PROBE_SPEED = 50
 
-        /** A tick of the world's clock, in nanoseconds. */
-        private const val NANOS_PER_TICK = 50_000_000.0
 
-        /**
-         * Ticks without a reading after which the hand has stopped. A client sends its look
-         * every tick while it changes, so a little over one tick of silence is a stop.
-         */
-        private const val READING_LATE = 1.25
-
-        /** How much of each new reading's speed goes into the hand's. */
-        private const val HAND_EASING = 0.7
-
-        /** How far past the last reading the hand is carried on, in ticks. */
-        private const val AHEAD_MAX = 0.5
-
-        /** Units the client's pointer may stray from ours before a correction is sent. */
-        private const val DRIFT_LIMIT = 2.5
 
         fun cursor(x: Int, y: Int): List<Node> =
             listOf(Sprite(x, y, Glyphs.cursor(), Glyphs.cursorAdvance()))

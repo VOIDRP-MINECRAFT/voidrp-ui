@@ -63,6 +63,14 @@ object MotionCodec {
         return if (best != 0 && speed < 0) best or NEGATIVE else best
     }
 
+    /** The fastest speed that can be sent without going faster than [speed]: never past. */
+    fun codeAtMost(speed: Double): Int {
+        val magnitude = abs(speed)
+        var best = 0
+        for (i in SPEEDS.indices) if (SPEEDS[i] <= magnitude + 1e-9) best = i
+        return if (best != 0 && speed < 0) best or NEGATIVE else best
+    }
+
     /** What a code stands for, in units a tick. */
     fun speed(code: Int): Double {
         val magnitude = SPEEDS[code and 31]
@@ -107,13 +115,21 @@ object MotionCodec {
 data class MotionPlan(val x: Int, val y: Int, val tick: Long, val vx: Int, val vy: Int)
 
 /**
- * Chooses what to send so the pointer on the screen follows the pointer we reckon.
+ * Chooses what to send so the pointer on the screen goes to where the hand last was, and
+ * stops there.
  *
- * It keeps a model of what the client is drawing — the last place and speed sent — and each
- * time it is asked it starts from where that model is **now**, not from where the pointer
- * should be: a new packet that starts somewhere else is a jump. Whatever the model is behind
- * or ahead goes into the speed instead, to be made up over [CATCH_UP] ticks. Only when the
- * two have drifted too far apart to steer back ([SNAP] units) is the jump taken.
+ * The client's pointer never runs ahead of the last reading of the aim. An earlier planner
+ * carried the hand on by its speed so the pointer would not trail it, and every time the
+ * hand stopped the pointer ran on until the stop was heard, then came back: tens of units,
+ * the one thing left wrong once it was otherwise smooth. This is how the client moves an
+ * entity between two updates instead — it goes to where it was last told, and no further.
+ *
+ * The shader carries a place on for at most [ELAPSED_MAX] ticks, so the end of that is
+ * where the pointer comes to rest. Each packet is laid out to put that end on the target:
+ * the place is where the client's pointer is now (so nothing jumps), and the speed is the
+ * one that covers the rest in the time left before the end. Speeds are rounded towards
+ * zero, so the pointer may stop a little short, which the next packet makes up — it never
+ * overshoots. Where it stops does not depend on the client's clock at all: only when.
  */
 class MotionPlanner {
 
@@ -131,65 +147,51 @@ class MotionPlanner {
         return (placeX + speedX * elapsed) to (placeY + speedY * elapsed)
     }
 
-    /** Whether the client is drawing a pointer that is still moving. */
-    val moving: Boolean get() = sent && (speedX != 0.0 || speedY != 0.0)
+    /** Where the client's pointer will come to rest. */
+    fun resting(): Pair<Double, Double>? =
+        if (!sent) null else (placeX + speedX * ELAPSED_MAX) to (placeY + speedY * ELAPSED_MAX)
 
-    /**
-     * Plans the next packet. [x], [y] is where the pointer should be at [clock] (in ticks of
-     * the world's clock, with the part of a tick gone), and [vx], [vy] how fast it is
-     * going, in units a tick.
-     */
-    fun plan(
-        x: Double,
-        y: Double,
-        vx: Double,
-        vy: Double,
-        clock: Double,
-        width: Double = Double.MAX_VALUE,
-        height: Double = Double.MAX_VALUE,
-    ): MotionPlan {
-        val shown = shown(clock)
-        val fromX: Double
-        val fromY: Double
-        if (shown == null || abs(shown.first - x) > SNAP || abs(shown.second - y) > SNAP) {
-            fromX = x
-            fromY = y
-        } else {
-            fromX = shown.first
-            fromY = shown.second
-        }
-        val still = abs(vx) < STILL && abs(vy) < STILL
-        // Come to rest exactly: a pointer the hand has stopped is not steered, it is put there.
-        val settle = still && abs(fromX - x) <= SETTLE && abs(fromY - y) <= SETTLE
-        // Never faster than the edge allows: past it the shader would carry the pointer off
-        // the page, and the next packet would pull it back — the bounce at the edges.
-        val codeX = if (settle) 0 else MotionCodec.code(withinEdges(vx + (x - fromX) / CATCH_UP, fromX, width))
-        val codeY = if (settle) 0 else MotionCodec.code(withinEdges(vy + (y - fromY) / CATCH_UP, fromY, height))
-        val tick = floor(clock).toLong()
-        val part = clock - tick
+    /** Whether the client is drawing a pointer that is still on its way at [clock]. */
+    fun moving(clock: Double): Boolean = sent && (speedX != 0.0 || speedY != 0.0) && clock - at < ELAPSED_MAX
+
+    /** Plans the next packet: the pointer to go to [x], [y] from wherever it is at [clock]. */
+    fun plan(x: Double, y: Double, clock: Double): MotionPlan {
+        val shown = shown(clock) ?: (x to y)
+        val dx = x - shown.first
+        val dy = y - shown.second
+        if (Math.abs(dx) < SETTLE && Math.abs(dy) < SETTLE) return rest(x, y, clock)
+        // A tick for the place such that between a half and one and a half ticks are left
+        // before the end: long enough not to be a jump, short enough not to trail.
+        val whole = floor(clock).toLong()
+        val part = clock - whole
+        val tick = if (part < 0.5) whole - 1 else whole
+        val elapsed = clock - tick
+        val left = ELAPSED_MAX - elapsed
+        val codeX = MotionCodec.codeAtMost(dx / left)
+        val codeY = MotionCodec.codeAtMost(dy / left)
         val sx = MotionCodec.speed(codeX)
         val sy = MotionCodec.speed(codeY)
-        val startX = if (settle) x else fromX
-        val startY = if (settle) y else fromY
-        // The place travels as the one it had at the start of the tick.
-        val px = (startX - sx * part).roundToInt()
-        // y is rounded to the encoder's steps only once it is lifted onto its bar; a unit
-        // either way is nothing the model needs to know about.
-        val py = (startY - sy * part).roundToInt()
-        sent = true
-        placeX = px.toDouble()
-        placeY = py.toDouble()
-        speedX = sx
-        speedY = sy
-        at = tick
+        val px = (shown.first - sx * elapsed).roundToInt()
+        // y is rounded to the encoder's steps only once it is lifted onto its bar.
+        val py = (shown.second - sy * elapsed).roundToInt()
+        remember(px.toDouble(), py.toDouble(), sx, sy, tick)
         return MotionPlan(px, py, tick, codeX, codeY)
     }
 
-    /** A speed that does not carry [from] past 0 or [extent] within the ticks a place lasts. */
-    private fun withinEdges(speed: Double, from: Double, extent: Double): Double = when {
-        speed > 0 -> Math.min(speed, Math.max(0.0, (extent - 1 - from) / ELAPSED_MAX))
-        speed < 0 -> Math.max(speed, -Math.max(0.0, from / ELAPSED_MAX))
-        else -> 0.0
+    /** At rest exactly on [x], [y]. */
+    private fun rest(x: Double, y: Double, clock: Double): MotionPlan {
+        val tick = floor(clock).toLong()
+        remember(x.roundToInt().toDouble(), y.roundToInt().toDouble(), 0.0, 0.0, tick)
+        return MotionPlan(x.roundToInt(), y.roundToInt(), tick, 0, 0)
+    }
+
+    private fun remember(x: Double, y: Double, vx: Double, vy: Double, tick: Long) {
+        sent = true
+        placeX = x
+        placeY = y
+        speedX = vx
+        speedY = vy
+        at = tick
     }
 
     /** Forgets what the client was drawing: the next packet starts where the pointer is. */
@@ -198,22 +200,12 @@ class MotionPlanner {
     }
 
     companion object {
-        /** Ticks a gap between the model and the pointer is made up over. */
-        const val CATCH_UP = 1.5
-
-        /** Further apart than this, and the pointer jumps rather than chases. */
-        const val SNAP = 480.0
-
-        /** Slower than this, in units a tick, and the hand has stopped. */
-        const val STILL = 0.25
-
-        /** Closer than this to where it belongs, and a stopped pointer is simply put there. */
-        const val SETTLE = 3.0
+        /** Closer than this to where it belongs, and the pointer is simply put there. */
+        const val SETTLE = 1.5
 
         /**
          * How far from its tick the shader carries a place: a little back, for a client
-         * whose clock runs behind ours, and two ticks on, after which a pointer whose
-         * packets have stopped stands still rather than sailing off the screen.
+         * whose clock runs behind ours, and two ticks on — where the pointer stops.
          */
         const val ELAPSED_MIN = -1.0
         const val ELAPSED_MAX = 2.0

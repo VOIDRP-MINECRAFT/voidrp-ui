@@ -62,35 +62,52 @@ class MotionTest {
     }
 
     @Test
-    fun `a steady sweep is handed over without a jump and stays on the hand`() {
+    fun `a sweep is handed over without a jump and never runs past the hand`() {
         val planner = MotionPlanner()
-        val speed = 23.0   // units a tick: not one of the codes, so the planner has to steer
+        val speed = 23.0   // units a tick
         var worstJump = 0.0
-        var worstOff = 0.0
+        var worstPast = 0.0
         var last: ru.voidrp.ui.input.MotionPlan? = null
         var clock = 100.3
-        repeat(60) {
-            val handX = 200.0 + speed * (clock - 100.3)
-            last?.let { before ->
-                val next = planner.plan(handX, 500.0, speed, 0.0, clock)
-                worstJump = maxOf(worstJump, abs(drawn(before, clock).first - drawn(next, clock).first))
-                worstOff = maxOf(worstOff, abs(drawn(next, clock).first - handX))
-                last = next
-            } ?: run { last = planner.plan(handX, 500.0, speed, 0.0, clock) }
+        var hand = 200.0
+        repeat(40) {
+            hand += speed
+            val next = planner.plan(hand, 500.0, clock)
+            last?.let { worstJump = maxOf(worstJump, abs(drawn(it, clock).first - drawn(next, clock).first)) }
+            // Everywhere until the next reading, the pointer is short of the hand or on it.
+            var t = clock
+            while (t < clock + 1.0) {
+                worstPast = maxOf(worstPast, drawn(next, t).first - hand)
+                t += 0.1
+            }
+            last = next
             clock += 1.0
         }
         assertTrue(worstJump <= 1.5, "jumped $worstJump units at a hand-over")
-        assertTrue(worstOff < 12.0, "fell $worstOff units off the hand")
+        assertTrue(worstPast <= 1.0, "ran $worstPast units past the hand")
     }
 
     @Test
     fun `a stopped hand leaves the pointer exactly where it is`() {
         val planner = MotionPlanner()
-        planner.plan(300.0, 300.0, 10.0, 0.0, 50.0)
-        val plan = planner.plan(311.0, 300.0, 0.0, 0.0, 51.0)
-        assertEquals(0.0, MotionCodec.speed(plan.vx))
-        assertEquals(311, plan.x)
-        assertTrue(!planner.moving)
+        var plan = planner.plan(300.0, 300.0, 50.0)
+        plan = planner.plan(411.0, 300.0, 50.6)
+        // Wherever it is drawn after the end, it rests short of the hand, never past it.
+        assertTrue(drawn(plan, 60.0).first <= 411.0)
+        // And once it has stopped short, the next packet puts it on the hand.
+        plan = planner.plan(411.0, 300.0, 53.0)
+        plan = planner.plan(411.0, 300.0, 56.0)
+        assertEquals(411.0, drawn(plan, 60.0).first, 1.5)
+    }
+
+    @Test
+    fun `a speed is never rounded up`() {
+        var v = 0.3
+        while (v < 650.0) {
+            assertTrue(MotionCodec.speed(MotionCodec.codeAtMost(v)) <= v + 1e-9)
+            assertTrue(MotionCodec.speed(MotionCodec.codeAtMost(-v)) >= -v - 1e-9)
+            v *= 1.05
+        }
     }
 
     @Test
