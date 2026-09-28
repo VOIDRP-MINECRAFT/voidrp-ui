@@ -100,7 +100,9 @@ class WorldSurface(
             Vector3f(r, -r, -r) to Vector3f(t, 2 * r, 2 * r),          // east
             Vector3f(-r - t, -r, -r) to Vector3f(t, 2 * r, 2 * r),     // west
             Vector3f(-r, r, -r) to Vector3f(2 * r, t, 2 * r),          // up
-            Vector3f(-r, -r - t, -r) to Vector3f(2 * r, t, 2 * r),     // down
+            // The floor just under the player's feet rather than a room's depth below them,
+            // where the ground they stand on would cover it.
+            Vector3f(-r, -FLOOR, -r) to Vector3f(2 * r, t, 2 * r),     // down
         )
         val at = eye.clone()
         at.yaw = 0f
@@ -185,5 +187,8 @@ class WorldSurface(
 
         /** Half the size of the dark room round the player, in blocks: the page is inside it. */
         const val ROOM = 2.6f
+
+        /** Blocks from the eyes down to the room's floor: just above the ground under the feet. */
+        const val FLOOR = 1.55f
     }
 }
