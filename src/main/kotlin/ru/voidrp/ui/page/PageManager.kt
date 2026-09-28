@@ -57,6 +57,11 @@ class PageManager(
      * Needs PacketEvents: a bar someone else owns is invisible to the server otherwise.
      */
     private val bars: ru.voidrp.ui.input.BossBarGuard = ru.voidrp.ui.input.BossBarGuard(),
+    /**
+     * Whether this player's client moves the pointer itself: the motion shader is in the
+     * pack, and the pack this client loaded is the one it is in.
+     */
+    private val clientMotion: (Player) -> Boolean = { false },
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -259,17 +264,9 @@ class PageManager(
                 aim,
                 { viewportOf(player) },
                 { key -> messages.text(key) },
-            ) { over ->
-                sessions.remove(over.player.uniqueId, over)
-                // A tick later, and only if no page took its place: going from one page to
-                // the next closes one session and opens another, and putting the bars back
-                // in between would flash them across the screen.
-                runCatching {
-                    plugin.server.scheduler.runTask(plugin, Runnable {
-                        if (over.player.isOnline && !isOpen(over.player)) bars.showOthers(over.player)
-                    })
-                }
-            }
+                { over -> forgetSession(over) },
+                { clientMotion(player) },
+            )
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
         // first, the pointer's bar could be created before the page's — and then the page
@@ -301,6 +298,19 @@ class PageManager(
     fun closeAll() {
         sessions.values.toList().forEach { it.close() }
         sessions.clear()
+    }
+
+    /** A session over: off the list, and the other plugins' bars back a tick later. */
+    private fun forgetSession(over: PageSession) {
+        sessions.remove(over.player.uniqueId, over)
+        // A tick later, and only if no page took its place: going from one page to
+        // the next closes one session and opens another, and putting the bars back
+        // in between would flash them across the screen.
+        runCatching {
+            plugin.server.scheduler.runTask(plugin, Runnable {
+                if (over.player.isOnline && !isOpen(over.player)) bars.showOthers(over.player)
+            })
+        }
     }
 
     /** Called every tick: the cursor follows the player's aim, so it has to keep up. */

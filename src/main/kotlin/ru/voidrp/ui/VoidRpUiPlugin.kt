@@ -63,6 +63,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         screens,
         { config.getBoolean("display.ask-screen", true) },
         bars,
+        { player -> ru.voidrp.ui.pack.Shaders.motion && clientMotion && usesModernPack(player) },
     )
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
@@ -150,6 +151,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
 
         // Baked into the shader, so it is decided before the pack is built.
         ru.voidrp.ui.pack.Shaders.particles = config.getBoolean("effects.particles", true)
+        ru.voidrp.ui.pack.Shaders.motion = config.getBoolean("input.client-motion", true)
 
         packFile = File(dataFolder, "voidrp-ui.zip")
         packHash = PackBuilder(
@@ -287,6 +289,18 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      * A server that applies the pack some other way — through server.properties, or a
      * merged pack of its own — can turn the check off and take responsibility for it.
      */
+    /**
+     * Whether pointers go as a place and a speed where the client can take them. The pack
+     * decides whether it can ([ru.voidrp.ui.pack.Shaders.motion]); this, whether it does —
+     * `/vui debug motion` flips it live, to compare the two by hand.
+     */
+    @Volatile var clientMotion = true
+
+    /** Whether this player was sent, and loaded, the pack for 26.2 and newer. */
+    fun usesModernPack(player: Player): Boolean =
+        packHash.isNotEmpty() && sentHash[player.uniqueId] == packHash && packHash != legacyHash &&
+            packStatus[player.uniqueId] == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED
+
     fun packReady(player: Player): Boolean {
         if (!config.getBoolean("pack.require-accepted", true)) return true
         val current = sentHash[player.uniqueId]

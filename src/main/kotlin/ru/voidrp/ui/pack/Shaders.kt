@@ -74,6 +74,21 @@ object Shaders {
     const val SHIFT = 64
 
     /**
+     * The four markers of a glyph the client moves by itself: the pointer, sent as a place
+     * and a speed ([ru.voidrp.ui.input.MotionCodec]). Four, because which one it is carries
+     * two more bits of data. 6 to 9 for the reason 0xB was chosen: no named colour has any
+     * of them as its red.
+     */
+    const val MARKER_MOTION_FIRST = 0x6
+    const val MARKER_MOTION_LAST = 0x9
+
+    /**
+     * Whether the pack moves the pointer on the client ([MARKER_MOTION_FIRST]). Like the
+     * drifting specks it reads the client's time of day, so it brings in the same import.
+     */
+    var motion = false
+
+    /**
      * Whether the pack carries the drifting branch at all.
      *
      * It costs one import — the client's own globals, where the time of day lives — and a
@@ -116,17 +131,36 @@ object Shaders {
         // y (10) followed by the fill colour (10, RGB 3-4-3).
         // (Nothing here may be named "packed" — a reserved word in GLSL that makes strict
         // drivers reject the whole shader while lenient compilers let it pass.)
-        bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill, out bool drifts) {
+        // Canvas units a tick, one for each of the sixteen speed codes (MotionCodec.SPEEDS).
+        const float VOIDRP_SPEEDS[16] = float[16](${ru.voidrp.ui.input.MotionCodec.SPEEDS.joinToString(", ") { "%.2f".format(java.util.Locale.ROOT, it) }});
+
+        float voidrp_speed(int code) {
+            float magnitude = VOIDRP_SPEEDS[code & 15];
+            return (code & 16) != 0 ? -magnitude : magnitude;
+        }
+
+        bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill, out bool drifts, out vec3 motion) {
             int red = int(floor(color.r * 255.0 + 0.5));
             int mark = red >> 4;
+            int bits = ((red & 15) << 16)
+                     | (int(floor(color.g * 255.0 + 0.5)) << 8)
+                     |  int(floor(color.b * 255.0 + 0.5));
+            motion = vec3(-1.0, 0.0, 0.0);
+            drifts = false;
+            // The pointer: a place at a tick, and a speed each way (MotionCodec.data). The
+            // marker is two bits of it; the colour is the rest, so the pointer is white.
+            if (mark >= ${MARKER_MOTION_FIRST} && mark <= ${MARKER_MOTION_LAST}) {
+                int data = ((mark - ${MARKER_MOTION_FIRST}) << 20) | bits;
+                canvasY = float((data >> 13) & 511) * ${ru.voidrp.ui.input.MotionCodec.Y_STEP}.0 - ${ru.voidrp.ui.input.MotionCodec.Y_SHIFT}.0;
+                fill = vec3(1.0);
+                motion = vec3(float((data >> 10) & 7), voidrp_speed((data >> 5) & 31), voidrp_speed(data & 31));
+                return true;
+            }
             if (mark < ${MARKER} || mark > ${MARKER_DRIFT_SHIFTED}) {
                 return false;
             }
             drifts = mark == ${MARKER_DRIFT} || mark == ${MARKER_DRIFT_SHIFTED};
             bool shifted = mark >= ${MARKER_SHIFTED};
-            int bits = ((red & 15) << 16)
-                     | (int(floor(color.g * 255.0 + 0.5)) << 8)
-                     |  int(floor(color.b * 255.0 + 0.5));
             int qy = (bits >> ${COLOUR_BITS}) & ${Y_MAX};
             int c = bits & ${(1 shl COLOUR_BITS) - 1};
             canvasY = float(qy) - (shifted ? ${SHIFT}.0 : 0.0);
@@ -174,11 +208,25 @@ object Shaders {
             return vec2(x, y);
         }
 
-        vec4 voidrp_place(float canvasY, vec4 original, bool drifts) {
+        vec4 voidrp_place(float canvasY, vec4 original, bool drifts, vec3 motion) {
             vec2 ndc = original.xy / original.w;
             float penX = ndc.x / ProjMat[0][0];
             float fromTop = (1.0 - ndc.y) / -ProjMat[1][1];
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
+        #ifdef VOIDRP_MOTION
+            if (motion.x >= 0.0) {
+                // How far the world's clock is past the tick the place was given for. It
+                // travels modulo ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}; past half of that
+                // it is a place from a moment ahead of this client's clock. Carried a little
+                // back, and at most two ticks on, so a pointer whose packets stop stands still.
+                float elapsed = mod(GameTime * 24000.0 - motion.x, ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}.0);
+                if (elapsed >= ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP / 2}.0) {
+                    elapsed -= ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}.0;
+                }
+                elapsed = clamp(elapsed, ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_MIN}, ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_MAX});
+                canvas += motion.yz * elapsed;
+            }
+        #endif
         #ifdef VOIDRP_PARTICLES
             if (drifts) {
                 // Ticks since the world began, near enough: GameTime runs 0…1 over twenty
@@ -244,7 +292,11 @@ object Shaders {
         else source.replaceFirst("#version 330", "#version 330\n#define VOIDRP_PARTICLES 1")
             .replaceFirst("#version 150", "#version 150\n#define VOIDRP_PARTICLES 1")
 
-    val TEXT_VSH_MODERN: String get() = withParticles(MODERN_TEMPLATE)
+    /** Only the modern shader: the older one has no time to read that is known to work. */
+    private fun withMotion(source: String): String =
+        if (!motion) source else source.replaceFirst("#version 330", "#version 330\n#define VOIDRP_MOTION 1")
+
+    val TEXT_VSH_MODERN: String get() = withMotion(withParticles(MODERN_TEMPLATE))
 
     /** 26.2 and newer: a single `text.vsh` with variants behind #define. */
     private val MODERN_TEMPLATE = """
@@ -257,7 +309,7 @@ object Shaders {
 
         #moj_import <minecraft:dynamictransforms.glsl>
         #moj_import <minecraft:projection.glsl>
-        #ifdef VOIDRP_PARTICLES
+        #if defined(VOIDRP_PARTICLES) || defined(VOIDRP_MOTION)
         #moj_import <minecraft:globals.glsl>
         #endif
 
@@ -289,9 +341,10 @@ object Shaders {
             float canvasY;
             vec3 fill;
             bool drifts;
+            vec3 motion;
             voidrpShape = 0.0;
-            if (voidrp_decode(Color, canvasY, fill, drifts)) {
-                gl_Position = voidrp_place(canvasY, gl_Position, drifts);
+            if (voidrp_decode(Color, canvasY, fill, drifts, motion)) {
+                gl_Position = voidrp_place(canvasY, gl_Position, drifts, motion);
                 tint = vec4(fill, 1.0);
                 voidrpShape = 1.0;
             }
@@ -345,9 +398,10 @@ object Shaders {
             float canvasY;
             vec3 fill;
             bool drifts;
+            vec3 motion;
             voidrpShape = 0.0;
-            if (voidrp_decode(Color, canvasY, fill, drifts)) {
-                gl_Position = voidrp_place(canvasY, gl_Position, drifts);
+            if (voidrp_decode(Color, canvasY, fill, drifts, motion)) {
+                gl_Position = voidrp_place(canvasY, gl_Position, drifts, motion);
                 tint = vec4(fill, 1.0);
                 voidrpShape = 1.0;
             }

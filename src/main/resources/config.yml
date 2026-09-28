@@ -143,6 +143,14 @@ input:
   # Changeable in game with /vui debug fps <n> (saved here). Each frame is one small packet
   # per player with a page open.
   frame-rate: 40
+  # Whether the client moves the pointer by itself (26.2 and newer clients).
+  #
+  # The pointer is sent as a place and a speed, about twenty times a second while it moves,
+  # and the client's text shader carries it on from there at the screen's own frame rate,
+  # the way it moves display entities between two updates. Smooth on any monitor, and
+  # nothing is sent while the pointer stands still. Clients on the older pack are sent every
+  # frame at frame-rate, as before. Needs the pack rebuilt: it changes the text shader.
+  client-motion: true
   # Whether the page is drawn again when the cursor moves onto something else.
   #
   # A page is one long line; sending it costs tens of kilobytes, and doing that every time

@@ -117,6 +117,24 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 )
             }
 
+            // The pointer moved by the client, or sent frame by frame: flipped live to compare.
+            "motion" -> {
+                when (args.getOrNull(1)?.lowercase()) {
+                    "on" -> plugin.clientMotion = true
+                    "off" -> plugin.clientMotion = false
+                    null -> plugin.clientMotion = !plugin.clientMotion
+                }
+                val built = ru.voidrp.ui.pack.Shaders.motion
+                sender.sendMessage(
+                    Component.text(
+                        if (!built) "The pack was built without client motion (input.client-motion: false)."
+                        else if (plugin.clientMotion) "Pointer: moved by the client between packets."
+                        else "Pointer: sent frame by frame at ${plugin.pages.frameRate} a second, as before.",
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
             // How often the pointer is drawn. Saved, since it is a server-wide choice.
             "fps" -> {
                 args.getOrNull(1)?.toIntOrNull()?.let {
@@ -265,7 +283,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()

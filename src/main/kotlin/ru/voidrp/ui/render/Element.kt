@@ -62,7 +62,15 @@ data class Sprite(
     val colour: Int = 0xFFFFFF,
     /** Which font holds the picture; the shape alphabet when nothing is named. */
     val font: String? = null,
+    /**
+     * For a picture the client moves by itself — the pointer: the tick its place is given
+     * for, and its speed each way as [ru.voidrp.ui.input.MotionCodec] codes. Drawn white.
+     */
+    val motion: SpriteMotion? = null,
 ) : Node
+
+/** A place at a tick and a speed; see [ru.voidrp.ui.input.MotionCodec]. */
+data class SpriteMotion(val tick: Long, val vx: Int, val vy: Int)
 
 /**
  * One tile of a halo — a shadow or a glow — around a panel.
@@ -299,7 +307,9 @@ object GlyphEncoder {
     }
 
     private fun appendSprite(line: Line, sprite: Sprite, penIn: Int): Int {
-        val colour = TextColor.color(pack(sprite.y, quantise(sprite.colour)))
+        val colour = TextColor.color(
+            sprite.motion?.let { packMotion(sprite.y, it) } ?: pack(sprite.y, quantise(sprite.colour)),
+        )
         val font = sprite.font ?: Glyphs.fontName(Glyphs.ALPHA_LEVELS)
         // The move to the right place is written in the shape alphabet, which every font
         // of ours carries, so the picture and the step before it are one run.
@@ -363,6 +373,21 @@ object GlyphEncoder {
      * A y a little above the canvas — which is where a lifted bar puts the top of the
      * screen — goes with the shifted marker, [Shaders.SHIFT] units low.
      */
+    /**
+     * A moving glyph: 22 bits of [ru.voidrp.ui.input.MotionCodec.data], the top two chosen
+     * by which of the four motion markers it carries.
+     */
+    internal fun packMotion(y: Int, motion: SpriteMotion): Int {
+        val data = ru.voidrp.ui.input.MotionCodec.data(
+            ru.voidrp.ui.input.MotionCodec.yStep(y),
+            (motion.tick % ru.voidrp.ui.input.MotionCodec.TICK_WRAP).toInt(),
+            motion.vx,
+            motion.vy,
+        )
+        val marker = Shaders.MARKER_MOTION_FIRST + (data shr 20)
+        return (marker shl 20) or (data and 0xFFFFF)
+    }
+
     internal fun pack(y: Int, fill: Int, drift: Boolean = false): Int {
         val shifted = y < 0
         val qy = if (shifted) (y + Shaders.SHIFT).coerceAtLeast(0) else y.coerceAtMost(Y_MAX)
