@@ -255,6 +255,7 @@ class PageSession(
         // screen is.
         pointer.place((viewport.width / 2).toDouble(), (Shaders.CANVAS_HEIGHT / 2).toDouble())
         planner.reset()
+        lastPlan = null
         render()
     }
 
@@ -440,9 +441,11 @@ class PageSession(
         // where it should be (a speed rounded down, a reading that came late).
         val resting = planner.resting()
         val short = resting?.let { Math.hypot(it.first - x, it.second - y) > MotionPlanner.SETTLE } ?: true
-        val due = clockProbe || sampled || (short && !planner.moving(clock) && Math.floor(clock).toLong() != plannedTick)
+        val replan = sampled || (short && !planner.moving(clock) && Math.floor(clock).toLong() != plannedTick)
         when {
-            due -> draw()
+            replan -> draw(replan = true)
+            // The ruler goes every loop; the pointer with it, as it was last planned.
+            clockProbe -> draw()
             overChanged -> synchronized(drawing) { drawHover() }
         }
     }
@@ -798,13 +801,23 @@ class PageSession(
     private val drawing = Any()
 
     /** Sends the pointer, and what it is over when that has changed. */
-    private fun draw() = synchronized(drawing) {
+    /** The pointer as last planned, sent again as it is by anything but a new course. */
+    private var lastPlan: ru.voidrp.ui.input.MotionPlan? = null
+
+    /**
+     * Sends the pointer. A pointer the client moves is planned again only when [replan]:
+     * everything else that sends it — the page redrawn, the hover, the ruler — sends the
+     * plan it has. Planned again sixty times a second for the ruler, it shook even at rest,
+     * every plan a hair off the one before by however far the client's clock is off.
+     */
+    private fun draw(replan: Boolean = false) = synchronized(drawing) {
         drawHover()
         val lift = cursorLift()
         val now = System.nanoTime()
         val clock = clock(now)
         if (clientMotion() && clock != null) {
-            val plan = planner.plan(pointer.targetX, pointer.targetY, clock)
+            val plan = lastPlan?.takeIf { !replan } ?: planner.plan(pointer.targetX, pointer.targetY, clock)
+            lastPlan = plan
             plannedTick = plan.tick
             // At rest it goes the ordinary way, to the unit; only a moving pointer needs the
             // speed, and gives up a little of its height's precision for it.

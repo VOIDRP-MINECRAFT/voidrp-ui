@@ -160,11 +160,13 @@ class MotionPlanner {
         val dx = x - shown.first
         val dy = y - shown.second
         if (Math.abs(dx) < SETTLE && Math.abs(dy) < SETTLE) return rest(x, y, clock)
-        // A tick for the place such that between a half and one and a half ticks are left
-        // before the end: long enough not to be a jump, short enough not to trail.
+        // A tick for the place such that between 1.2 and 2.2 ticks are left before the end.
+        // Readings come about a tick apart, so while the hand moves the next one always
+        // lands before the pointer arrives and it never stands waiting for it; an earlier
+        // half to one and a half ticks let it arrive first, stop, and go again every tick.
         val whole = floor(clock).toLong()
         val part = clock - whole
-        val tick = if (part < 0.5) whole - 1 else whole
+        val tick = if (part <= 0.8) whole else whole + 1
         val elapsed = clock - tick
         val left = ELAPSED_MAX - elapsed
         val codeX = MotionCodec.codeAtMost(dx / left)
