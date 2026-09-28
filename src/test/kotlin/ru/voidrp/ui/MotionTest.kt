@@ -101,6 +101,18 @@ class MotionTest {
     }
 
     @Test
+    fun `a pointer that has arrived is told to rest`() {
+        val planner = MotionPlanner()
+        planner.plan(300.0, 300.0, 50.0)
+        planner.plan(360.0, 330.0, 51.0)
+        assertTrue(planner.ended(54.0), "a moving place must not be left to come round again")
+        val rest = planner.plan(360.0, 330.0, 54.0)
+        assertEquals(0, rest.vx)
+        assertEquals(0, rest.vy)
+        assertTrue(!planner.ended(60.0))
+    }
+
+    @Test
     fun `a speed is never rounded up`() {
         var v = 0.3
         while (v < 650.0) {

@@ -165,6 +165,15 @@ class MotionPlanner {
     fun resting(): Pair<Double, Double>? =
         if (!sent) null else (placeX + speedX * ELAPSED_MAX) to (placeY + speedY * ELAPSED_MAX)
 
+    /**
+     * Whether the client is drawing a moving pointer that has already arrived at [clock].
+     *
+     * It must be told to rest then, and soon: the tick goes modulo [MotionCodec.TICK_WRAP],
+     * so a moving place left on screen comes round again — the pointer replayed its last
+     * move every four ticks, sinking nine pixels and jumping back, with the mouse untouched.
+     */
+    fun ended(clock: Double): Boolean = sent && (speedX != 0.0 || speedY != 0.0) && clock - at >= ELAPSED_MAX
+
     /** Whether the client is drawing a pointer that is still on its way at [clock]. */
     fun moving(clock: Double): Boolean = sent && (speedX != 0.0 || speedY != 0.0) && clock - at < ELAPSED_MAX
 
@@ -174,6 +183,8 @@ class MotionPlanner {
         val dx = x - shown.first
         val dy = y - shown.second
         if (Math.abs(dx) < SETTLE && Math.abs(dy) < SETTLE) return rest(x, y, clock)
+        // Arrived short: rest where it is if that is close enough, rather than a last hop.
+        if (ended(clock) && Math.abs(dx) < SETTLE * 3 && Math.abs(dy) < SETTLE * 3) return rest(x, y, clock)
         // A tick for the place such that between 1.2 and 2.2 ticks are left before the end.
         // Readings come about a tick apart, so while the hand moves the next one always
         // lands before the pointer arrives and it never stands waiting for it; an earlier

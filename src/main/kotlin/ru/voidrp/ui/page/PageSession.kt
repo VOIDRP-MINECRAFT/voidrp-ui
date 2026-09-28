@@ -472,7 +472,7 @@ class PageSession(
         // where it should be (a speed rounded down, a reading that came late).
         val resting = planner.resting()
         val short = resting?.let { Math.hypot(it.first - x, it.second - y) > MotionPlanner.SETTLE } ?: true
-        val replan = sampled || (short && !planner.moving(clock) && Math.floor(clock).toLong() != plannedTick)
+        val replan = sampled || planner.ended(clock) || (short && !planner.moving(clock) && Math.floor(clock).toLong() != plannedTick)
         when {
             replan -> draw(replan = true)
             // The ruler goes every loop; the pointer with it, as it was last planned.
