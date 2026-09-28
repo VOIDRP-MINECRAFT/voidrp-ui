@@ -71,6 +71,20 @@ object MotionCodec {
         return if (best != 0 && speed < 0) best or NEGATIVE else best
     }
 
+    /**
+     * The speed to cover [distance] in [ticks]: the nearest there is, unless that would end
+     * more than [OVERSHOOT] units past it, then the next one down. Rounding always down made
+     * a stop a string of small hops, each short by up to a quarter of what was left.
+     */
+    fun codeToward(distance: Double, ticks: Double): Int {
+        val near = code(distance / ticks)
+        val past = Math.abs(speed(near) * ticks) - Math.abs(distance)
+        return if (past > OVERSHOOT) codeAtMost(distance / ticks) else near
+    }
+
+    /** Units a pointer may end past where it was sent. */
+    const val OVERSHOOT = 1.0
+
     /** What a code stands for, in units a tick. */
     fun speed(code: Int): Double {
         val magnitude = SPEEDS[code and 31]
@@ -155,7 +169,7 @@ class MotionPlanner {
     fun moving(clock: Double): Boolean = sent && (speedX != 0.0 || speedY != 0.0) && clock - at < ELAPSED_MAX
 
     /** Plans the next packet: the pointer to go to [x], [y] from wherever it is at [clock]. */
-    fun plan(x: Double, y: Double, clock: Double): MotionPlan {
+    fun plan(x: Double, y: Double, clock: Double, yAsSent: (Int) -> Int = { it }): MotionPlan {
         val shown = shown(clock) ?: (x to y)
         val dx = x - shown.first
         val dy = y - shown.second
@@ -169,13 +183,14 @@ class MotionPlanner {
         val tick = if (part <= 0.8) whole else whole + 1
         val elapsed = clock - tick
         val left = ELAPSED_MAX - elapsed
-        val codeX = MotionCodec.codeAtMost(dx / left)
-        val codeY = MotionCodec.codeAtMost(dy / left)
+        val codeX = MotionCodec.codeToward(dx, left)
+        val codeY = MotionCodec.codeToward(dy, left)
         val sx = MotionCodec.speed(codeX)
         val sy = MotionCodec.speed(codeY)
         val px = (shown.first - sx * elapsed).roundToInt()
-        // y is rounded to the encoder's steps only once it is lifted onto its bar.
-        val py = (shown.second - sy * elapsed).roundToInt()
+        // y as the encoder will round it, so the model is what the client draws: rounded
+        // behind its back, every hand-over moved the pointer up to two units.
+        val py = yAsSent((shown.second - sy * elapsed).roundToInt())
         remember(px.toDouble(), py.toDouble(), sx, sy, tick)
         return MotionPlan(px, py, tick, codeX, codeY)
     }
@@ -203,7 +218,7 @@ class MotionPlanner {
 
     companion object {
         /** Closer than this to where it belongs, and the pointer is simply put there. */
-        const val SETTLE = 1.5
+        const val SETTLE = 0.75
 
         /**
          * How far from its tick the shader carries a place: a little back, for a client

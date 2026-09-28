@@ -133,6 +133,18 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 )
             }
 
+            // Ten seconds of readings and plans to a file, for a player (by name from the console).
+            "mtrace" -> {
+                val target = args.getOrNull(1)?.let { org.bukkit.Bukkit.getPlayerExact(it) } ?: (sender as? org.bukkit.entity.Player)
+                val ok = target != null && plugin.pages.traceMotion(target)
+                sender.sendMessage(
+                    Component.text(
+                        if (ok) "Tracing ${target!!.name}'s pointer for 10 s → motion-trace-${target.name}.csv" else "No open page to trace.",
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
             // How far this client's clock is from ours: the one unknown of client motion.
             "clock" -> {
                 val player = sender as? org.bukkit.entity.Player ?: return
@@ -315,7 +327,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "clock", "offset", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "clock", "offset", "mtrace", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()

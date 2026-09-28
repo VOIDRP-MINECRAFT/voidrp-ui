@@ -123,6 +123,7 @@ class PageSession(
      */
     @Volatile private var worldTicks = 0L
     @Volatile private var tickAt = 0L
+    @Volatile private var clockBase = 0.0
 
     /**
      * `/vui debug clock`: draws a ruler with a mark that sits as many ticks off its middle
@@ -130,6 +131,28 @@ class PageSession(
      * depends on and nothing else can see. Sent every frame while it is on.
      */
     @Volatile var clockProbe = false
+
+    /** `/vui debug mtrace`: every reading and every plan for ten seconds, then a file. */
+    private var motionTrace: StringBuilder? = null
+    private var motionTraceUntil = 0L
+
+    fun startTrace() {
+        motionTrace = StringBuilder("kind,nanos,clock,x,y,tick,vx,vy,tx,ty\n")
+        motionTraceUntil = System.nanoTime() + 10_000_000_000L
+    }
+
+    private inline fun traceLine(line: () -> String) {
+        val out = motionTrace ?: return
+        out.append(line()).append('\n')
+        if (System.nanoTime() > motionTraceUntil) {
+            motionTrace = null
+            runCatching {
+                val file = java.io.File(plugin.dataFolder, "motion-trace-${player.name}.csv")
+                file.writeText(out.toString())
+                plugin.logger.info("Motion trace for ${player.name} written: ${file.name}")
+            }
+        }
+    }
 
     /** The whole tick the last moving pointer was planned in. */
     private var plannedTick = Long.MIN_VALUE
@@ -141,9 +164,8 @@ class PageSession(
      * runs ([clockOffset]). Null before the first tick.
      */
     private fun clock(now: Long): Double? {
-        val at = tickAt
-        if (at == 0L) return null
-        return worldTicks + ((now - at) / 50_000_000.0).coerceIn(0.0, 2.0) + clockOffset()
+        if (tickAt == 0L) return null
+        return clockBase + now / NANOS_PER_TICK + clockOffset()
     }
 
     /** Whether the pointer goes as a place and a speed right now. */
@@ -291,8 +313,16 @@ class PageSession(
      */
     fun tick() {
         if (closed) return
-        worldTicks = runCatching { player.world.gameTime }.getOrDefault(worldTicks)
-        tickAt = System.nanoTime()
+        val ticks = runCatching { player.world.gameTime }.getOrDefault(worldTicks)
+        val at = System.nanoTime()
+        // The world's clock as a line through the ticks rather than the last tick itself:
+        // this runs wherever in the tick the scheduler gets to it, a few milliseconds early
+        // or late depending on the world, and every plan read that wobble as the clock's.
+        val base = ticks - at / NANOS_PER_TICK
+        clockBase = if (tickAt == 0L || Math.abs(base - clockBase) > CLOCK_RESYNC) base
+            else clockBase + (base - clockBase) * CLOCK_EASING
+        worldTicks = ticks
+        tickAt = at
         // The aim is read by the frames, sixty times a second, and reading it here as well
         // would eat the very readings the tracker is waiting for. This tick only asks what
         // the pointer is over now, because answering that means drawing the page again and
@@ -437,6 +467,7 @@ class PageSession(
         val clock = clock(now) ?: return
         val x = pointer.targetX
         val y = pointer.targetY
+        if (sampled) traceLine { "read,$now,$clock,$x,$y" }
         // Sent when there is somewhere new to go, and when the pointer has stopped short of
         // where it should be (a speed rounded down, a reading that came late).
         val resting = planner.resting()
@@ -816,7 +847,10 @@ class PageSession(
         val now = System.nanoTime()
         val clock = clock(now)
         if (clientMotion() && clock != null) {
-            val plan = lastPlan?.takeIf { !replan } ?: planner.plan(pointer.targetX, pointer.targetY, clock)
+            val plan = lastPlan?.takeIf { !replan } ?: planner.plan(pointer.targetX, pointer.targetY, clock) { y ->
+                ru.voidrp.ui.input.MotionCodec.yOf(ru.voidrp.ui.input.MotionCodec.yStep(y - lift)) + lift
+            }
+            traceLine { "plan,${System.nanoTime()},$clock,${plan.x},${plan.y},${plan.tick},${plan.vx},${plan.vy},${pointer.targetX},${pointer.targetY}" }
             lastPlan = plan
             plannedTick = plan.tick
             // At rest it goes the ordinary way, to the unit; only a moving pointer needs the
@@ -936,6 +970,15 @@ class PageSession(
 
         /** The pointer: one glyph, drawn with its own colours. */
         private const val TICKS_PER_SECOND = 20.0
+
+        /** A tick of the world's clock, in nanoseconds. */
+        private const val NANOS_PER_TICK = 50_000_000.0
+
+        /** How much of each tick's reading of the clock goes into the line through them. */
+        private const val CLOCK_EASING = 0.05
+
+        /** Ticks the clock may jump by (a lag spike, a /time) before the line starts over. */
+        private const val CLOCK_RESYNC = 3.0
 
         /** The clock ruler's scale: units a tick, and a speed the codec carries exactly. */
         private const val PROBE_SPEED = 50

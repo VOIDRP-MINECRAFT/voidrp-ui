@@ -349,6 +349,9 @@ class PageManager(
         }
     }
 
+    /** Starts a ten-second motion trace on this player's open page; false with none open. */
+    fun traceMotion(player: Player): Boolean = session(player)?.let { it.startTrace(); true } ?: false
+
     /** Flips the clock ruler on this player's open page; null with no page open. */
     fun toggleClockProbe(player: Player): Boolean? =
         session(player)?.let { it.clockProbe = !it.clockProbe; it.clockProbe }
