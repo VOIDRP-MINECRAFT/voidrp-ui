@@ -456,7 +456,11 @@ class PageSession(
         val off = shown?.let { Math.hypot(it.first - x, it.second - y) } ?: Double.MAX_VALUE
         val stopping = vx == 0.0 && vy == 0.0 && planner.moving
         val unsettled = vx != 0.0 || vy != 0.0 || planner.moving || off > 1.0
-        val due = clockProbe || sampled || stopping || (tick != plannedTick && unsettled)
+        // A speed goes as the nearest of sixteen, a third off at worst, so what the client
+        // draws drifts from where the pointer should be. Corrected as soon as it shows,
+        // rather than once a tick, the drift never builds up into the wobble it used to.
+        val drifted = off > DRIFT_LIMIT
+        val due = clockProbe || sampled || stopping || drifted || (tick != plannedTick && unsettled)
         when {
             due -> draw()
             overChanged -> synchronized(drawing) { drawHover() }
@@ -525,6 +529,10 @@ class PageSession(
             handVx = 0.0
             handVy = 0.0
         }
+        // Against an edge the readings stop there while the hand goes on: the pointer has
+        // nowhere further to go that way, whatever speed the readings last showed.
+        if ((x <= 0.0 && handVx < 0) || (x >= viewport.width - 1.0 && handVx > 0)) handVx = 0.0
+        if ((y <= 0.0 && handVy < 0) || (y >= Shaders.CANVAS_HEIGHT - 1.0 && handVy > 0)) handVy = 0.0
         handX = x
         handY = y
         handAt = now
@@ -538,7 +546,9 @@ class PageSession(
         if (handAt == 0L) return listOf(pointer.targetX, pointer.targetY, 0.0, 0.0)
         val age = (now - handAt) / NANOS_PER_TICK
         if (age > READING_LATE) return listOf(handX, handY, 0.0, 0.0)
-        val ahead = Math.min(age, 1.0)
+        // Carried on for half a tick at most: further, and a hand that has just stopped is
+        // overshot by that much and pulled back.
+        val ahead = Math.min(age, AHEAD_MAX)
         val x = (handX + handVx * ahead).coerceIn(0.0, (viewport.width - 1).toDouble())
         val y = (handY + handVy * ahead).coerceIn(0.0, (Shaders.CANVAS_HEIGHT - 1).toDouble())
         return listOf(x, y, handVx, handVy)
@@ -856,7 +866,7 @@ class PageSession(
         val clock = clock(now)
         if (clientMotion() && clock != null) {
             val (x, y, vx, vy) = handNow(now)
-            val plan = planner.plan(x, y, vx, vy, clock)
+            val plan = planner.plan(x, y, vx, vy, clock, viewport.width.toDouble(), Shaders.CANVAS_HEIGHT.toDouble())
             plannedTick = plan.tick
             val sprite = Sprite(
                 plan.x, plan.y - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
@@ -979,11 +989,20 @@ class PageSession(
         /** A tick of the world's clock, in nanoseconds. */
         private const val NANOS_PER_TICK = 50_000_000.0
 
-        /** Ticks without a reading after which the hand has stopped. */
-        private const val READING_LATE = 1.6
+        /**
+         * Ticks without a reading after which the hand has stopped. A client sends its look
+         * every tick while it changes, so a little over one tick of silence is a stop.
+         */
+        private const val READING_LATE = 1.25
 
         /** How much of each new reading's speed goes into the hand's. */
-        private const val HAND_EASING = 0.5
+        private const val HAND_EASING = 0.7
+
+        /** How far past the last reading the hand is carried on, in ticks. */
+        private const val AHEAD_MAX = 0.5
+
+        /** Units the client's pointer may stray from ours before a correction is sent. */
+        private const val DRIFT_LIMIT = 2.5
 
         fun cursor(x: Int, y: Int): List<Node> =
             listOf(Sprite(x, y, Glyphs.cursor(), Glyphs.cursorAdvance()))

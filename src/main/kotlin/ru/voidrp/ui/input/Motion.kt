@@ -133,7 +133,15 @@ class MotionPlanner {
      * the world's clock, with the part of a tick gone), and [vx], [vy] how fast it is
      * going, in units a tick.
      */
-    fun plan(x: Double, y: Double, vx: Double, vy: Double, clock: Double): MotionPlan {
+    fun plan(
+        x: Double,
+        y: Double,
+        vx: Double,
+        vy: Double,
+        clock: Double,
+        width: Double = Double.MAX_VALUE,
+        height: Double = Double.MAX_VALUE,
+    ): MotionPlan {
         val shown = shown(clock)
         val fromX: Double
         val fromY: Double
@@ -147,8 +155,10 @@ class MotionPlanner {
         val still = abs(vx) < STILL && abs(vy) < STILL
         // Come to rest exactly: a pointer the hand has stopped is not steered, it is put there.
         val settle = still && abs(fromX - x) <= SETTLE && abs(fromY - y) <= SETTLE
-        val codeX = if (settle) 0 else MotionCodec.code(vx + (x - fromX) / CATCH_UP)
-        val codeY = if (settle) 0 else MotionCodec.code(vy + (y - fromY) / CATCH_UP)
+        // Never faster than the edge allows: past it the shader would carry the pointer off
+        // the page, and the next packet would pull it back — the bounce at the edges.
+        val codeX = if (settle) 0 else MotionCodec.code(withinEdges(vx + (x - fromX) / CATCH_UP, fromX, width))
+        val codeY = if (settle) 0 else MotionCodec.code(withinEdges(vy + (y - fromY) / CATCH_UP, fromY, height))
         val tick = floor(clock).toLong()
         val part = clock - tick
         val sx = MotionCodec.speed(codeX)
@@ -167,6 +177,13 @@ class MotionPlanner {
         speedY = sy
         at = tick
         return MotionPlan(px, py, tick, codeX, codeY)
+    }
+
+    /** A speed that does not carry [from] past 0 or [extent] within the ticks a place lasts. */
+    private fun withinEdges(speed: Double, from: Double, extent: Double): Double = when {
+        speed > 0 -> Math.min(speed, Math.max(0.0, (extent - 1 - from) / ELAPSED_MAX))
+        speed < 0 -> Math.max(speed, -Math.max(0.0, from / ELAPSED_MAX))
+        else -> 0.0
     }
 
     /** Forgets what the client was drawing: the next packet starts where the pointer is. */
