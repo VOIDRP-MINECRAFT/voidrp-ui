@@ -161,13 +161,17 @@ class PageManager(
 
     /** (Re)starts the frame loop at [frameRate]. */
     private fun schedule() {
+        // The loop itself always runs at LOOP_RATE: it reads the aim and, for a client that
+        // moves the pointer itself, sends only when the course changes, so polling often
+        // costs nothing and polling seldom made the pointer late. [frameRate] is how often
+        // a pointer sent frame by frame may go, and each session holds itself to it.
         frameTask?.cancel(false)
         frameTask = frames.scheduleAtFixedRate(
             {
                 runCatching { sessions.values.forEach { it.frame() } }
             },
             0,
-            1_000_000L / frameRate,
+            1_000_000L / LOOP_RATE,
             java.util.concurrent.TimeUnit.MICROSECONDS,
         )
     }
@@ -191,7 +195,7 @@ class PageManager(
      * what client motion needs to hand one packet over to the next without a jump. Tuned
      * with `/vui debug clock` and `/vui debug offset`.
      */
-    var clientClockOffset: Double = plugin.config.getDouble("input.client-clock-offset", 1.3).coerceIn(-3.0, 3.0)
+    var clientClockOffset: Double = plugin.config.getDouble("input.client-clock-offset", 0.9).coerceIn(-3.0, 3.0)
 
     var prediction: Double = plugin.config
         .getDouble("input.prediction", ru.voidrp.ui.input.Pointer.PREDICTION)
@@ -290,6 +294,7 @@ class PageManager(
                 { over -> forgetSession(over) },
                 { clientMotion(player) && cursorPrefs?.of(player.uniqueId)?.motion != false },
                 { cursorPrefs?.of(player.uniqueId)?.clockOffset ?: clientClockOffset },
+                { frameRate },
             )
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
@@ -493,6 +498,9 @@ class PageManager(
         /** How often the pointer is drawn when nothing says otherwise. */
         const val DEFAULT_FRAME_RATE = 40
         const val MIN_FRAME_RATE = 10
+
+        /** How often the aim is read and the pointer considered, in frames a second. */
+        const val LOOP_RATE = 60
         const val MAX_FRAME_RATE = 144
     }
 }

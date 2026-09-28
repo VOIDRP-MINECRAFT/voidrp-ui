@@ -93,6 +93,8 @@ class PageSession(
      * had gone than had, hit its limit and held the pointer until the next packet.
      */
     private val clockOffset: () -> Double = { 0.0 },
+    /** How many pointers a second may go when it is sent frame by frame. */
+    private val frameRate: () -> Int = { 60 },
 ) {
 
     /** The canvas this player's page is drawn on. */
@@ -430,8 +432,15 @@ class PageSession(
             return
         }
         if (before == cursorX to cursorY && wasOver?.id == under?.id) return
+        // The loop runs faster than a pointer sent frame by frame may go: a frame skipped
+        // here is caught up by the next one allowed, which draws wherever the pointer is then.
+        if (now - drawnAt < 1_000_000_000L / frameRate().coerceAtLeast(1) && wasOver?.id == under?.id) return
+        drawnAt = now
         draw()
     }
+
+    /** When a pointer sent frame by frame last went. */
+    private var drawnAt = 0L
 
     /**
      * A frame for a client that moves the pointer itself: nothing is sent unless the course
@@ -469,12 +478,35 @@ class PageSession(
         }
         out += ru.voidrp.ui.render.Label(x0 - 180, y0 - 30 - lift, "clock  ping ${ping()} ms", 14, 0xAAAAFF)
         val tick = Math.floor(clock).toLong()
-        val px = Math.round(x0 - PROBE_SPEED * (clock - tick)).toInt()
+        // Half a loop back, so the mark, which runs on until the next one lands, swings
+        // either side of the clock's offset rather than always to the right of it.
+        val halfLoop = 0.5 * TICKS_PER_SECOND / PageManager.LOOP_RATE
+        val px = Math.round(x0 - PROBE_SPEED * (clock - tick + halfLoop)).toInt()
         out += Sprite(
             px, y0 - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
             motion = ru.voidrp.ui.render.SpriteMotion(tick, ru.voidrp.ui.input.MotionCodec.code(PROBE_SPEED.toDouble()), 0),
         )
         return out
+    }
+
+    private var probeSince = 0L
+    private var probeSent = 0
+    private var probeWorst = 0L
+
+    /** While the ruler is on: how many pointers went out a second, and the slowest one. */
+    private fun countProbe(started: Long) {
+        val done = System.nanoTime()
+        probeSent++
+        probeWorst = maxOf(probeWorst, done - started)
+        if (probeSince == 0L) probeSince = done
+        if (done - probeSince >= 2_000_000_000L) {
+            plugin.logger.info(
+                "clock ruler ${player.name}: ${probeSent / 2.0} pointers/s, slowest ${probeWorst / 1_000_000.0} ms",
+            )
+            probeSince = done
+            probeSent = 0
+            probeWorst = 0
+        }
     }
 
     /** A fresh reading: where the hand is, and how fast the readings are moving. */
@@ -832,6 +864,7 @@ class PageSession(
             )
             val nodes = if (clockProbe) listOf(sprite) + probe(clock, lift) else listOf(sprite)
             renderer.cursor(player, GlyphEncoder.encode(nodes, viewport.width / 2))
+            if (clockProbe) countProbe(now)
             return@synchronized
         }
         renderer.cursor(player, GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
@@ -938,6 +971,8 @@ class PageSession(
         }
 
         /** The pointer: one glyph, drawn with its own colours. */
+        private const val TICKS_PER_SECOND = 20.0
+
         /** The clock ruler's scale: units a tick, and a speed the codec carries exactly. */
         private const val PROBE_SPEED = 50
 
