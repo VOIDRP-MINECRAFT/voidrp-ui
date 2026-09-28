@@ -20,6 +20,11 @@ page:
 
 # The screen setup page — the one page every player sees.
 cursor-page:
+  where: "Where the menu is"
+  where-hint: "In the world: the menu stands in front of you and the pointer is the middle of the screen — it moves with the camera, perfectly smooth. With a shader pack choose On screen. Takes effect next time a menu opens."
+  where-unavailable: "The menu in the world needs a 26.2 or newer client."
+  on-screen: "On screen"
+  in-world: "In the world"
   eyebrow: "Pointer settings · kept for you"
   title: "A pointer for your mouse"
   speed: "Speed"

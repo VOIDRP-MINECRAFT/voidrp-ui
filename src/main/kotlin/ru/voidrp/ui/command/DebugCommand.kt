@@ -30,6 +30,9 @@ import ru.voidrp.ui.style.Theme
  */
 class DebugCommand(private val plugin: VoidRpUiPlugin) {
 
+    /** `/vui debug world`: the prototype pages in the world, one per player. */
+    private val worldPreviews = mutableMapOf<java.util.UUID, org.bukkit.entity.TextDisplay>()
+
     fun handle(sender: CommandSender, args: List<String>) {
         when (args.firstOrNull()?.lowercase()) {
             // How long a page takes to lay out and encode — the two things done per redraw.
@@ -143,6 +146,46 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                         NamedTextColor.AQUA,
                     )
                 )
+            }
+
+            // Prototype of the page in the world: the open page, copied onto a text display
+            // two blocks in front of the player, seen by them alone. Again to take it away.
+            "world" -> {
+                val player = sender as? org.bukkit.entity.Player ?: return
+                worldPreviews.remove(player.uniqueId)?.let {
+                    it.remove()
+                    sender.sendMessage(Component.text("World page removed.", NamedTextColor.AQUA))
+                    return
+                }
+                val text = plugin.pages.pageAsText(player) ?: run {
+                    sender.sendMessage(Component.text("Open a page first.", NamedTextColor.RED)); return
+                }
+                plugin.pages.close(player)
+                val eye = player.eyeLocation
+                val flat = org.bukkit.util.Vector(eye.direction.x, 0.0, eye.direction.z).normalize()
+                // Half the page's height above the eyes: the page hangs down from the display.
+                val half = 512 * 0.025 * ru.voidrp.ui.pack.Shaders.WORLD_DISPLAY_SCALE
+                val at = eye.clone().add(flat.clone().multiply(args.getOrNull(1)?.toDoubleOrNull() ?: 2.0)).add(0.0, half, 0.0)
+                at.yaw = eye.yaw + 180f
+                at.pitch = 0f
+                val display = player.world.spawn(at, org.bukkit.entity.TextDisplay::class.java) { d ->
+                    d.text(text)
+                    d.lineWidth = Int.MAX_VALUE
+                    d.backgroundColor = org.bukkit.Color.fromARGB(0, 0, 0, 0)
+                    d.isShadowed = false
+                    d.billboard = org.bukkit.entity.Display.Billboard.FIXED
+                    d.brightness = org.bukkit.entity.Display.Brightness(15, 15)
+                    val s = ru.voidrp.ui.pack.Shaders.WORLD_DISPLAY_SCALE
+                    d.transformation = org.bukkit.util.Transformation(
+                        org.joml.Vector3f(), org.joml.AxisAngle4f(), org.joml.Vector3f(s, s, s), org.joml.AxisAngle4f(),
+                    )
+                    d.isPersistent = false
+                    d.isVisibleByDefault = false
+                    d.viewRange = 4f
+                }
+                player.showEntity(plugin, display)
+                worldPreviews[player.uniqueId] = display
+                sender.sendMessage(Component.text("Page drawn in the world. /vui debug world again to remove.", NamedTextColor.AQUA))
             }
 
             // How far this client's clock is from ours: the one unknown of client motion.
@@ -327,7 +370,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "clock", "offset", "mtrace", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "clock", "offset", "mtrace", "world", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()

@@ -34,6 +34,8 @@ class CursorPage(
     private val serverOffset: () -> Double,
     /** Whether this client can move the pointer itself at all: the pack it loaded. */
     private val motionPossible: () -> Boolean,
+    /** Whether this client can draw a page in the world: the same. */
+    private val worldPossible: () -> Boolean = { false },
     private val done: () -> Unit = {},
     private val say: (String) -> String = { ru.voidrp.ui.Messages.bundled(it) },
 ) : Page() {
@@ -43,6 +45,7 @@ class CursorPage(
     private val mine get() = prefs.of(id)
     private val sensitivity get() = mine.sensitivity ?: serverSensitivity()
     private val smooth get() = motionPossible() && mine.motion != false
+    private val inWorld get() = worldPossible() && mine.world == true
     private val offset get() = mine.clockOffset ?: serverOffset()
 
     override fun onOpen() {
@@ -71,6 +74,14 @@ class CursorPage(
         children = listOfNotNull(
             eyebrow(say("cursor-page.eyebrow")),
             Text(say("cursor-page.title"), Theme.TEXT_H3, Theme.INK, TextFonts.Weight.BOLD, align = TextAlign.CENTER),
+            setting(
+                say("cursor-page.where"),
+                say(if (worldPossible()) "cursor-page.where-hint" else "cursor-page.where-unavailable"),
+                listOf(
+                    button(say("cursor-page.on-screen"), "cur:screen", if (!inWorld) Theme.buttonPrimary else Theme.buttonGhost, height = 40),
+                    button(say("cursor-page.in-world"), "cur:world", if (inWorld) Theme.buttonPrimary else Theme.buttonGhost, height = 40),
+                ),
+            ),
             setting(
                 say("cursor-page.speed"),
                 say("cursor-page.speed-hint"),
@@ -139,6 +150,8 @@ class CursorPage(
         when (id) {
             "cur:slower" -> prefs.update(this.id) { it.copy(sensitivity = step(sensitivity, -1)) }
             "cur:faster" -> prefs.update(this.id) { it.copy(sensitivity = step(sensitivity, +1)) }
+            "cur:screen" -> prefs.update(this.id) { it.copy(world = false) }
+            "cur:world" -> if (worldPossible()) prefs.update(this.id) { it.copy(world = true) }
             "cur:smooth" -> prefs.update(this.id) { it.copy(motion = true) }
             "cur:frames" -> prefs.update(this.id) { it.copy(motion = false) }
             "cur:earlier" -> prefs.update(this.id) { it.copy(clockOffset = nudge(offset, -OFFSET_STEP)) }

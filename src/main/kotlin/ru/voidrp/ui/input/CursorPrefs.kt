@@ -20,6 +20,8 @@ class CursorPrefs(private val file: File) {
         val sensitivity: Double? = null,
         val motion: Boolean? = null,
         val clockOffset: Double? = null,
+        /** The page in the world, pointed at with the middle of the view, rather than on the screen. */
+        val world: Boolean? = null,
     )
 
     private val chosen = ConcurrentHashMap<UUID, Prefs>()
@@ -34,6 +36,7 @@ class CursorPrefs(private val file: File) {
                 sensitivity = if (section.isSet("sensitivity")) section.getDouble("sensitivity").coerceIn(SENSITIVITY_MIN, SENSITIVITY_MAX) else null,
                 motion = if (section.isSet("motion")) section.getBoolean("motion") else null,
                 clockOffset = if (section.isSet("clock-offset")) section.getDouble("clock-offset").coerceIn(OFFSET_MIN, OFFSET_MAX) else null,
+                world = if (section.isSet("world")) section.getBoolean("world") else null,
             )
         }
     }
@@ -59,6 +62,7 @@ class CursorPrefs(private val file: File) {
             p.sensitivity?.let { yaml.set("$id.sensitivity", it) }
             p.motion?.let { yaml.set("$id.motion", it) }
             p.clockOffset?.let { yaml.set("$id.clock-offset", it) }
+            p.world?.let { yaml.set("$id.world", it) }
         }
         runCatching {
             file.parentFile?.mkdirs()

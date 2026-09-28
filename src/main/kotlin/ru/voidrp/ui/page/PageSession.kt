@@ -95,7 +95,22 @@ class PageSession(
     private val clockOffset: () -> Double = { 0.0 },
     /** How many pointers a second may go when it is sent frame by frame. */
     private val frameRate: () -> Int = { 60 },
+    /**
+     * Whether this page is drawn in the world rather than on the screen
+     * ([ru.voidrp.ui.render.WorldSurface]): the page stands in front of the player and the
+     * pointer is the middle of their view. Asked once, when the page opens.
+     */
+    private val worldMode: () -> Boolean = { false },
 ) {
+
+    /** The page in the world, when it is drawn there; null on the screen. */
+    private var world: ru.voidrp.ui.render.WorldSurface? = null
+
+    /** Whether this page is drawn in the world: the player is kept where they stand. */
+    val inWorld: Boolean get() = world != null
+
+    /** The eyes the world page was put in front of: the player does not move while it is up. */
+    private var worldEye: org.bukkit.util.Vector? = null
 
     /** The canvas this player's page is drawn on. */
     val viewport: ru.voidrp.ui.layout.Viewport get() = screen()
@@ -258,6 +273,10 @@ class PageSession(
         // A bar left behind by an earlier life of the plugin would push this page down a
         // line, and the pointer with it.
         runCatching { renderer.clearOrphans(player) }
+        if (worldMode()) {
+            world = runCatching { ru.voidrp.ui.render.WorldSurface(plugin, player, viewport.width) }.getOrNull()
+            worldEye = player.eyeLocation.toVector()
+        }
         page.session = this
         page.onOpen()
         sounds.open(player)
@@ -431,6 +450,10 @@ class PageSession(
         val before = cursorX to cursorY
         val wasOver = under
         val now = System.nanoTime()
+        if (world != null) {
+            frameInWorld()
+            return
+        }
         val sampled = readAim(now)
         pointer.smoothing = smoothing()
         pointer.prediction = prediction()
@@ -452,6 +475,31 @@ class PageSession(
 
     /** When a pointer sent frame by frame last went. */
     private var drawnAt = 0L
+
+    /**
+     * A frame for a page in the world: where the middle of the view meets the page is the
+     * pointer, read straight off the latest look — nothing to smooth, the client shows it.
+     */
+    private fun frameInWorld() {
+        val surface = world ?: return
+        val eye = worldEye ?: return
+        val wire = aim.look(player.uniqueId)
+        val yaw = wire?.get(0) ?: runCatching { player.location.yaw }.getOrNull() ?: return
+        val pitch = wire?.get(1) ?: runCatching { player.location.pitch }.getOrNull() ?: return
+        val yawRad = Math.toRadians(yaw.toDouble())
+        val pitchRad = Math.toRadians(pitch.toDouble())
+        val direction = org.bukkit.util.Vector(
+            -Math.sin(yawRad) * Math.cos(pitchRad),
+            -Math.sin(pitchRad),
+            Math.cos(yawRad) * Math.cos(pitchRad),
+        )
+        val (x, y) = surface.aim(eye, direction) ?: return
+        val wasOver = under
+        pointer.place(x, y)
+        under = regions.lastOrNull { it.contains(cursorX, cursorY) }
+        if (under?.id != null && under?.id != wasOver?.id) sounds.hover(player)
+        if (under?.id != wasOver?.id || tooltip != null) synchronized(drawing) { drawHover() }
+    }
 
     /**
      * A frame for a client that moves the pointer itself: nothing is sent unless the course
@@ -786,7 +834,21 @@ class PageSession(
      * Cut at the edges of a scrolling list, a scroll changes one piece: the list goes again
      * and the rest of the page, the heaviest part of it, stays where it is on the screen.
      */
+    /** The page last sent, whole, for drawing it somewhere other than the boss bars. */
+    @Volatile var lastPage: List<Node> = emptyList()
+        private set
+    @Volatile var lastCentre: Int = 0
+        private set
+
     private fun send(page: List<Node>, cuts: List<Int>, centre: Int) {
+        lastPage = page
+        lastCentre = centre
+        world?.let {
+            // In the world the page is one display: no lines to stack, so no lift either.
+            it.page(GlyphEncoder.encode(page, centre))
+            sent++
+            return
+        }
         // Panels taken apart first, so that even a page that is one big panel can be halved,
         // and the cuts moved to where their nodes' shapes begin.
         val nodes = ArrayList<Node>()
@@ -850,6 +912,8 @@ class PageSession(
      */
     private fun draw(replan: Boolean = false) = synchronized(drawing) {
         drawHover()
+        // In the world the pointer is the middle of the view: nothing to draw for it.
+        if (world != null) return@synchronized
         val lift = cursorLift()
         val now = System.nanoTime()
         val clock = clock(now)
@@ -905,7 +969,9 @@ class PageSession(
         val nodes = mutableListOf<Node>()
         region?.let { halo(it, nodes) }
         view?.let { tooltipNodes(it, nodes) }
-        renderer.hover(player, GlyphEncoder.encode(nodes, viewport.width / 2, lift))
+        val surface = world
+        if (surface != null) surface.hover(GlyphEncoder.encode(nodes, viewport.width / 2))
+        else renderer.hover(player, GlyphEncoder.encode(nodes, viewport.width / 2, lift))
         hoverSends++
     }
 
@@ -937,6 +1003,8 @@ class PageSession(
         forget(this)
         sounds.close(player)
         renderer.clear(player)
+        world?.remove()
+        world = null
         page.onClose()
         page.session = null
         stack.forEach { it.session = null }

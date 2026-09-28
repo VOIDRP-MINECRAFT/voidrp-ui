@@ -64,6 +64,8 @@ class PageManager(
     private val clientMotion: (Player) -> Boolean = { false },
     /** What each player has set for their own pointer; the `input` section for the rest. */
     private val cursorPrefs: ru.voidrp.ui.input.CursorPrefs? = null,
+    /** Whether this player's client can draw a page in the world: the pack it loaded. */
+    private val worldPossible: (Player) -> Boolean = { false },
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -260,6 +262,7 @@ class PageManager(
             serverSensitivity = { sensitivity },
             serverOffset = { clientClockOffset },
             motionPossible = { clientMotion(player) },
+            worldPossible = { worldPossible(player) },
             done = { then?.let { open(player, it) } },
             say = { key -> messages.text(key) },
         ).also { it.isFollowed = then != null }
@@ -295,6 +298,7 @@ class PageManager(
                 { clientMotion(player) && cursorPrefs?.of(player.uniqueId)?.motion != false },
                 { cursorPrefs?.of(player.uniqueId)?.clockOffset ?: clientClockOffset },
                 { frameRate },
+                { worldPossible(player) && cursorPrefs?.of(player.uniqueId)?.world == true },
             )
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
@@ -342,6 +346,19 @@ class PageManager(
         }
     }
 
+    /**
+     * A page in the world stays where it was put, so the player stays too: they may look
+     * round it, not walk off from it.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    fun onMove(event: org.bukkit.event.player.PlayerMoveEvent) {
+        if (session(event.player)?.inWorld != true) return
+        val from = event.from
+        val to = event.to
+        if (from.x == to.x && from.y == to.y && from.z == to.z) return
+        event.setTo(from.clone().apply { yaw = to.yaw; pitch = to.pitch })
+    }
+
     /** Called every tick: the cursor follows the player's aim, so it has to keep up. */
     fun tick() {
         sessions.values.toList().forEach { session ->
@@ -351,6 +368,10 @@ class PageManager(
 
     /** Starts a ten-second motion trace on this player's open page; false with none open. */
     fun traceMotion(player: Player): Boolean = session(player)?.let { it.startTrace(); true } ?: false
+
+    /** The open page, whole, as one line of glyphs; null with no page open. */
+    fun pageAsText(player: Player): net.kyori.adventure.text.Component? =
+        session(player)?.let { ru.voidrp.ui.render.GlyphEncoder.encode(it.lastPage, it.lastCentre) }
 
     /** Flips the clock ruler on this player's open page; null with no page open. */
     fun toggleClockProbe(player: Player): Boolean? =

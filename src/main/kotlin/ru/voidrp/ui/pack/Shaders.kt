@@ -83,6 +83,12 @@ object Shaders {
     const val MARKER_MOTION_LAST = 0x9
 
     /**
+     * The scale of a text display that carries a page in the world: a text pixel there is
+     * 1/40 of a block, times this, so a 1024-unit-tall page stands about 1.8 blocks high.
+     */
+    const val WORLD_DISPLAY_SCALE = 0.07f
+
+    /**
      * Whether the pack moves the pointer on the client ([MARKER_MOTION_FIRST]). Like the
      * drifting specks it reads the client's time of day, so it brings in the same import.
      */
@@ -355,7 +361,21 @@ object Shaders {
             vec3 motion;
             voidrpShape = 0.0;
             if (voidrp_decode(Color, canvasY, fill, drifts, motion)) {
+        #if defined(IS_GUI)
                 gl_Position = voidrp_place(canvasY, gl_Position, drifts, motion);
+        #else
+                // A page on a text display in the world: the client has already laid the
+                // line out across the display, so x is right; the height carried in the
+                // colour goes down the world's vertical in the display's scale — the page
+                // stands upright, facing the player.
+                // Every glyph lies in the one plane, and in the world that is a contest for
+                // the depth buffer: text lost to the panel under it. Each vertex is drawn a
+                // hair nearer than the one before, in the order the page paints them, so the
+                // later wins as it does on the screen.
+                vec3 placed = Position - vec3(0.0, canvasY * ${"%.6f".format(java.util.Locale.ROOT, 0.025 * WORLD_DISPLAY_SCALE)}, 0.0);
+                placed *= 1.0 - float(gl_VertexID) * 0.0000015;
+                gl_Position = ProjMat * ModelViewMat * vec4(placed, 1.0);
+        #endif
                 tint = vec4(fill, 1.0);
                 voidrpShape = 1.0;
             }
