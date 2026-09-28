@@ -66,6 +66,14 @@ interface VoidRpUi {
      */
     fun askScreen(player: Player, then: Page? = null): Boolean
 
+    /**
+     * Opens the page where a player sets up their own pointer — speed, smooth or frame by
+     * frame, and the clock allowance for the smooth kind — kept for them for good. [then]
+     * is opened when they press Done; without it the page goes back or closes. False when
+     * the server keeps no per-player settings.
+     */
+    fun cursorSettings(player: Player, then: Page? = null): Boolean = false
+
     /** Canvas units per degree of turn. */
     var sensitivity: Double
 

@@ -176,7 +176,7 @@ class MotionPlanner {
 
     companion object {
         /** Ticks a gap between the model and the pointer is made up over. */
-        const val CATCH_UP = 2.0
+        const val CATCH_UP = 1.5
 
         /** Further apart than this, and the pointer jumps rather than chases. */
         const val SNAP = 160.0

@@ -62,6 +62,8 @@ class PageManager(
      * pack, and the pack this client loaded is the one it is in.
      */
     private val clientMotion: (Player) -> Boolean = { false },
+    /** What each player has set for their own pointer; the `input` section for the rest. */
+    private val cursorPrefs: ru.voidrp.ui.input.CursorPrefs? = null,
 ) : Listener, ru.voidrp.ui.api.VoidRpUi {
 
     private val sessions = java.util.concurrent.ConcurrentHashMap<UUID, PageSession>()
@@ -184,6 +186,13 @@ class PageManager(
      * one thing that takes it closer to the hand than a reading behind it. See
      * [ru.voidrp.ui.input.Pointer.prediction].
      */
+    /**
+     * How far a client's clock runs ahead of the server's when a packet lands, in ticks —
+     * what client motion needs to hand one packet over to the next without a jump. Tuned
+     * with `/vui debug clock` and `/vui debug offset`.
+     */
+    var clientClockOffset: Double = plugin.config.getDouble("input.client-clock-offset", 1.3).coerceIn(-3.0, 3.0)
+
     var prediction: Double = plugin.config
         .getDouble("input.prediction", ru.voidrp.ui.input.Pointer.PREDICTION)
         .coerceIn(ru.voidrp.ui.input.Pointer.PREDICTION_MIN, ru.voidrp.ui.input.Pointer.PREDICTION_MAX)
@@ -239,6 +248,20 @@ class PageManager(
         return open(player, ask)
     }
 
+    override fun cursorSettings(player: Player, then: Page?): Boolean {
+        val prefs = cursorPrefs ?: return false
+        val page = CursorPage(
+            prefs,
+            player.uniqueId,
+            serverSensitivity = { sensitivity },
+            serverOffset = { clientClockOffset },
+            motionPossible = { clientMotion(player) },
+            done = { then?.let { open(player, it) } },
+            say = { key -> messages.text(key) },
+        ).also { it.isFollowed = then != null }
+        return open(player, page)
+    }
+
     override fun open(player: Player, page: Page): Boolean {
         if (!packReady(player)) {
             player.sendMessage(messages.get("pack.missing"))
@@ -256,7 +279,7 @@ class PageManager(
                 page,
                 renderer,
                 sounds,
-                { sensitivity },
+                { cursorPrefs?.of(player.uniqueId)?.sensitivity ?: sensitivity },
                 { smoothing },
                 { prediction },
                 { cursorBarOffset },
@@ -265,7 +288,8 @@ class PageManager(
                 { viewportOf(player) },
                 { key -> messages.text(key) },
                 { over -> forgetSession(over) },
-                { clientMotion(player) },
+                { clientMotion(player) && cursorPrefs?.of(player.uniqueId)?.motion != false },
+                { cursorPrefs?.of(player.uniqueId)?.clockOffset ?: clientClockOffset },
             )
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
@@ -319,6 +343,10 @@ class PageManager(
             if (session.player.isOnline) session.tick() else close(session.player)
         }
     }
+
+    /** Flips the clock ruler on this player's open page; null with no page open. */
+    fun toggleClockProbe(player: Player): Boolean? =
+        session(player)?.let { it.clockProbe = !it.clockProbe; it.clockProbe }
 
     // A closed session answers to nothing, whichever list it is still on.
     private fun session(player: Player): PageSession? = sessions[player.uniqueId]?.takeIf { !it.isClosed }

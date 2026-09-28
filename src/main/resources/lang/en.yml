@@ -19,6 +19,21 @@ page:
   closed: "<gray>Closed.</gray>"
 
 # The screen setup page — the one page every player sees.
+cursor-page:
+  eyebrow: "Pointer settings · kept for you"
+  title: "A pointer for your mouse"
+  speed: "Speed"
+  speed-hint: "How far the pointer goes for a turn of the mouse."
+  mode: "Motion"
+  mode-hint: "Smooth: the game itself moves the pointer at your monitor's rate. Frame by frame: as before, every step comes from the server."
+  mode-unavailable: "The smooth pointer needs a 26.2 or newer client — yours goes frame by frame."
+  smooth: "Smooth"
+  frames: "Frame by frame"
+  clock: "Clock alignment"
+  clock-hint: "There is a ruler at the top. Press − or + until its arrow sits on the yellow 0 — then the pointer does not jerk at speed."
+  done: "Done"
+  server: "Server default"
+
 screen-page:
   eyebrow: "Screen setup · asked once"
   title: "Line the frame up with your screen"
@@ -46,6 +61,6 @@ prompt:
 command:
   players-only: "<red>That command is for players.</red>"
   no-permission: "<red>You are not allowed to do that.</red>"
-  usage: "<gray>/vui open · /vui screen · /vui pack · /vui help</gray>"
-  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|smooth|predict|fps|motion|cursor|shape|text|shot|sweep|clear</gray>"
+  usage: "<gray>/vui open · /vui screen · /vui cursor · /vui pack · /vui help</gray>"
+  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|smooth|predict|fps|motion|clock|offset|cursor|shape|text|shot|sweep|clear</gray>"
   unknown: "<red>No such command.</red> <gray>/vui help</gray>"

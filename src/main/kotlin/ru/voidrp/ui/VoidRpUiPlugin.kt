@@ -49,6 +49,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
      * window instead of being squashed into it.
      */
     val screens = ru.voidrp.ui.layout.Screens(File(dataFolder, "screens.yml")) { serverScreen }
+    val cursorPrefs = ru.voidrp.ui.input.CursorPrefs(File(dataFolder, "cursor.yml"))
 
     /** The screen shape assumed for a player who has not said what theirs is. */
     private var serverScreen = ru.voidrp.ui.layout.Viewport.DEFAULT
@@ -64,6 +65,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
         { config.getBoolean("display.ask-screen", true) },
         bars,
         { player -> ru.voidrp.ui.pack.Shaders.motion && clientMotion && usesModernPack(player) },
+        cursorPrefs,
     )
     private val sweeps = mutableMapOf<UUID, BukkitTask>()
     private lateinit var packFile: File
@@ -144,6 +146,7 @@ class VoidRpUiPlugin : JavaPlugin(), Listener {
             ?.let { ru.voidrp.ui.layout.Viewport.parse(it) }
             ?: ru.voidrp.ui.layout.Viewport.DEFAULT
         screens.load()
+        cursorPrefs.load()
         logger.info(
             "Assumed screen: ${ru.voidrp.ui.layout.Viewport.name(serverScreen)} " +
                 "(${serverScreen.width}×${serverScreen.height}). A player sets their own with /vui screen."

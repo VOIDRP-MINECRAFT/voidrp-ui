@@ -86,6 +86,13 @@ class PageSession(
      * new enough to run it. Otherwise every frame is sent, as before.
      */
     private val clientMotion: () -> Boolean = { false },
+    /**
+     * How far the client's clock runs ahead of ours when a packet lands, in ticks. Measured
+     * with `/vui debug clock`: 1.1 to 2 on a local client. Unaccounted for, every change of
+     * speed moved the pointer by that change times this, and the shader, thinking more time
+     * had gone than had, hit its limit and held the pointer until the next packet.
+     */
+    private val clockOffset: () -> Double = { 0.0 },
 ) {
 
     /** The canvas this player's page is drawn on. */
@@ -114,6 +121,13 @@ class PageSession(
     @Volatile private var worldTicks = 0L
     @Volatile private var tickAt = 0L
 
+    /**
+     * `/vui debug clock`: draws a ruler with a mark that sits as many ticks off its middle
+     * as this client's clock is off ours when a packet lands — the one number client motion
+     * depends on and nothing else can see. Sent every frame while it is on.
+     */
+    @Volatile var clockProbe = false
+
     /** The whole tick the last moving pointer was planned in. */
     private var plannedTick = Long.MIN_VALUE
 
@@ -133,11 +147,15 @@ class PageSession(
     private var handVx = 0.0
     private var handVy = 0.0
 
-    /** The world's clock now, in ticks and the part of one gone; null before the first tick. */
+    /**
+     * The clock the client's shader will read when what is sent now lands: the world's clock
+     * as of the last tick, the part of a tick gone since, and how far ahead the client's own
+     * runs ([clockOffset]). Null before the first tick.
+     */
     private fun clock(now: Long): Double? {
         val at = tickAt
         if (at == 0L) return null
-        return worldTicks + ((now - at) / 50_000_000.0).coerceIn(0.0, 2.0)
+        return worldTicks + ((now - at) / 50_000_000.0).coerceIn(0.0, 2.0) + clockOffset()
     }
 
     /** Whether the pointer goes as a place and a speed right now. */
@@ -429,11 +447,34 @@ class PageSession(
         val off = shown?.let { Math.hypot(it.first - x, it.second - y) } ?: Double.MAX_VALUE
         val stopping = vx == 0.0 && vy == 0.0 && planner.moving
         val unsettled = vx != 0.0 || vy != 0.0 || planner.moving || off > 1.0
-        val due = sampled || stopping || (tick != plannedTick && unsettled)
+        val due = clockProbe || sampled || stopping || (tick != plannedTick && unsettled)
         when {
             due -> draw()
             overChanged -> synchronized(drawing) { drawHover() }
         }
+    }
+
+    /**
+     * The clock ruler: ticks −3…3, fifty units apart, and a pointer sent moving at fifty
+     * units a tick from the middle as of our clock right now. On the client it lands at the
+     * middle plus fifty times however far the client's clock is from ours.
+     */
+    private fun probe(clock: Double, lift: Int): List<Node> {
+        val x0 = viewport.width / 2
+        val y0 = 140
+        val out = mutableListOf<Node>(Rect(x0 - 190, y0 - 34 - lift, 380, 92, Paint(0x101018)))
+        for (k in -3..3) {
+            out += Rect(x0 + k * PROBE_SPEED - 1, y0 + 20 - lift, 2, 14, Paint(if (k == 0) 0xFFD166 else 0xFFFFFF))
+            out += ru.voidrp.ui.render.Label(x0 + k * PROBE_SPEED - 5, y0 + 38 - lift, "$k", 14, 0xFFFFFF)
+        }
+        out += ru.voidrp.ui.render.Label(x0 - 180, y0 - 30 - lift, "clock  ping ${ping()} ms", 14, 0xAAAAFF)
+        val tick = Math.floor(clock).toLong()
+        val px = Math.round(x0 - PROBE_SPEED * (clock - tick)).toInt()
+        out += Sprite(
+            px, y0 - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
+            motion = ru.voidrp.ui.render.SpriteMotion(tick, ru.voidrp.ui.input.MotionCodec.code(PROBE_SPEED.toDouble()), 0),
+        )
+        return out
     }
 
     /** A fresh reading: where the hand is, and how fast the readings are moving. */
@@ -789,7 +830,8 @@ class PageSession(
                 plan.x, plan.y - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
                 motion = ru.voidrp.ui.render.SpriteMotion(plan.tick, plan.vx, plan.vy),
             )
-            renderer.cursor(player, GlyphEncoder.encode(listOf(sprite), viewport.width / 2))
+            val nodes = if (clockProbe) listOf(sprite) + probe(clock, lift) else listOf(sprite)
+            renderer.cursor(player, GlyphEncoder.encode(nodes, viewport.width / 2))
             return@synchronized
         }
         renderer.cursor(player, GlyphEncoder.encode(cursor(cursorX, cursorY - lift), viewport.width / 2))
@@ -896,6 +938,9 @@ class PageSession(
         }
 
         /** The pointer: one glyph, drawn with its own colours. */
+        /** The clock ruler's scale: units a tick, and a speed the codec carries exactly. */
+        private const val PROBE_SPEED = 50
+
         /** A tick of the world's clock, in nanoseconds. */
         private const val NANOS_PER_TICK = 50_000_000.0
 

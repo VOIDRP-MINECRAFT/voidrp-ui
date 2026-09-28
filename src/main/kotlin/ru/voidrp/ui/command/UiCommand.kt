@@ -50,6 +50,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
             // The one thing the game never tells the server: what shape the window is.
             // Asked for here rather than guessed, and remembered for good.
             "screen" -> withPlayer(sender) { player -> screen(player, args.getOrNull(1)) }
+            "cursor" -> withPlayer(sender) { player -> plugin.pages.cursorSettings(player) }
 
             "help", null -> sender.sendMessage(plugin.messages.get("command.usage"))
 
@@ -102,7 +103,7 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
         label: String,
         args: Array<out String>,
     ): List<String> = when {
-        args.size <= 1 -> listOf("open", "demo", "close", "screen", "pack", "help").let {
+        args.size <= 1 -> listOf("open", "demo", "close", "screen", "cursor", "pack", "help").let {
             if (sender.hasPermission("voidrp.ui.debug")) it + "debug" else it
         }.filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
 

@@ -19,6 +19,21 @@ page:
   closed: "<gray>Закрыто.</gray>"
 
 # Страница настройки экрана — единственная, которую видит каждый игрок.
+cursor-page:
+  eyebrow: "Настройка курсора · сохраняется за вами"
+  title: "Курсор под вашу мышь"
+  speed: "Скорость"
+  speed-hint: "Насколько далеко уходит курсор на поворот мыши."
+  mode: "Движение"
+  mode-hint: "«Плавный» ведёт курсор сама игра с частотой вашего монитора. «По кадрам» — как раньше: каждый шаг присылает сервер."
+  mode-unavailable: "Плавный курсор работает с клиента 26.2 и новее — у вас пока по кадрам."
+  smooth: "Плавный"
+  frames: "По кадрам"
+  clock: "Подстройка часов"
+  clock-hint: "Сверху линейка. Жмите − или +, пока стрелка на ней не встанет на жёлтый 0 — тогда курсор не дёргается на скорости."
+  done: "Готово"
+  server: "Как на сервере"
+
 screen-page:
   eyebrow: "Настройка экрана · один раз"
   title: "Подгоните рамку под края экрана"
@@ -46,6 +61,6 @@ prompt:
 command:
   players-only: "<red>Команда только для игроков.</red>"
   no-permission: "<red>Недостаточно прав.</red>"
-  usage: "<gray>/vui open · /vui screen · /vui pack · /vui help</gray>"
-  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|smooth|predict|fps|motion|cursor|shape|text|shot|sweep|clear</gray>"
+  usage: "<gray>/vui open · /vui screen · /vui cursor · /vui pack · /vui help</gray>"
+  usage-debug: "<gray>/vui debug bench|stats|clicks|sens|smooth|predict|fps|motion|clock|offset|cursor|shape|text|shot|sweep|clear</gray>"
   unknown: "<red>Неизвестная команда.</red> <gray>/vui help</gray>"

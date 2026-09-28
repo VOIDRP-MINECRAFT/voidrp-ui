@@ -151,6 +151,11 @@ input:
   # nothing is sent while the pointer stands still. Clients on the older pack are sent every
   # frame at frame-rate, as before. Needs the pack rebuilt: it changes the text shader.
   client-motion: true
+  # How far a client's clock runs ahead of the server's when a packet lands, in ticks.
+  # Client motion hands one packet over to the next without a jump only when this is right.
+  # Measured on a local client at 1.1 to 2. To tune: open a page, /vui debug clock, and
+  # /vui debug offset <ticks> until the ruler's mark sits on 0.
+  client-clock-offset: 1.3
   # Whether the page is drawn again when the cursor moves onto something else.
   #
   # A page is one long line; sending it costs tens of kilobytes, and doing that every time

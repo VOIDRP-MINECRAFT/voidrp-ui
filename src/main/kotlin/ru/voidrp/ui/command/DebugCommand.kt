@@ -117,6 +117,38 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
                 )
             }
 
+            // The allowance for the client's clock running ahead: set so the ruler reads 0.
+            "offset" -> {
+                args.getOrNull(1)?.replace(',', '.')?.toDoubleOrNull()?.let {
+                    plugin.pages.clientClockOffset = it.coerceIn(-3.0, 3.0)
+                    plugin.config.set("input.client-clock-offset", plugin.pages.clientClockOffset)
+                    plugin.saveConfig()
+                }
+                sender.sendMessage(
+                    Component.text(
+                        "Client clock offset ${plugin.pages.clientClockOffset} ticks (saved). With /vui debug clock on, " +
+                            "raise it by where the mark sits until the mark sits on 0.",
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
+            // How far this client's clock is from ours: the one unknown of client motion.
+            "clock" -> {
+                val player = sender as? org.bukkit.entity.Player ?: return
+                val on = plugin.pages.toggleClockProbe(player)
+                sender.sendMessage(
+                    Component.text(
+                        when (on) {
+                            null -> "Open a page first."
+                            true -> "Clock ruler on: the pointer at the top sits (clock offset) ticks from the yellow 0. Screenshot it a few times."
+                            false -> "Clock ruler off."
+                        },
+                        NamedTextColor.AQUA,
+                    )
+                )
+            }
+
             // The pointer moved by the client, or sent frame by frame: flipped live to compare.
             "motion" -> {
                 when (args.getOrNull(1)?.lowercase()) {
@@ -283,7 +315,7 @@ class DebugCommand(private val plugin: VoidRpUiPlugin) {
     }
 
     fun complete(args: List<String>): List<String> = if (args.size <= 1) {
-        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
+        listOf("bench", "stats", "clicks", "sens", "smooth", "predict", "fps", "motion", "clock", "offset", "cursor", "trace", "shape", "text", "shot", "sweep", "clear")
             .filter { it.startsWith(args.firstOrNull().orEmpty(), ignoreCase = true) }
     } else {
         emptyList()
