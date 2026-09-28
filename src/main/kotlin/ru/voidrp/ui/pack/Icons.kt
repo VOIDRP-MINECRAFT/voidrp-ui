@@ -22,8 +22,12 @@ package ru.voidrp.ui.pack
  */
 object Icons {
 
-    /** The sizes an icon can be drawn at, in canvas units. Item textures are 16×16. */
-    val SIZES = listOf(16, 32)
+    /**
+     * The sizes an icon can be drawn at, in canvas units. Item textures are 16×16, so each
+     * size is a whole multiple of the texture and every pixel stays square: 48 is for
+     * pages drawn on a pixel grid of three units, like an inventory at GUI scale 3.
+     */
+    val SIZES = listOf(16, 32, 48)
 
     private const val BASE = 0xF000
 
