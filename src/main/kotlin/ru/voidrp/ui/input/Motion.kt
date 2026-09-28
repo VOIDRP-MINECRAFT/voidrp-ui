@@ -1,6 +1,7 @@
 package ru.voidrp.ui.input
 
 import kotlin.math.abs
+import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.roundToInt
 
@@ -44,6 +45,9 @@ object MotionCodec {
 
     /** The sign bit of a speed's code. */
     const val NEGATIVE = 32
+
+    /** Minus nothing, both ways: a hold rather than a segment. */
+    const val HOLD = NEGATIVE
 
     /** The nearest speed that can be sent, as its six-bit code. */
     fun code(speed: Double): Int {
@@ -124,124 +128,151 @@ object MotionCodec {
 }
 
 /**
- * What to send, as the shader will read it: a place at a whole [tick] and a speed each way.
+ * One glyph of a moving pointer, as the shader reads it: a place at a whole [tick], and
+ * how far it goes in the one tick after — or, for [hold], where it stays from then on.
  */
-data class MotionPlan(val x: Int, val y: Int, val tick: Long, val vx: Int, val vy: Int)
+data class MotionGlyph(val x: Int, val y: Int, val tick: Long, val vx: Int, val vy: Int) {
+    val hold: Boolean get() = vx == MotionCodec.HOLD && vy == MotionCodec.HOLD
+}
 
 /**
- * Chooses what to send so the pointer on the screen goes to where the hand last was, and
- * stops there.
+ * The pointer as a schedule the client plays by its own clock.
  *
- * The client's pointer never runs ahead of the last reading of the aim. An earlier planner
- * carried the hand on by its speed so the pointer would not trail it, and every time the
- * hand stopped the pointer ran on until the stop was heard, then came back: tens of units,
- * the one thing left wrong once it was otherwise smooth. This is how the client moves an
- * entity between two updates instead — it goes to where it was last told, and no further.
+ * Sent as a place and a speed, the pointer changed course whenever a packet happened to be
+ * applied — a network's and a frame's worth after it was planned, different every time —
+ * and every change of speed moved it by that change times that delay: ten units, twenty
+ * times a second, measured from a recording of a real hand. No amount of steering helps,
+ * because the delay is not ours to know.
  *
- * The shader carries a place on for at most [ELAPSED_MAX] ticks, so the end of that is
- * where the pointer comes to rest. Each packet is laid out to put that end on the target:
- * the place is where the client's pointer is now (so nothing jumps), and the speed is the
- * one that covers the rest in the time left before the end. Speeds are rounded towards
- * zero, so the pointer may stop a little short, which the next packet makes up — it never
- * overshoots. Where it stops does not depend on the client's clock at all: only when.
+ * So the course is changed at a time the client knows instead. Each reading of the aim
+ * becomes a segment: from where the last one ended to the new reading, in the one tick
+ * after a whole tick of the world's clock a little ahead of now. Every segment is visible
+ * in its own tick only, and the last one is followed by a [hold] at its end; the shader
+ * shows whichever one's time it is. Each packet carries the segments still to be played,
+ * so when it lands does not matter as long as it lands before its first segment starts:
+ * the pointer goes through the readings joined end to end, with no jump anywhere — the
+ * way the client moves an entity between two updates, a tick and a bit behind the hand.
  */
-class MotionPlanner {
+class MotionTimeline {
 
-    private var sent = false
-    private var placeX = 0.0
-    private var placeY = 0.0
-    private var speedX = 0.0
-    private var speedY = 0.0
-    private var at = 0L
+    private data class Segment(val start: Long, val x: Int, val y: Int, val vx: Int, val vy: Int)
 
-    /** Where the client is drawing the pointer at [clock], by our model of it. */
-    fun shown(clock: Double): Pair<Double, Double>? {
-        if (!sent) return null
-        val elapsed = (clock - at).coerceIn(ELAPSED_MIN, ELAPSED_MAX)
-        return (placeX + speedX * elapsed) to (placeY + speedY * elapsed)
+    private val segments = ArrayDeque<Segment>()
+
+    /** Where the schedule ends: the tick, and the place the pointer stays at after it. */
+    private var endTick: Long? = null
+    var endX = 0.0
+        private set
+    var endY = 0.0
+        private set
+    private var placed = false
+
+    /** Whether the pointer is at rest, sent the ordinary way rather than as a schedule. */
+    var resting = true
+        private set
+
+    /** The pointer put somewhere outright, at rest — a page that opens. */
+    fun place(x: Double, y: Double) {
+        segments.clear()
+        endTick = null
+        endX = x
+        endY = y
+        placed = true
+        resting = true
     }
-
-    /** Where the client's pointer will come to rest. */
-    fun resting(): Pair<Double, Double>? =
-        if (!sent) null else (placeX + speedX * ELAPSED_MAX) to (placeY + speedY * ELAPSED_MAX)
 
     /**
-     * Whether the client is drawing a moving pointer that has already arrived at [clock].
-     *
-     * It must be told to rest then, and soon: the tick goes modulo [MotionCodec.TICK_WRAP],
-     * so a moving place left on screen comes round again — the pointer replayed its last
-     * move every four ticks, sinking nine pixels and jumping back, with the mouse untouched.
+     * A new reading: a segment from where the schedule ends to [x], [y]. [yAsSent] is the
+     * encoder's rounding of a height, so the schedule knows where the client really starts.
      */
-    fun ended(clock: Double): Boolean = sent && (speedX != 0.0 || speedY != 0.0) && clock - at >= ELAPSED_MAX
-
-    /** Whether the client is drawing a pointer that is still on its way at [clock]. */
-    fun moving(clock: Double): Boolean = sent && (speedX != 0.0 || speedY != 0.0) && clock - at < ELAPSED_MAX
-
-    /** Plans the next packet: the pointer to go to [x], [y] from wherever it is at [clock]. */
-    fun plan(x: Double, y: Double, clock: Double, yAsSent: (Int) -> Int = { it }): MotionPlan {
-        val shown = shown(clock) ?: (x to y)
-        val dx = x - shown.first
-        val dy = y - shown.second
-        if (Math.abs(dx) < SETTLE && Math.abs(dy) < SETTLE) return rest(x, y, clock)
-        // Arrived short: rest where it is if that is close enough, rather than a last hop.
-        if (ended(clock) && Math.abs(dx) < SETTLE * 3 && Math.abs(dy) < SETTLE * 3) return rest(x, y, clock)
-        // A tick for the place such that between 1.2 and 2.2 ticks are left before the end.
-        // Readings come about a tick apart, so while the hand moves the next one always
-        // lands before the pointer arrives and it never stands waiting for it; an earlier
-        // half to one and a half ticks let it arrive first, stop, and go again every tick.
-        val whole = floor(clock).toLong()
-        val part = clock - whole
-        val tick = if (part <= 0.8) whole else whole + 1
-        val elapsed = clock - tick
-        val left = ELAPSED_MAX - elapsed
-        val codeX = MotionCodec.codeToward(dx, left)
-        val codeY = MotionCodec.codeToward(dy, left)
-        val sx = MotionCodec.speed(codeX)
-        val sy = MotionCodec.speed(codeY)
-        val px = (shown.first - sx * elapsed).roundToInt()
-        // y as the encoder will round it, so the model is what the client draws: rounded
-        // behind its back, every hand-over moved the pointer up to two units.
-        val py = yAsSent((shown.second - sy * elapsed).roundToInt())
-        remember(px.toDouble(), py.toDouble(), sx, sy, tick)
-        return MotionPlan(px, py, tick, codeX, codeY)
+    fun reading(x: Double, y: Double, clock: Double, yAsSent: (Double) -> Int = { Math.round(it).toInt() }): List<MotionGlyph> {
+        if (!placed) {
+            place(x, y)
+            return emptyList()
+        }
+        val now = floor(clock).toLong()
+        val earliest = ceil(clock + MARGIN).toLong()
+        // A segment that has not started yet is aimed at the new reading instead of being
+        // queued behind: readings a little closer than a tick apart would otherwise build
+        // a backlog, the pointer falling further behind and the schedule reaching so far
+        // ahead that the shader, whose clock goes round every four ticks, read it as past.
+        segments.lastOrNull()?.takeIf { it.start >= earliest }?.let { pending ->
+            segments.removeLast()
+            endX = pending.x.toDouble()
+            endY = pending.y.toDouble()
+            endTick = pending.start
+        }
+        // From rest, or after a gap, the pointer stands where it is until the new segment:
+        // as one-tick segments of no speed, so nothing is left over once it moves on.
+        var fill = maxOf(endTick ?: (now - 1), now - 1)
+        val start = maxOf(endTick ?: earliest, earliest)
+        while (fill < start) {
+            segments.addLast(Segment(fill, Math.round(endX).toInt(), yAsSent(endY), 0, 0))
+            fill++
+        }
+        val fromX = Math.round(endX).toInt()
+        val fromY = yAsSent(endY)
+        val vx = MotionCodec.code(x - fromX)
+        val vy = MotionCodec.code(y - fromY)
+        segments.addLast(Segment(start, fromX, fromY, vx, vy))
+        endX = fromX + MotionCodec.speed(vx)
+        endY = fromY + MotionCodec.speed(vy)
+        endTick = start + 1
+        resting = false
+        prune(now)
+        return glyphs()
     }
 
-    /** At rest exactly on [x], [y]. */
-    private fun rest(x: Double, y: Double, clock: Double): MotionPlan {
-        val tick = floor(clock).toLong()
-        remember(x.roundToInt().toDouble(), y.roundToInt().toDouble(), 0.0, 0.0, tick)
-        return MotionPlan(x.roundToInt(), y.roundToInt(), tick, 0, 0)
+    /**
+     * Whether it is time to send the pointer at rest: the schedule played out and the hold
+     * has been showing a while. It must be replaced within [MotionCodec.TICK_WRAP] ticks or
+     * the hold comes round again.
+     */
+    fun settled(clock: Double): Boolean = !resting && endTick?.let { clock >= it + REST_AFTER } == true
+
+    /** Rest at the end of the schedule. */
+    fun rest() {
+        segments.clear()
+        endTick = null
+        resting = true
     }
 
-    private fun remember(x: Double, y: Double, vx: Double, vy: Double, tick: Long) {
-        sent = true
-        placeX = x
-        placeY = y
-        speedX = vx
-        speedY = vy
-        at = tick
+    /** The glyphs of the schedule as it stands, for a packet that has to carry the pointer. */
+    fun glyphs(): List<MotionGlyph> {
+        val end = endTick ?: return emptyList()
+        // The hold carries the last segment's tick and shows from the end of it: given a
+        // tick of its own, a tick further on, it was far enough ahead to read as the past.
+        return segments.map { MotionGlyph(it.x, it.y, it.start, it.vx, it.vy) } +
+            MotionGlyph(Math.round(endX).toInt(), Math.round(endY).toInt(), end - 1, MotionCodec.HOLD, MotionCodec.HOLD)
     }
 
-    /** Forgets what the client was drawing: the next packet starts where the pointer is. */
-    fun reset() {
-        sent = false
+    /**
+     * Only this tick's segment and the one before — for a client whose clock runs a little
+     * behind — go out. Anything older is not merely useless: the shader's clock goes round
+     * every four ticks, and a packet held on screen long enough brought it back into view.
+     */
+    private fun prune(now: Long) {
+        while (segments.isNotEmpty() && segments.first().start < now - 1) segments.removeFirst()
     }
 
     companion object {
-        /** Closer than this to where it belongs, and the pointer is simply put there. */
-        const val SETTLE = 0.75
+        /**
+         * Ticks between a reading and the start of its segment, at the least: time for the
+         * packet to land and for the client's clock to be a little off ours.
+         */
+        const val MARGIN = 0.3
 
         /**
-         * How far from its tick the shader carries a place: a little back, for a client
-         * whose clock runs behind ours, and two ticks on — where the pointer stops.
+         * Ticks the hold shows before the pointer is sent at rest — well inside [WRAP_AT],
+         * past which the hold would read as a tick still to come and vanish.
          */
-        const val ELAPSED_MIN = -1.0
-        const val ELAPSED_MAX = 2.0
+        const val REST_AFTER = 1.1
 
         /**
-         * Where the shader turns an elapsed time read modulo [MotionCodec.TICK_WRAP] into
-         * one before the tick instead: past three ticks is a place from just ahead.
+         * Where the shader turns an elapsed time read modulo [MotionCodec.TICK_WRAP] into a
+         * tick still to come: a segment starts at most 1.3 ticks ahead, and a hold shows
+         * until [REST_AFTER] past the end of its segment and a packet's way beyond.
          */
-        const val ELAPSED_WRAP = 3.0
+        const val WRAP_AT = 2.7
     }
 }

@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import ru.voidrp.ui.input.MotionCodec
-import ru.voidrp.ui.input.MotionPlanner
+import ru.voidrp.ui.input.MotionTimeline
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.GlyphEncoder
 import ru.voidrp.ui.render.SpriteMotion
@@ -55,71 +55,77 @@ class MotionTest {
         assertEquals(-57.0, MotionCodec.yOf((data shr 14) and 255).toDouble(), 2.0)
     }
 
-    /** Where the shader draws a planned pointer at [clock], as it would on the client. */
-    private fun drawn(plan: ru.voidrp.ui.input.MotionPlan, clock: Double): Pair<Double, Double> {
-        val elapsed = (clock - plan.tick).coerceIn(MotionPlanner.ELAPSED_MIN, MotionPlanner.ELAPSED_MAX)
-        return (plan.x + MotionCodec.speed(plan.vx) * elapsed) to (plan.y + MotionCodec.speed(plan.vy) * elapsed)
+    /** What the shader draws from a packet's glyphs at [clock]: the one whose time it is. */
+    private fun drawn(glyphs: List<ru.voidrp.ui.input.MotionGlyph>, clock: Double): List<Double> {
+        val out = mutableListOf<Double>()
+        for (g in glyphs) {
+            var e = (clock - g.tick).mod(MotionCodec.TICK_WRAP.toDouble())
+            if (e >= MotionTimeline.WRAP_AT) e -= MotionCodec.TICK_WRAP
+            if (if (g.hold) e < 1 else (e < 0 || e >= 1)) continue
+            out += if (g.hold) g.x.toDouble() else g.x + MotionCodec.speed(g.vx) * e
+        }
+        return out
     }
 
     @Test
-    fun `a sweep is handed over without a jump and never runs past the hand`() {
-        val planner = MotionPlanner()
-        val speed = 23.0   // units a tick
-        var worstJump = 0.0
-        var worstPast = 0.0
-        var last: ru.voidrp.ui.input.MotionPlan? = null
-        var clock = 100.3
-        var hand = 200.0
-        repeat(40) {
-            hand += speed
-            val next = planner.plan(hand, 500.0, clock)
-            last?.let { worstJump = maxOf(worstJump, abs(drawn(it, clock).first - drawn(next, clock).first)) }
-            // Everywhere until the next reading, the pointer is short of the hand or on it.
-            var t = clock
-            while (t < clock + 1.0) {
-                worstPast = maxOf(worstPast, drawn(next, t).first - hand)
-                t += 0.1
-            }
-            last = next
+    fun `segments join end to end, one tick each, and end in a hold`() {
+        val timeline = MotionTimeline()
+        timeline.place(100.0, 400.0)
+        var glyphs = emptyList<ru.voidrp.ui.input.MotionGlyph>()
+        var clock = 10.72
+        repeat(6) { k ->
+            glyphs = timeline.reading(100.0 + 37.0 * (k + 1), 400.0 + 11.0 * (k + 1), clock)
             clock += 1.0
         }
-        assertTrue(worstJump <= 1.5, "jumped $worstJump units at a hand-over")
-        assertTrue(worstPast <= 1.0, "ran $worstPast units past the hand")
-    }
-
-    @Test
-    fun `a stopped hand leaves the pointer exactly where it is`() {
-        val planner = MotionPlanner()
-        var plan = planner.plan(300.0, 300.0, 50.0)
-        plan = planner.plan(411.0, 300.0, 50.6)
-        // Wherever it is drawn after the end, it rests short of the hand, never past it.
-        assertTrue(drawn(plan, 60.0).first <= 411.0)
-        // And once it has stopped short, the next packet puts it on the hand.
-        plan = planner.plan(411.0, 300.0, 53.0)
-        plan = planner.plan(411.0, 300.0, 56.0)
-        assertEquals(411.0, drawn(plan, 60.0).first, 1.5)
-    }
-
-    @Test
-    fun `a pointer that has arrived is told to rest`() {
-        val planner = MotionPlanner()
-        planner.plan(300.0, 300.0, 50.0)
-        planner.plan(360.0, 330.0, 51.0)
-        assertTrue(planner.ended(54.0), "a moving place must not be left to come round again")
-        val rest = planner.plan(360.0, 330.0, 54.0)
-        assertEquals(0, rest.vx)
-        assertEquals(0, rest.vy)
-        assertTrue(!planner.ended(60.0))
-    }
-
-    @Test
-    fun `a speed is never rounded up`() {
-        var v = 0.3
-        while (v < 650.0) {
-            assertTrue(MotionCodec.speed(MotionCodec.codeAtMost(v)) <= v + 1e-9)
-            assertTrue(MotionCodec.speed(MotionCodec.codeAtMost(-v)) >= -v - 1e-9)
-            v *= 1.05
+        val moving = glyphs.filter { !it.hold }
+        for ((a, b) in moving.zipWithNext()) {
+            assertEquals(a.tick + 1, b.tick)
+            assertEquals((a.x + MotionCodec.speed(a.vx)), b.x.toDouble(), 1.0)
         }
+        assertTrue(glyphs.last().hold)
+        assertEquals(moving.last().tick, glyphs.last().tick)
+    }
+
+    @Test
+    fun `whenever packets land, one pointer is drawn and it never jumps or goes back`() {
+        val timeline = MotionTimeline()
+        timeline.place(100.0, 400.0)
+        val random = java.util.Random(7)
+        // Packets: (the client clock they land at, their glyphs).
+        val packets = mutableListOf<Pair<Double, List<ru.voidrp.ui.input.MotionGlyph>>>()
+        var clock = 20.72
+        for (k in 1..30) {
+            val glyphs = timeline.reading(100.0 + 30.0 * k, 400.0, clock)
+            packets += (clock + random.nextDouble() * MotionTimeline.MARGIN * 0.9) to glyphs
+            clock += 0.9 + random.nextDouble() * 0.2
+        }
+        var shown: List<ru.voidrp.ui.input.MotionGlyph> = emptyList()
+        var last: Double? = null
+        var worst = 0.0
+        var c = 21.0
+        var p = 0
+        while (c < clock) {
+            while (p < packets.size && packets[p].first <= c) shown = packets[p++].second
+            val at = drawn(shown, c)
+            if (shown.isNotEmpty()) assertEquals(1, at.size, "pointers drawn at $c: $at from $shown")
+            at.firstOrNull()?.let { x ->
+                last?.let { worst = maxOf(worst, Math.abs(x - it)); assertTrue(x >= it - 0.5, "went back at $c") }
+                last = x
+            }
+            c += 1.0 / 3   // sixty frames a second
+        }
+        assertTrue(worst <= 12.0, "a frame moved $worst units")
+    }
+
+    @Test
+    fun `a schedule played out comes to rest`() {
+        val timeline = MotionTimeline()
+        timeline.place(100.0, 400.0)
+        timeline.reading(160.0, 400.0, 30.7)
+        assertTrue(!timeline.settled(31.0))
+        assertTrue(timeline.settled(35.0), "a hold must be replaced before it comes round again")
+        timeline.rest()
+        assertTrue(timeline.resting)
     }
 
     @Test

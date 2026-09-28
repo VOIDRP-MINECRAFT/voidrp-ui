@@ -153,7 +153,11 @@ object Shaders {
                 int data = ((mark - ${MARKER_MOTION_FIRST}) << 20) | bits;
                 canvasY = float((data >> 14) & 255) * ${ru.voidrp.ui.input.MotionCodec.Y_STEP}.0 - ${ru.voidrp.ui.input.MotionCodec.Y_SHIFT}.0;
                 fill = vec3(1.0);
-                motion = vec3(float((data >> 12) & 3), voidrp_speed((data >> 6) & 63), voidrp_speed(data & 63));
+                int codeX = (data >> 6) & 63;
+                int codeY = data & 63;
+                // Minus nothing both ways is the hold at the end of a schedule.
+                bool holds = codeX == ${ru.voidrp.ui.input.MotionCodec.HOLD} && codeY == ${ru.voidrp.ui.input.MotionCodec.HOLD};
+                motion = vec3(float((data >> 12) & 3), holds ? -9999.0 : voidrp_speed(codeX), holds ? -9999.0 : voidrp_speed(codeY));
                 return true;
             }
             if (mark < ${MARKER} || mark > ${MARKER_DRIFT_SHIFTED}) {
@@ -215,16 +219,23 @@ object Shaders {
             vec2 canvas = vec2(penX, canvasY + fromTop - ${LINE_TOP}.0);
         #ifdef VOIDRP_MOTION
             if (motion.x >= 0.0) {
-                // How far the world's clock is past the tick the place was given for. It
-                // travels modulo ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}; past half of that
-                // it is a place from a moment ahead of this client's clock. Carried a little
-                // back, and at most two ticks on, so a pointer whose packets stop stands still.
+                // A pointer played as a schedule (MotionTimeline): this glyph is one tick of
+                // it, or the hold at its end from the end of that tick onwards, and is
+                // drawn only then — whichever glyph's time it is, is the pointer. How far the
+                // clock is past the tick travels modulo ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP};
+                // past WRAP_AT it is a tick still to come.
                 float elapsed = mod(GameTime * 24000.0 - motion.x, ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}.0);
-                if (elapsed >= ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_WRAP}) {
+                if (elapsed >= ${ru.voidrp.ui.input.MotionTimeline.WRAP_AT}) {
                     elapsed -= ${ru.voidrp.ui.input.MotionCodec.TICK_WRAP}.0;
                 }
-                elapsed = clamp(elapsed, ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_MIN}, ${ru.voidrp.ui.input.MotionPlanner.ELAPSED_MAX});
-                canvas += motion.yz * elapsed;
+                // A segment shows in its own tick; a hold from the end of it on.
+                bool hold = motion.y < -9000.0;
+                if (hold ? elapsed < 1.0 : (elapsed < 0.0 || elapsed >= 1.0)) {
+                    return vec4(-4.0 * original.w, -4.0 * original.w, original.z, original.w);
+                }
+                if (!hold) {
+                    canvas += motion.yz * elapsed;
+                }
             }
         #endif
         #ifdef VOIDRP_PARTICLES

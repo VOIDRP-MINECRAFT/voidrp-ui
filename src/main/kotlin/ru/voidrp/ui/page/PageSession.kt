@@ -2,7 +2,6 @@ package ru.voidrp.ui.page
 
 import org.bukkit.entity.Player
 import net.kyori.adventure.text.Component
-import ru.voidrp.ui.input.MotionPlanner
 import ru.voidrp.ui.layout.Layout
 import ru.voidrp.ui.pack.Shaders
 import ru.voidrp.ui.render.BossBarRenderer
@@ -114,7 +113,7 @@ class PageSession(
     )
 
     /** What the client is drawing, when it moves the pointer itself. */
-    private val planner = ru.voidrp.ui.input.MotionPlanner()
+    private val timeline = ru.voidrp.ui.input.MotionTimeline()
 
     /**
      * The world's clock as of the last tick, and when that tick ran: between the two, the
@@ -153,9 +152,6 @@ class PageSession(
             }
         }
     }
-
-    /** The whole tick the last moving pointer was planned in. */
-    private var plannedTick = Long.MIN_VALUE
 
 
     /**
@@ -276,8 +272,7 @@ class PageSession(
         // one the last page was drawn on, if the player has just said what shape their
         // screen is.
         pointer.place((viewport.width / 2).toDouble(), (Shaders.CANVAS_HEIGHT / 2).toDouble())
-        planner.reset()
-        lastPlan = null
+        timeline.place(pointer.targetX, pointer.targetY)
         render()
     }
 
@@ -468,14 +463,25 @@ class PageSession(
         val x = pointer.targetX
         val y = pointer.targetY
         if (sampled) traceLine { "read,$now,$clock,$x,$y" }
-        // Sent when there is somewhere new to go, and when the pointer has stopped short of
-        // where it should be (a speed rounded down, a reading that came late).
-        val resting = planner.resting()
-        val short = resting?.let { Math.hypot(it.first - x, it.second - y) > MotionPlanner.SETTLE } ?: true
-        val replan = sampled || planner.ended(clock) || (short && !planner.moving(clock) && Math.floor(clock).toLong() != plannedTick)
+        val lift = cursorLift()
+        val asSent: (Double) -> Int = { h ->
+            ru.voidrp.ui.input.MotionCodec.yOf(ru.voidrp.ui.input.MotionCodec.yStep(Math.round(h).toInt() - lift)) + lift
+        }
         when {
-            replan -> draw(replan = true)
-            // The ruler goes every loop; the pointer with it, as it was last planned.
+            // A new reading: one more segment on the schedule.
+            sampled -> {
+                synchronized(drawing) { timeline.reading(x, y, clock, asSent) }
+                draw(replan = true)
+            }
+            // Played out: at rest where it ended, or one more segment if that fell short.
+            timeline.settled(clock) -> {
+                synchronized(drawing) {
+                    if (Math.hypot(timeline.endX - x, timeline.endY - y) > SETTLE) timeline.reading(x, y, clock, asSent)
+                    else timeline.rest()
+                }
+                draw(replan = true)
+            }
+            // The ruler goes every loop; the pointer with it, as it stands.
             clockProbe -> draw()
             overChanged -> synchronized(drawing) { drawHover() }
         }
@@ -499,11 +505,15 @@ class PageSession(
         // Half a loop back, so the mark, which runs on until the next one lands, swings
         // either side of the clock's offset rather than always to the right of it.
         val halfLoop = 0.5 * TICKS_PER_SECOND / PageManager.LOOP_RATE
-        val px = Math.round(x0 - PROBE_SPEED * (clock - tick + halfLoop)).toInt()
-        out += Sprite(
-            px, y0 - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
-            motion = ru.voidrp.ui.render.SpriteMotion(tick, ru.voidrp.ui.input.MotionCodec.code(PROBE_SPEED.toDouble()), 0),
-        )
+        // A glyph is drawn only in its own tick, so the mark is three of them, the tick
+        // before, this one and the next, each placed to continue the one before it.
+        for (k in -1L..1L) {
+            val px = Math.round(x0 - PROBE_SPEED * (clock - (tick + k) + halfLoop)).toInt()
+            out += Sprite(
+                px, y0 - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
+                motion = ru.voidrp.ui.render.SpriteMotion(tick + k, ru.voidrp.ui.input.MotionCodec.code(PROBE_SPEED.toDouble()), 0),
+            )
+        }
         return out
     }
 
@@ -832,9 +842,6 @@ class PageSession(
     private val drawing = Any()
 
     /** Sends the pointer, and what it is over when that has changed. */
-    /** The pointer as last planned, sent again as it is by anything but a new course. */
-    private var lastPlan: ru.voidrp.ui.input.MotionPlan? = null
-
     /**
      * Sends the pointer. A pointer the client moves is planned again only when [replan]:
      * everything else that sends it — the page redrawn, the hover, the ruler — sends the
@@ -847,20 +854,22 @@ class PageSession(
         val now = System.nanoTime()
         val clock = clock(now)
         if (clientMotion() && clock != null) {
-            val plan = lastPlan?.takeIf { !replan } ?: planner.plan(pointer.targetX, pointer.targetY, clock) { y ->
-                ru.voidrp.ui.input.MotionCodec.yOf(ru.voidrp.ui.input.MotionCodec.yStep(y - lift)) + lift
+            if (replan && !timeline.resting) {
+                traceLine { "plan,$now,$clock,${timeline.glyphs().joinToString(";") { "${it.x}/${it.y}/${it.tick}/${it.vx}/${it.vy}" }},${pointer.targetX},${pointer.targetY}" }
             }
-            traceLine { "plan,${System.nanoTime()},$clock,${plan.x},${plan.y},${plan.tick},${plan.vx},${plan.vy},${pointer.targetX},${pointer.targetY}" }
-            lastPlan = plan
-            plannedTick = plan.tick
-            // At rest it goes the ordinary way, to the unit; only a moving pointer needs the
-            // speed, and gives up a little of its height's precision for it.
-            val resting = plan.vx == 0 && plan.vy == 0
-            val sprite = Sprite(
-                plan.x, plan.y - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
-                motion = if (resting) null else ru.voidrp.ui.render.SpriteMotion(plan.tick, plan.vx, plan.vy),
-            )
-            val nodes = if (clockProbe) listOf(sprite) + probe(clock, lift) else listOf(sprite)
+            // At rest the ordinary way, to the unit; moving, the schedule's glyphs, each
+            // drawn by the client only in its own tick.
+            val pointerNodes: List<Node> = if (timeline.resting) {
+                cursor(Math.round(timeline.endX).toInt(), Math.round(timeline.endY).toInt() - lift)
+            } else {
+                timeline.glyphs().map {
+                    Sprite(
+                        it.x, it.y - lift, Glyphs.cursor(), Glyphs.cursorAdvance(),
+                        motion = ru.voidrp.ui.render.SpriteMotion(it.tick, it.vx, it.vy),
+                    )
+                }
+            }
+            val nodes = if (clockProbe) pointerNodes + probe(clock, lift) else pointerNodes
             renderer.cursor(player, GlyphEncoder.encode(nodes, viewport.width / 2))
             if (clockProbe) countProbe(now)
             return@synchronized
@@ -979,6 +988,9 @@ class PageSession(
 
         /** Ticks the clock may jump by (a lag spike, a /time) before the line starts over. */
         private const val CLOCK_RESYNC = 3.0
+
+        /** Closer than this to where it belongs, and a pointer that has played out rests. */
+        private const val SETTLE = 1.5
 
         /** The clock ruler's scale: units a tick, and a speed the codec carries exactly. */
         private const val PROBE_SPEED = 50
