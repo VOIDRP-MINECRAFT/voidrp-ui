@@ -65,7 +65,7 @@ dependencies {
     // Paper ships Gson at runtime; we only need it to read our own width table.
     compileOnly("com.google.code.gson:gson:2.14.0")
     // Optional: read the player's look the moment it arrives instead of on the next tick.
-    compileOnly("com.github.retrooper:packetevents-spigot:2.13.0")
+    compileOnly("com.github.retrooper:packetevents-spigot:2.14.0")
     // Not in the jar: the server fetches it at start (`libraries:` in plugin.yml). Shaded and
     // renamed, as it used to be, it broke every plugin written in Kotlin against this one —
     // a `Panel(...)` with any argument left out calls a constructor that takes Kotlin's own
