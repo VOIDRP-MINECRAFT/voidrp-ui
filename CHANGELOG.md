@@ -3,6 +3,18 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.3.20
+
+**The client's own grey text is left alone.** The shader took a glyph for ours by the high
+nibble of its red alone, and eight of the sixteen nibbles are markers. The sixteen named colours
+miss all of them, but the client draws its own interface in other greys: the debug screen (F3)
+and the chat box in `#E0E0E0` landed on the drifting-shifted marker, disabled widgets in
+`#808080` and `#707070` on the pointer's. Their text was flung to the top of the screen, blown up
+to canvas size and recoloured, while its shadow stayed behind as a darkened copy. Now a pure grey
+(red = green = blue) is never ours, and the encoder steps around one: a static glyph flips the
+lowest bit of its fill, a pointer glyph its speed (or, holding, its place) by one step. Text in
+other colours can still meet a marker; a check on that needs a change of the format.
+
 ## 0.3.19
 
 **The client moves the pointer itself.** A vanilla client reports where it is looking twenty

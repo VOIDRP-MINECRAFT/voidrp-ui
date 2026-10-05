@@ -147,12 +147,20 @@ object Shaders {
 
         bool voidrp_decode(vec4 color, out float canvasY, out vec3 fill, out bool drifts, out vec3 motion) {
             int red = int(floor(color.r * 255.0 + 0.5));
+            int green = int(floor(color.g * 255.0 + 0.5));
+            int blue = int(floor(color.b * 255.0 + 0.5));
             int mark = red >> 4;
-            int bits = ((red & 15) << 16)
-                     | (int(floor(color.g * 255.0 + 0.5)) << 8)
-                     |  int(floor(color.b * 255.0 + 0.5));
+            int bits = ((red & 15) << 16) | (green << 8) | blue;
             motion = vec3(-1.0, 0.0, 0.0);
             drifts = false;
+            canvasY = 0.0;
+            fill = vec3(1.0);
+            // The client draws its own interface in greys that land on our markers: the debug
+            // screen and the chat box in #E0E0E0, disabled widgets in #808080 and #707070.
+            // A pure grey is never ours (the encoder steps around it — Element.isGrey).
+            if (red == green && green == blue) {
+                return false;
+            }
             // The pointer: a place at a tick, and a speed each way (MotionCodec.data). The
             // marker is two bits of it; the colour is the rest, so the pointer is white.
             if (mark >= ${MARKER_MOTION_FIRST} && mark <= ${MARKER_MOTION_LAST}) {

@@ -385,7 +385,27 @@ object GlyphEncoder {
             motion.vy,
         )
         val marker = Shaders.MARKER_MOTION_FIRST + (data shr 20)
-        return (marker shl 20) or (data and 0xFFFFF)
+        val colour = (marker shl 20) or (data and 0xFFFFF)
+        if (!isGrey(colour)) return colour
+        // A grey is never ours to the shader (see [isGrey]). Nudge the least telling bit: the
+        // speed one step for a segment, the place one step for a hold (whose speeds are a code).
+        val hold = (data and 63) == ru.voidrp.ui.input.MotionCodec.HOLD &&
+            ((data shr 6) and 63) == ru.voidrp.ui.input.MotionCodec.HOLD
+        return colour xor (if (hold) 1 shl 14 else 1)
+    }
+
+    /**
+     * Whether a colour is a pure grey (red = green = blue).
+     *
+     * The client draws its own interface in greys that land on our markers — the debug
+     * screen and the chat box in #E0E0E0, disabled widgets in #808080 and #707070 — so the
+     * shader refuses every grey, and nothing we send may be one.
+     */
+    internal fun isGrey(colour: Int): Boolean {
+        val r = (colour shr 16) and 255
+        val g = (colour shr 8) and 255
+        val b = colour and 255
+        return r == g && g == b
     }
 
     internal fun pack(y: Int, fill: Int, drift: Boolean = false): Int {
@@ -397,6 +417,8 @@ object GlyphEncoder {
             drift -> Shaders.MARKER_DRIFT
             else -> Shaders.MARKER
         }
-        return (marker shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
+        val colour = (marker shl 20) or (qy shl Shaders.COLOUR_BITS) or fill
+        // A grey is never ours to the shader; one step of blue in the fill is invisible.
+        return if (isGrey(colour)) colour xor 1 else colour
     }
 }
