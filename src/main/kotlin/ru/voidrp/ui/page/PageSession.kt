@@ -101,7 +101,21 @@ class PageSession(
      * pointer is the middle of their view. Asked once, when the page opens.
      */
     private val worldMode: () -> Boolean = { false },
+    /**
+     * The player's own mouse, when their client runs our companion mod (see [ClientPointer]);
+     * null for the pointer read off the look.
+     */
+    private val client: ru.voidrp.ui.input.ClientPointer? = null,
 ) {
+
+    /** Whether the pointer is the player's own mouse, reported by their client. */
+    val fromClient: Boolean get() = client != null
+
+    /** The cursor shape last asked of the client. */
+    private var shape: ru.voidrp.ui.input.ClientPointer.Shape? = null
+
+    /** Set when the client took its screen down itself, so there is nothing to tell it. */
+    private var clientGone = false
 
     /** The page in the world, when it is drawn there; null on the screen. */
     private var world: ru.voidrp.ui.render.WorldSurface? = null
@@ -273,7 +287,7 @@ class PageSession(
         // A bar left behind by an earlier life of the plugin would push this page down a
         // line, and the pointer with it.
         runCatching { renderer.clearOrphans(player) }
-        if (worldMode()) {
+        if (client == null && worldMode()) {
             world = runCatching { ru.voidrp.ui.render.WorldSurface(plugin, player, viewport.width) }.getOrNull()
             worldEye = player.eyeLocation.toVector()
         }
@@ -286,7 +300,8 @@ class PageSession(
         // from the horizon there is as much room below as above. One packet, sent once, is
         // nothing like the tick-by-tick correction that made the screen shake.
         anchorPitch = 0f
-        player.setRotation(anchorYaw, 0f)
+        // The look is the pointer only without the mod; with it the view is left alone.
+        if (client == null) player.setRotation(anchorYaw, 0f) else client.open(player)
         // Levelled, the aim is the middle of the canvas — and this canvas may not be the
         // one the last page was drawn on, if the player has just said what shape their
         // screen is.
@@ -306,7 +321,7 @@ class PageSession(
      * there is as much room below as above.
      */
     fun reanchor() {
-        if (closed) return
+        if (closed || client != null) return
         val location = runCatching { player.location }.getOrNull() ?: return
         val speed = sensitivity()
         if (speed <= 0.0) return
@@ -446,7 +461,8 @@ class PageSession(
      * already encoded, so a frame costs one small run and a packet.
      */
     fun frame() {
-        if (closed) return
+        // The client's mouse is placed as it arrives (see [clientInput]); nothing to read here.
+        if (closed || client != null) return
         val before = cursorX to cursorY
         val wasOver = under
         val now = System.nanoTime()
@@ -650,6 +666,79 @@ class PageSession(
     }
 
     private var dragging: String? = null
+
+    /** Whether the pointer's bar has been emptied for the system cursor. */
+    private var cursorCleared = false
+
+    /**
+     * What the client reported of its mouse and keyboard. Runs on the server thread, where
+     * Paper hands plugin messages over, so the page is answered as from any other event.
+     */
+    fun clientInput(input: ru.voidrp.ui.input.ClientPointer.Input) {
+        if (closed || client == null) return
+        when (input) {
+            is ru.voidrp.ui.input.ClientPointer.Input.Move -> {
+                pointAt(input.dx, input.y)
+                dragging?.let { page.onDrag(it, cursorX, cursorY) }
+            }
+            is ru.voidrp.ui.input.ClientPointer.Input.Press -> {
+                pointAt(input.dx, input.y)
+                if (!input.down) {
+                    dragging = null
+                    return
+                }
+                val button = if (input.button == 1) Button.RIGHT else Button.LEFT
+                hovered = under?.id
+                dragging = hovered
+                hovered?.let {
+                    sounds.click(player)
+                    page.onClick(it, button)
+                }
+            }
+            is ru.voidrp.ui.input.ClientPointer.Input.Scroll -> {
+                pointAt(input.dx, input.y)
+                // The wheel up is a step back up a list, as everywhere else.
+                if (input.amount != 0) scroll(-input.amount)
+            }
+            is ru.voidrp.ui.input.ClientPointer.Input.Key -> when (input.key) {
+                // Escape and backspace go back a page, or close the last one — as crouching
+                // does with the look pointer, which a screen on the client leaves no way to do.
+                ru.voidrp.ui.input.ClientPointer.KEY_ESCAPE, ru.voidrp.ui.input.ClientPointer.KEY_BACKSPACE -> {
+                    if (back()) client.open(player) else close()
+                }
+                in ru.voidrp.ui.input.ClientPointer.KEY_1..ru.voidrp.ui.input.ClientPointer.KEY_9 ->
+                    if (page.usesKeys) key(input.key - ru.voidrp.ui.input.ClientPointer.KEY_1 + 1)
+                else -> {}
+            }
+            is ru.voidrp.ui.input.ClientPointer.Input.Character -> {}
+            ru.voidrp.ui.input.ClientPointer.Input.Closed -> {
+                clientGone = true
+                close()
+            }
+            is ru.voidrp.ui.input.ClientPointer.Input.Window -> {}
+        }
+    }
+
+    /**
+     * Puts the pointer where the client's mouse is and answers what it is now over: the
+     * highlight and the tooltip, the hover sound, and the cursor's shape on the client.
+     */
+    private fun pointAt(dx: Int, y: Int) {
+        val canvas = viewport
+        pointer.place(
+            (canvas.width / 2 + dx).toDouble().coerceIn(0.0, canvas.width.toDouble()),
+            y.toDouble().coerceIn(0.0, Shaders.CANVAS_HEIGHT.toDouble()),
+        )
+        val wasOver = under
+        under = regions.lastOrNull { it.contains(cursorX, cursorY) }
+        if (under?.id != null && under?.id != wasOver?.id) sounds.hover(player)
+        if (under?.id != wasOver?.id || tooltip != null) synchronized(drawing) { drawHover() }
+        val next = if (under?.id != null) ru.voidrp.ui.input.ClientPointer.Shape.HAND else ru.voidrp.ui.input.ClientPointer.Shape.ARROW
+        if (next != shape) {
+            shape = next
+            client?.cursor(player, next)
+        }
+    }
 
     private var lastSwing = 0L
 
@@ -904,6 +993,14 @@ class PageSession(
      */
     private fun draw(replan: Boolean = false) = synchronized(drawing) {
         drawHover()
+        // The system cursor is the pointer: nothing of ours to draw for it.
+        if (client != null) {
+            if (!cursorCleared) {
+                renderer.cursor(player, net.kyori.adventure.text.Component.empty())
+                cursorCleared = true
+            }
+            return@synchronized
+        }
         // In the world the pointer is the middle of the view: nothing to draw for it.
         if (world != null) return@synchronized
         val lift = cursorLift()
@@ -997,6 +1094,7 @@ class PageSession(
         renderer.clear(player)
         world?.remove()
         world = null
+        if (client != null && !clientGone) client.close(player)
         page.onClose()
         page.session = null
         stack.forEach { it.session = null }

@@ -204,7 +204,34 @@ class PageManager(
         .coerceIn(ru.voidrp.ui.input.Pointer.PREDICTION_MIN, ru.voidrp.ui.input.Pointer.PREDICTION_MAX)
 
     /** Starts drawing frames. */
+    /**
+     * The player's own mouse, for clients with our companion mod. On by default; turned off
+     * with `input.client-pointer: false`, and then every page uses the look pointer.
+     */
+    val clientPointer = ru.voidrp.ui.input.ClientPointer(
+        plugin,
+        receive = { player, input -> onClientInput(player, input) },
+        pageOpen = { player -> isOpen(player) },
+    )
+
+    private val usesClientPointer: Boolean get() = plugin.config.getBoolean("input.client-pointer", true)
+
+    private fun onClientInput(player: Player, input: ru.voidrp.ui.input.ClientPointer.Input) {
+        if (input is ru.voidrp.ui.input.ClientPointer.Input.Window) {
+            // The one thing the game never tells us — the mod does. Kept like a shape the
+            // player chose, so a page opened later is laid out for the real window at once.
+            if (input.width <= 0 || input.height <= 0) return
+            val fitted = ru.voidrp.ui.layout.Viewport(
+                Math.round(ru.voidrp.ui.layout.Viewport.HEIGHT.toDouble() * input.width / input.height).toInt().coerceIn(640, 4096),
+            )
+            if (screens?.isSet(player) != true || viewportOf(player) != fitted) setViewport(player, fitted)
+            return
+        }
+        session(player)?.clientInput(input)
+    }
+
     fun start() {
+        if (usesClientPointer) runCatching { clientPointer.register() }
         // Now, not in the constructor: by the time a plugin is enabled, the plugins it
         // asked to come first are enabled too.
         readsPackets = runCatching { aim.install() }.getOrDefault(false)
@@ -299,6 +326,7 @@ class PageManager(
                 { cursorPrefs?.of(player.uniqueId)?.clockOffset ?: clientClockOffset },
                 { frameRate },
                 { worldPossible(player) && cursorPrefs?.of(player.uniqueId)?.world == true },
+                clientPointer.takeIf { usesClientPointer && it.available(player) },
             )
         // Opened before it is listed: the frame thread walks this list sixty times a second
         // and draws the pointer, and bars stack in the order they first appear. Listed
