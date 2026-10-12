@@ -152,6 +152,10 @@ input:
   # nothing is sent while the pointer stands still. Clients on the older pack are sent every
   # frame at frame-rate, as before. Needs the pack rebuilt: it changes the text shader.
   client-motion: true
+  # The player's own mouse for clients with the companion mod (voidrp-client-info 1.2.0+):
+  # the system cursor instead of the look, the real wheel, Escape to go back. Players
+  # without the mod keep the look pointer.
+  client-pointer: true
   # How far a client's clock runs ahead of the server's when a packet lands, in ticks.
   # Client motion hands one packet over to the next without a jump only when this is right.
   # About 0.8 on a real graphics card at 60 fps, more on a slow one. Each player can tune

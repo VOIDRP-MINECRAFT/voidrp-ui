@@ -3,6 +3,21 @@
 Versions follow [semver](https://semver.org/). While the major is zero, breaking changes
 arrive with a minor bump and are named here outright.
 
+## 0.4.0
+
+**The system cursor, for clients with the companion mod.** A client running
+`voidrp-client-info` 1.2.0 holds an empty, transparent screen open while a page is up and
+reports the mouse on `voidrp:ui_input` — moves, buttons, wheel, keys and the window's size —
+while the server says when a page opens and closes, and what the cursor should look like,
+on `voidrp:ui_screen`. Such a session takes the pointer from the client instead of the look,
+draws no cursor of its own, turns the system cursor into a hand over anything clickable, and
+answers Escape and Backspace as crouching was answered. The window's size the mod reports is
+kept as the player's screen, so a page is laid out for it at once. Going from one page to the
+next does not put the cursor back in the middle of the screen (the close is held a tick and
+dropped when another page opens), and the channels are announced again to players already on
+the server when the plugin is loaded late. New: `Page.pointsWithMouse` for hints, and
+`page.opened-mouse` in the language files. `input.client-pointer: false` turns it off.
+
 ## 0.3.20
 
 **The client's own grey text is left alone.** The shader took a glyph for ours by the high

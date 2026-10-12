@@ -147,7 +147,7 @@ Building against it through [JitPack](https://jitpack.io):
 repositories { maven("https://jitpack.io") }
 
 dependencies {
-    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.3.19")
+    compileOnly("com.github.VOIDRP-MINECRAFT:voidrp-ui:v0.4.0")
 }
 ```
 
@@ -217,6 +217,20 @@ And it lets the plugin **keep other plugins' boss bars off a page**. A page ride
 bar, so an event timer or a TPS meter would otherwise sit on top of the page or push it
 down. While a page is open those bars are held back, the way the game's own menus cover the
 HUD, and when it closes they come back as they are by then.
+
+## If the player has the companion mod
+
+A vanilla client says nothing about its mouse while it plays, which is why the cursor is the
+player's look. A client running [`voidrp-client-info`](https://github.com/VOIDRP-MINECRAFT/voidrp-client-info)
+(1.2.0 or newer, NeoForge 26.2) points with **the system cursor** instead. While a page is up
+the mod holds an empty, transparent screen open and reports the mouse, the buttons, the wheel,
+the keys and the window's size on two plugin channels; the page is drawn exactly as always, by
+the server, behind it. The cursor turns into a hand over anything that can be pressed, Escape
+goes back a page, and the page is laid out for the real window without asking. Players without
+the mod are not affected. Off with `input.client-pointer: false`.
+
+The two channels are plain bytes, documented in `ClientPointer`, so another client mod can
+speak them too.
 
 ## Two client versions
 

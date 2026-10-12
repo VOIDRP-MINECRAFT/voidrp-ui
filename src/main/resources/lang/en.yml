@@ -16,6 +16,7 @@ pack:
 
 page:
   opened: "<gray>Look to move the cursor, left click to press, Shift to go back.</gray>"
+  opened-mouse: "<gray>Point with the mouse, left click to press, the wheel to scroll, Esc to go back.</gray>"
   closed: "<gray>Closed.</gray>"
 
 # The screen setup page — the one page every player sees.

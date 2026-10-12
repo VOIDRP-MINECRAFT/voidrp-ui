@@ -23,6 +23,13 @@ abstract class Page {
 
     internal var session: PageSession? = null
 
+    /**
+     * Whether the player points with their own mouse — their client runs the companion mod
+     * (see [ru.voidrp.ui.input.ClientPointer]) — rather than with their look. For hints:
+     * "look to move" is wrong for them, and Escape goes back where crouching does otherwise.
+     */
+    val pointsWithMouse: Boolean get() = session?.fromClient == true
+
     /** The player this page is open for. */
     val player: Player get() = session?.player ?: error("This page is not open yet")
 

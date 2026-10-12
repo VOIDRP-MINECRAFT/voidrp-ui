@@ -34,7 +34,8 @@ class UiCommand(private val plugin: VoidRpUiPlugin) : CommandExecutor, TabComple
 
             "open" -> withPlayer(sender) { player ->
                 if (!plugin.pages.open(player, HomePage())) return@withPlayer
-                player.sendMessage(plugin.messages.get("page.opened"))
+                val mouse = plugin.pages.current(player)?.pointsWithMouse == true
+                player.sendMessage(plugin.messages.get(if (mouse) "page.opened-mouse" else "page.opened"))
             }
 
             "close" -> withPlayer(sender) { player -> plugin.pages.close(player) }

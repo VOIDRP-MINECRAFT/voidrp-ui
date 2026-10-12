@@ -121,10 +121,10 @@ open class DemoPage : Page() {
                     Text("Origins", Theme.TEXT_H1, Theme.INK, TextFonts.Weight.BOLD, wrap = false),
                     RichText(
                         spans = listOf(
-                            Span("Look to move the cursor, "),
+                            Span(if (pointsWithMouse) "Point with the mouse, " else "Look to move the cursor, "),
                             Span("left click", Theme.INK, TextFonts.Weight.SEMIBOLD),
                             Span(" to press, "),
-                            Span("Shift", Theme.INK, TextFonts.Weight.SEMIBOLD),
+                            Span(if (pointsWithMouse) "Esc" else "Shift", Theme.INK, TextFonts.Weight.SEMIBOLD),
                             Span(" to go back"),
                         ),
                         colour = Theme.INK_SOFT,
